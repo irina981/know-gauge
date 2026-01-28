@@ -15,13 +15,13 @@ CREATE TABLE documents (
 -- Table for storing generated MCQ questions
 CREATE TABLE questions (
     id BIGSERIAL PRIMARY KEY,
-    document_id BIGINT REFERENCES documents(id),
+    document_id BIGINT REFERENCES documents(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
     option_a TEXT NOT NULL,
     option_b TEXT NOT NULL,
     option_c TEXT NOT NULL,
     option_d TEXT NOT NULL,
-    correct_answer CHAR(1) NOT NULL,
+    correct_answer CHAR(1) NOT NULL CHECK (correct_answer IN ('A', 'B', 'C', 'D')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
