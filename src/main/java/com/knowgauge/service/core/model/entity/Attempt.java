@@ -35,13 +35,16 @@ public class Attempt {
     private Integer totalQuestions;
 
     @Column(name = "correct_count", nullable = false)
-    private Integer correctCount;
+    @Builder.Default
+    private Integer correctCount = 0;
 
     @Column(name = "wrong_count", nullable = false)
-    private Integer wrongCount;
+    @Builder.Default
+    private Integer wrongCount = 0;
 
     @Column(name = "score_percent", nullable = false)
-    private Double scorePercent;
+    @Builder.Default
+    private Double scorePercent = 0.0;
 
     @Column(name = "started_at", nullable = false, updatable = false)
     private Instant startedAt;

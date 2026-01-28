@@ -68,7 +68,8 @@ CREATE TABLE document_chunks (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_document_chunks_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
     CONSTRAINT fk_document_chunks_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
-    CONSTRAINT fk_document_chunks_section FOREIGN KEY (section_id) REFERENCES document_sections(id) ON DELETE SET NULL
+    CONSTRAINT fk_document_chunks_section FOREIGN KEY (section_id) REFERENCES document_sections(id) ON DELETE SET NULL,
+    CONSTRAINT uk_document_chunks_document_index UNIQUE (document_id, chunk_index)
 );
 
 CREATE INDEX idx_document_chunks_document_id ON document_chunks(document_id);
@@ -83,19 +84,24 @@ CREATE TABLE chunk_embeddings (
     topic_id BIGINT NOT NULL,
     section_id BIGINT,
     chunk_index INTEGER NOT NULL,
-    embedding vector,
+    embedding vector(1536),
     embedding_model VARCHAR(100) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_chunk_embeddings_chunk FOREIGN KEY (chunk_id) REFERENCES document_chunks(id) ON DELETE CASCADE,
     CONSTRAINT fk_chunk_embeddings_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
     CONSTRAINT fk_chunk_embeddings_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
-    CONSTRAINT fk_chunk_embeddings_section FOREIGN KEY (section_id) REFERENCES document_sections(id) ON DELETE SET NULL
+    CONSTRAINT fk_chunk_embeddings_section FOREIGN KEY (section_id) REFERENCES document_sections(id) ON DELETE SET NULL,
+    CONSTRAINT uk_chunk_embeddings_chunk_model UNIQUE (chunk_id, embedding_model)
 );
 
 CREATE INDEX idx_chunk_embeddings_chunk_id ON chunk_embeddings(chunk_id);
 CREATE INDEX idx_chunk_embeddings_document_id ON chunk_embeddings(document_id);
 CREATE INDEX idx_chunk_embeddings_topic_id ON chunk_embeddings(topic_id);
 CREATE INDEX idx_chunk_embeddings_section_id ON chunk_embeddings(section_id);
+
+-- Create vector similarity index for efficient similarity search (using cosine distance)
+-- Note: The lists parameter should be adjusted based on data size (recommended: rows/1000 for < 1M rows)
+CREATE INDEX idx_chunk_embeddings_embedding ON chunk_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- Create tests table
 CREATE TABLE tests (
@@ -127,7 +133,8 @@ CREATE TABLE test_questions (
     explanation TEXT,
     source_chunk_ids_json TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_test_questions_test FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
+    CONSTRAINT fk_test_questions_test FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
+    CONSTRAINT uk_test_questions_test_index UNIQUE (test_id, question_index)
 );
 
 CREATE INDEX idx_test_questions_test_id ON test_questions(test_id);
@@ -139,9 +146,9 @@ CREATE TABLE attempts (
     user_id VARCHAR(255),
     status VARCHAR(50) NOT NULL,
     total_questions INTEGER NOT NULL,
-    correct_count INTEGER NOT NULL,
-    wrong_count INTEGER NOT NULL,
-    score_percent DOUBLE PRECISION NOT NULL,
+    correct_count INTEGER NOT NULL DEFAULT 0,
+    wrong_count INTEGER NOT NULL DEFAULT 0,
+    score_percent DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     submitted_at TIMESTAMP,
     scored_at TIMESTAMP,
@@ -161,7 +168,8 @@ CREATE TABLE attempt_answers (
     correct BOOLEAN NOT NULL,
     answered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_attempt_answers_attempt FOREIGN KEY (attempt_id) REFERENCES attempts(id) ON DELETE CASCADE,
-    CONSTRAINT fk_attempt_answers_question FOREIGN KEY (question_id) REFERENCES test_questions(id) ON DELETE CASCADE
+    CONSTRAINT fk_attempt_answers_question FOREIGN KEY (question_id) REFERENCES test_questions(id) ON DELETE CASCADE,
+    CONSTRAINT uk_attempt_answers_attempt_question UNIQUE (attempt_id, question_id)
 );
 
 CREATE INDEX idx_attempt_answers_attempt_id ON attempt_answers(attempt_id);
