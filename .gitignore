@@ -35,21 +35,11 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-# IntelliJ IDEA
+# IDE
 .idea/
 *.iml
-*.iws
-*.ipr
-out/
-
-# Eclipse
-.classpath
-.project
-.settings/
-bin/
-
-# VS Code
 .vscode/
-
-# macOS
-.DS_Store
+.eclipse/
+.project
+.classpath
+.settings/
