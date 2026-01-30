@@ -4,7 +4,7 @@
 
 # KnowGauge
 
-KnowGauge is a RAG-based Spring Boot platform for generating intelligent knowledge assessments. Build a RAG-based Spring Boot application that generates multiple-choice tests (MCQs) from stored documents organized by topics and subtopics.
+KnowGauge is a RAG-based Spring Boot platform for generating intelligent knowledge assessments from documents organized by hierarchical topics.
 
 ## Key Features
 
@@ -42,7 +42,7 @@ knowgauge-service/
 ## Modules
 
 ### knowgauge-service-core
-Core business logic and domain models. This module is framework-independent and contains the heart of the application logic. Includes all domain entities (Topic, Document, DocumentSection, DocumentChunk, Test, TestQuestion, Attempt, etc.) and enums. Uses Lombok for boilerplate reduction.
+Core business logic and domain models. Contains all domain entities (Topic, Document, DocumentSection, DocumentChunk, Test, TestQuestion, Attempt, etc.) with JPA annotations, and enums. Uses Lombok for boilerplate reduction.
 
 ### knowgauge-service-contract
 API contracts and DTOs (Data Transfer Objects). Defines the interface contracts that other modules and external clients can depend on.
@@ -54,7 +54,7 @@ Client library for consuming KnowGauge services. This module can be used by exte
 REST API layer built with Spring Boot. This is the executable application that exposes the REST endpoints.
 - Contains the main `@SpringBootApplication` class
 - Depends on core, contract, and infra modules
-- Includes Flyway database migrations
+- Contains Flyway database migration scripts
 - Serves static web content (landing page with logo)
 
 ### knowgauge-service-infra
@@ -62,8 +62,8 @@ Infrastructure layer split into specialized modules for better separation of con
 
 #### knowgauge-service-jpa-repo
 - JPA/Hibernate repositories for database access
-- Entity mappings for all domain models
 - PostgreSQL support
+- References domain entities from core module
 
 #### knowgauge-service-llm
 - Integration with Large Language Models (LLMs)
@@ -158,7 +158,7 @@ The application uses PostgreSQL with pgvector extension and Flyway migrations. T
 **Migration V2 (pgvector and Embeddings):**
 - **chunk_embeddings**: Vector embeddings storage with pgvector
 - IVFFlat index for similarity search (cosine distance)
-- Indexes on topic_id, document_id for metadata filtering
+- Indexes on chunk_id and embedding_model for efficient queries
 
 See `DOMAIN_MODEL.md` for complete details on all entities, fields, and relationships.
 
