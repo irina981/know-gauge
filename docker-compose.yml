@@ -18,27 +18,66 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    container_name: knowgauge-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio12345
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console
+    volumes:
+      - minio_data:/data
+    networks:
+      - knowgauge-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   knowgauge-service:
+    image: knowgauge-service
     build:
       context: .
       dockerfile: Dockerfile
     container_name: knowgauge-service
     environment:
+      # Database
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/knowgauge
       SPRING_DATASOURCE_USERNAME: knowgauge_user
       SPRING_DATASOURCE_PASSWORD: knowgauge_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      SPRING_FLYWAY_ENABLED: true
+      SPRING_FLYWAY_ENABLED: "true"
+
+      # MinIO (IMPORTANT: service name, not localhost)
+      APP_STORAGE_TYPE: minio
+      APP_STORAGE_ENDPOINT: http://minio:9000
+      APP_STORAGE_BUCKET: knowgauge-content
+      APP_STORAGE_ACCESSKEY: minio
+      APP_STORAGE_SECRETKEY: minio12345
+
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - knowgauge-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   knowgauge-network:
