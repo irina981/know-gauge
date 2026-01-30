@@ -8,34 +8,33 @@
 		<groupId>com.knowgauge</groupId>
 		<artifactId>knowgauge-service</artifactId>
 		<version>1.0.0-SNAPSHOT</version>
+		<relativePath>../../pom.xml</relativePath>
 	</parent>
 
-	<artifactId>knowgauge-service-core</artifactId>
+	<artifactId>knowgauge-service-jpa-repo</artifactId>
 	<packaging>jar</packaging>
 
-	<name>KnowGauge Service Core</name>
-	<description>Core business logic and domain models</description>
+	<name>KnowGauge Service Spring Data JPA Repository Adapter</name>
+	<description>Layer containing external integration with Spring Data JPA
+		Repository</description>
 
 	<dependencies>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
+			<groupId>com.knowgauge</groupId>
+			<artifactId>knowgauge-service-core</artifactId>
+			<version>${project.version}</version>
 		</dependency>
+
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
 
-		<!-- Lombok must be present in the module -->
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<scope>provided</scope>
-		</dependency>
 	</dependencies>
 </project>

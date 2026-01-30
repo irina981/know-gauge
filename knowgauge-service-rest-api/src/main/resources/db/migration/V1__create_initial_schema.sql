@@ -1,0 +1,193 @@
+-- Create topics table
+CREATE TABLE topics (
+    id BIGSERIAL PRIMARY KEY,
+    parent_id BIGINT,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    path VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_topics_parent
+        FOREIGN KEY (parent_id) REFERENCES topics(id) ON DELETE CASCADE,
+
+    -- Prevent duplicate topic names under the same parent
+    CONSTRAINT uk_topics_parent_name
+        UNIQUE (parent_id, name),
+
+    -- Ensure canonical path uniqueness
+    CONSTRAINT uk_topics_path
+        UNIQUE (path)
+);
+
+CREATE INDEX idx_topics_parent_id ON topics(parent_id);
+CREATE INDEX idx_topics_path_prefix ON topics (path text_pattern_ops);
+
+-- Create documents table
+CREATE TABLE documents (
+    id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    original_file_name VARCHAR(500) NOT NULL,
+    content_type VARCHAR(100) NOT NULL,
+    file_size_bytes BIGINT NOT NULL,
+    storage_key VARCHAR(1000) NOT NULL,
+    topic_id BIGINT NOT NULL,
+    version VARCHAR(100),
+    status VARCHAR(50) NOT NULL,
+    uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ingested_at TIMESTAMP,
+    uploaded_by VARCHAR(255),
+    error_message TEXT,
+    CONSTRAINT fk_documents_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
+    CONSTRAINT chk_documents_status CHECK (status IN ('UPLOADED','INGESTING','INGESTED','FAILED'))
+);
+
+CREATE INDEX idx_documents_topic_id ON documents(topic_id);
+CREATE INDEX idx_documents_status ON documents(status);
+CREATE INDEX idx_documents_topic_status ON documents(topic_id, status);
+
+-- Create document_sections table
+CREATE TABLE document_sections (
+    id BIGSERIAL PRIMARY KEY,
+    document_id BIGINT NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    order_index INTEGER NOT NULL,
+    start_page INTEGER,
+    end_page INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_document_sections_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_document_sections_document_id ON document_sections(document_id);
+
+-- Create document_chunks table
+CREATE TABLE document_chunks (
+    id BIGSERIAL PRIMARY KEY,
+    document_id BIGINT NOT NULL,
+    topic_id BIGINT NOT NULL,
+    section_id BIGINT,
+    chunk_index INTEGER NOT NULL,
+    chunk_text TEXT NOT NULL,
+    start_page INTEGER,
+    end_page INTEGER,
+    char_start INTEGER,
+    char_end INTEGER,
+    checksum VARCHAR(64),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_document_chunks_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+    CONSTRAINT fk_document_chunks_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
+    CONSTRAINT fk_document_chunks_section FOREIGN KEY (section_id) REFERENCES document_sections(id) ON DELETE SET NULL,
+    CONSTRAINT uk_document_chunks_document_index UNIQUE (document_id, chunk_index)
+);
+
+CREATE INDEX idx_document_chunks_document_id ON document_chunks(document_id);
+CREATE INDEX idx_document_chunks_topic_id ON document_chunks(topic_id);
+CREATE INDEX idx_document_chunks_section_id ON document_chunks(section_id);
+
+-- Create tests table
+CREATE TABLE tests (
+    id BIGSERIAL PRIMARY KEY,
+    topic_id BIGINT NOT NULL,
+    difficulty VARCHAR(50) NOT NULL,
+    coverage_mode VARCHAR(20) NOT NULL DEFAULT 'BALANCED',
+    avoid_repeats BOOLEAN NOT NULL DEFAULT TRUE,
+    question_count INTEGER NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    generation_model VARCHAR(100),
+    generation_params_json JSONB,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_tests_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
+    CONSTRAINT chk_tests_status CHECK (status IN ( 'CREATED', 'GENERATED', 'FAILED')),
+    CONSTRAINT chk_tests_coverage_mode CHECK (status IN ( 'BALANCED', 'FOCUSED')),
+    CONSTRAINT chk_tests_question_count CHECK (question_count > 0)
+);
+
+CREATE INDEX idx_tests_topic_id ON tests(topic_id);
+CREATE INDEX idx_tests_status ON tests(status);
+CREATE INDEX idx_tests_topic_status ON tests(topic_id, status);
+
+-- Create test_questions table
+CREATE TABLE test_questions (
+    id BIGSERIAL PRIMARY KEY,
+    test_id BIGINT NOT NULL,
+    question_index INTEGER NOT NULL,
+    question_text TEXT NOT NULL,
+    option_a VARCHAR(1000) NOT NULL,
+    option_b VARCHAR(1000) NOT NULL,
+    option_c VARCHAR(1000) NOT NULL,
+    option_d VARCHAR(1000) NOT NULL,
+    correct_option VARCHAR(10) NOT NULL,
+    explanation TEXT,
+    source_chunk_ids_json JSONB,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_test_questions_test FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
+    CONSTRAINT uk_test_questions_test_index UNIQUE (test_id, question_index),
+    CONSTRAINT chk_test_questions_correct_option CHECK (correct_option IN ('A','B','C','D'))
+);
+
+CREATE INDEX idx_test_questions_test_id ON test_questions(test_id);
+
+-- Test used chunks table
+CREATE TABLE test_used_chunks (
+  test_id BIGINT NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+  chunk_id BIGINT NOT NULL REFERENCES document_chunks(id) ON DELETE CASCADE,
+  PRIMARY KEY (test_id, chunk_id)
+);
+
+CREATE INDEX idx_test_used_chunks_chunk_id ON test_used_chunks(chunk_id);
+
+-- Create attempts table
+CREATE TABLE attempts (
+    id BIGSERIAL PRIMARY KEY,
+    test_id BIGINT NOT NULL,
+    user_id VARCHAR(255),
+    status VARCHAR(50) NOT NULL,
+    total_questions INTEGER NOT NULL,
+    correct_count INTEGER NOT NULL DEFAULT 0,
+    wrong_count INTEGER NOT NULL DEFAULT 0,
+    score_percent DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    submitted_at TIMESTAMP,
+    scored_at TIMESTAMP,
+    CONSTRAINT fk_attempts_test FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
+    CONSTRAINT chk_attempts_status CHECK (status IN ('STARTED','SUBMITTED','SCORED')),
+    CONSTRAINT chk_attempts_total_questions CHECK (total_questions > 0)
+);
+
+CREATE INDEX idx_attempts_test_id ON attempts(test_id);
+CREATE INDEX idx_attempts_user_id ON attempts(user_id);
+CREATE INDEX idx_attempts_status ON attempts(status);
+
+-- Create attempt_answers table
+CREATE TABLE attempt_answers (
+    id BIGSERIAL PRIMARY KEY,
+    attempt_id BIGINT NOT NULL,
+    question_id BIGINT NOT NULL,
+    chosen_option VARCHAR(10) NOT NULL,
+    correct BOOLEAN NOT NULL,
+    answered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_attempt_answers_attempt FOREIGN KEY (attempt_id) REFERENCES attempts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_attempt_answers_question FOREIGN KEY (question_id) REFERENCES test_questions(id) ON DELETE CASCADE,
+    CONSTRAINT uk_attempt_answers_attempt_question UNIQUE (attempt_id, question_id),
+    CONSTRAINT chk_attempt_answers_chosen_option CHECK (chosen_option IN ('A','B','C','D'))
+);
+
+CREATE INDEX idx_attempt_answers_attempt_id ON attempt_answers(attempt_id);
+CREATE INDEX idx_attempt_answers_question_id ON attempt_answers(question_id);
+
+-- Create generation_runs table
+CREATE TABLE generation_runs (
+    id BIGSERIAL PRIMARY KEY,
+    test_id BIGINT NOT NULL,
+    model VARCHAR(100) NOT NULL,
+    prompt_template_version VARCHAR(100) NOT NULL,
+    retrieved_chunk_ids_json JSONB,
+    raw_response TEXT,
+    status VARCHAR(50) NOT NULL,
+    error_message TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_generation_runs_test FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_generation_runs_test_id ON generation_runs(test_id);
+CREATE INDEX idx_generation_runs_status ON generation_runs(status);

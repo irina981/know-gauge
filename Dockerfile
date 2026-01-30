@@ -9,20 +9,19 @@ COPY knowgauge-service-core/pom.xml knowgauge-service-core/
 COPY knowgauge-service-contract/pom.xml knowgauge-service-contract/
 COPY knowgauge-service-client/pom.xml knowgauge-service-client/
 COPY knowgauge-service-rest-api/pom.xml knowgauge-service-rest-api/
-COPY knowgauge-service-infra/pom.xml knowgauge-service-infra/
+COPY knowgauge-service-infra/knowgauge-service-llm/pom.xml knowgauge-service-infra/knowgauge-service-llm/
+COPY knowgauge-service-infra/knowgauge-service-jpa-repo/pom.xml knowgauge-service-infra/knowgauge-service-jpa-repo/
+COPY knowgauge-service-infra/knowgauge-service-minio-storage/pom.xml knowgauge-service-infra/knowgauge-service-minio-storage/
+COPY knowgauge-service-infra/knowgauge-service-pg-vector/pom.xml knowgauge-service-infra/knowgauge-service-pg-vector/
 
-# Download dependencies
-RUN mvn dependency:go-offline -B
+# go-offline is flaky; just warm cache by validating model
+RUN mvn -B -DskipTests -q validate
 
-# Copy source code
-COPY knowgauge-service-core/src knowgauge-service-core/src
-COPY knowgauge-service-contract/src knowgauge-service-contract/src
-COPY knowgauge-service-client/src knowgauge-service-client/src
-COPY knowgauge-service-rest-api/src knowgauge-service-rest-api/src
-COPY knowgauge-service-infra/src knowgauge-service-infra/src
+# now copy everything
+COPY . .
 
-# Build the application
-RUN mvn clean package -DskipTests
+# build from root reactor
+RUN mvn -B -DskipTests clean package
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine

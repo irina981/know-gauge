@@ -1,0 +1,32 @@
+-- V2: pgvector extension + embeddings storage (KnowGauge)
+
+-- 1) Enable pgvector
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 2) Embeddings table (references relational chunk table)
+CREATE TABLE chunk_embeddings (
+    id BIGSERIAL PRIMARY KEY,
+    chunk_id BIGINT NOT NULL,
+    embedding vector(1536) NOT NULL,
+    embedding_model VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_chunk_embeddings_chunk
+        FOREIGN KEY (chunk_id) REFERENCES document_chunks(id) ON DELETE CASCADE,
+
+    CONSTRAINT uk_chunk_embeddings_chunk_model
+        UNIQUE (chunk_id, embedding_model)
+);
+
+-- 3) Useful filtering indexes
+CREATE INDEX idx_chunk_embeddings_chunk_id ON chunk_embeddings(chunk_id);
+CREATE INDEX idx_chunk_embeddings_model ON chunk_embeddings(embedding_model);
+
+-- 4) Vector similarity index (cosine distance)
+-- NOTE:
+-- - ivfflat requires ANALYZE and performs best with enough rows.
+-- - If your table is tiny early on, this index isn’t necessary (but is fine).
+CREATE INDEX idx_chunk_embeddings_embedding
+    ON chunk_embeddings
+    USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 100);
