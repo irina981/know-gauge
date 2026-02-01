@@ -3,17 +3,17 @@ package com.knowgauge.core.model;
 import java.time.Instant;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ChunkEmbedding {
-
-	private Long id;
+@SuperBuilder
+public class ChunkEmbedding extends AuditableObject {
 
 	private Long chunkId;
 

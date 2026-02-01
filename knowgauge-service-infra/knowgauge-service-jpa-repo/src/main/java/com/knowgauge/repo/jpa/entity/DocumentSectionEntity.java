@@ -1,45 +1,35 @@
 package com.knowgauge.repo.jpa.entity;
 
-import java.time.Instant;
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "document_sections")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class DocumentSectionEntity {
+@SuperBuilder
+public class DocumentSectionEntity extends AuditableEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Column(name = "document_id", nullable = false)
+	private Long documentId;
 
-    @Column(name = "document_id", nullable = false)
-    private Long documentId;
+	@Column(nullable = false)
+	private String title;
 
-    @Column(nullable = false)
-    private String title;
+	@Column(name = "order_index", nullable = false)
+	private Integer orderIndex;
 
-    @Column(name = "order_index", nullable = false)
-    private Integer orderIndex;
+	@Column(name = "start_page")
+	private Integer startPage;
 
-    @Column(name = "start_page")
-    private Integer startPage;
-
-    @Column(name = "end_page")
-    private Integer endPage;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-    }
+	@Column(name = "end_page")
+	private Integer endPage;
 }

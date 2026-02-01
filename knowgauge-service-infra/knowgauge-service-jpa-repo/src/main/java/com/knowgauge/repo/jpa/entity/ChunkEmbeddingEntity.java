@@ -1,24 +1,22 @@
 package com.knowgauge.repo.jpa.entity;
 
-import java.time.Instant;
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "chunk_embeddings")
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ChunkEmbeddingEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+@Getter
+@Setter
+public class ChunkEmbeddingEntity extends AuditableEntity {
 
     @Column(name = "chunk_id", nullable = false)
     private Long chunkId;
@@ -28,12 +26,4 @@ public class ChunkEmbeddingEntity {
 
     @Column(name = "embedding_model", nullable = false)
     private String embeddingModel;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-    }
 }

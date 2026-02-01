@@ -1,6 +1,5 @@
 package com.knowgauge.repo.jpa.entity;
 
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -16,31 +15,25 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "tests")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class TestEntity {
-
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
-
+@SuperBuilder
+public class TestEntity extends AuditableEntity {
 	@Column(name = "topic_id", nullable = false)
 	private Long topicId;
 
@@ -52,15 +45,15 @@ public class TestEntity {
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private TestDifficulty difficulty;
-	
-	@Builder.Default
-	@Column(name = "avoid_repeats", nullable = false)
-    private boolean avoidRepeats = true;
 
 	@Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "coverage_mode", nullable = false)
-    private TestCoverageMode coverageMode = TestCoverageMode.BALANCED;
+	@Column(name = "avoid_repeats", nullable = false)
+	private boolean avoidRepeats = true;
+
+	@Builder.Default
+	@Enumerated(EnumType.STRING)
+	@Column(name = "coverage_mode", nullable = false)
+	private TestCoverageMode coverageMode = TestCoverageMode.BALANCED;
 
 	@Column(name = "question_count", nullable = false)
 	private Integer questionCount;
@@ -75,12 +68,4 @@ public class TestEntity {
 	@Column(name = "generation_params_json", columnDefinition = "jsonb")
 	@Type(JsonType.class)
 	private Map<String, Object> generationParams;
-
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private Instant createdAt;
-
-	@PrePersist
-	protected void onCreate() {
-		createdAt = Instant.now();
-	}
 }

@@ -8,27 +8,18 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "attempts")
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class AttemptEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class AttemptEntity extends AuditableEntity {
 
     @Column(name = "test_id", nullable = false)
     private Long testId;
@@ -64,8 +55,4 @@ public class AttemptEntity {
     @Column(name = "scored_at")
     private Instant scoredAt;
 
-    @PrePersist
-    protected void onCreate() {
-        startedAt = Instant.now();
-    }
 }

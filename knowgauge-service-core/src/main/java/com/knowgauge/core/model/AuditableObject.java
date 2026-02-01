@@ -2,8 +2,6 @@ package com.knowgauge.core.model;
 
 import java.time.Instant;
 
-import com.knowgauge.core.model.enums.AnswerOption;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,17 +13,11 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class AttemptAnswer extends AuditableObject {
+public abstract class AuditableObject extends PersistedObject {
 
-	private Long id;
+	protected Instant createdAt;
+	protected String createdBy;
 
-	private Long attemptId;
-
-	private Long questionId;
-
-	private AnswerOption chosenOption;
-
-	private Boolean correct;
-
-	private Instant answeredAt;
+	protected Instant updatedAt;
+	protected String updatedBy;
 }

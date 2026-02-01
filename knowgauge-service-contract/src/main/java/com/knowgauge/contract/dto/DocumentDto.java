@@ -22,6 +22,6 @@ public record DocumentDto(
 
         String version,     // nullable if versioning disabled
 
-        Instant uploadedAt   // useful for UI & auditing
+        Instant createdAt   // useful for UI & auditing
 ) {}
 

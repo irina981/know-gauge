@@ -1,25 +1,18 @@
 package com.knowgauge.repo.jpa.entity;
 
-import java.time.Instant;
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "topics")
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class TopicEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+@SuperBuilder
+public class TopicEntity extends AuditableEntity {
     @Column(name = "parent_id")
     private Long parentId;
 
@@ -32,20 +25,5 @@ public class TopicEntity {
     @Column
     private String path;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
 }

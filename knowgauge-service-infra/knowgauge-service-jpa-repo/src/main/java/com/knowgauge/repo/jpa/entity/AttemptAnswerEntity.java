@@ -1,26 +1,26 @@
 package com.knowgauge.repo.jpa.entity;
 
-import java.time.Instant;
-
 import com.knowgauge.core.model.enums.AnswerOption;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "attempt_answers")
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class AttemptAnswerEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+@Getter
+@Setter
+public class AttemptAnswerEntity extends AuditableEntity {
 
     @Column(name = "attempt_id", nullable = false)
     private Long attemptId;
@@ -34,12 +34,4 @@ public class AttemptAnswerEntity {
 
     @Column(nullable = false)
     private Boolean correct;
-
-    @Column(name = "answered_at", nullable = false, updatable = false)
-    private Instant answeredAt;
-
-    @PrePersist
-    protected void onCreate() {
-        answeredAt = Instant.now();
-    }
 }

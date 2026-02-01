@@ -1,6 +1,5 @@
 package com.knowgauge.core.model;
 
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -11,16 +10,17 @@ import com.knowgauge.core.model.enums.TestStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class Test {
-
-	private Long id;
+@SuperBuilder
+public class Test extends AuditableObject {
 
 	private Long topicId;
 
@@ -42,7 +42,5 @@ public class Test {
 	private String generationModel;
 
 	private Map<String, Object> generationParams;
-
-	private Instant createdAt;
 
 }

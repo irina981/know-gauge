@@ -4,24 +4,25 @@ import java.time.Instant;
 
 import com.knowgauge.core.model.enums.DocumentStatus;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "documents")
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class DocumentEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+@SuperBuilder
+@Getter
+@Setter
+public class DocumentEntity extends AuditableEntity {
     @Column(nullable = false)
     private String title;
 
@@ -47,20 +48,9 @@ public class DocumentEntity {
     @Column(nullable = false)
     private DocumentStatus status;
 
-    @Column(name = "uploaded_at", nullable = false, updatable = false)
-    private Instant uploadedAt;
-
-    @Column(name = "ingested_at")
-    private Instant ingestedAt;
-
-    @Column(name = "uploaded_by")
-    private String uploadedBy;
-
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
-
-    @PrePersist
-    protected void onCreate() {
-        uploadedAt = Instant.now();
-    }
+    
+    @Column(name = "ingested_at", nullable = false)
+    protected Instant ingestedAt;
 }

@@ -4,17 +4,15 @@
 ## ✅ Backend — Small fixes (quick wins)
 > Small, self-contained tasks. Typically < 1 day each.
 
+### General
+- [ ] Add "infra" to all adapters packages (e.g. com.knowgauge.infra.repo.jpa.entity)
+
 ### Storage / MinIO
 - [ ] Add storage exception → HTTP mapping (ControllerAdvice)
 
 ### REST API / Validation
-- [ ] Add `@Valid` for `@RequestPart("meta")` and `@RequestBody`
 - [ ] Return consistent error payload for validation errors (field + message)
 
-### Mapping / DTOs
-- [ ] Finish MapStruct mappers: `TopicMapper`, `DocumentMapper`
-- [ ] Move “fill from MultipartFile if missing” logic into mapper (`@AfterMapping`)
-- [ ] Stop returning domain objects directly from controllers (return DTOs)
 
 ### Observability
 - [ ] Add correlationId in logs (filter/interceptor)
@@ -24,7 +22,19 @@
 ### DB / Schema quality
 - [ ] Add indexes for common queries (topicId, documentId, createdAt)
 - [ ] Add constraints (FKs, NOT NULL, unique where needed)
-- [ ] Standardize audit columns (createdAt, updatedAt)
+- [ ] Standardize audit columns (createdBy, updatedBy, createdAt, updatedAt)
+
+### User Management
+- [ ] Implement User Mangement (core)
+- [ ] Roles: APPLICATION_ADMIN, TENANT_ADMIN, TENANT_USER
+
+### Multi-tenant support
+- [ ] Tenant domain entity
+- [ ] Two types of tenants: PERSONAL, ORGANIZATION
+
+### Spring Data auditing
+- [ ] Wire Spring Data auditing (instead of @PrePersist, @PreUpdate)
+
 
 ---
 

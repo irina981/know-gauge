@@ -5,17 +5,17 @@ import java.time.Instant;
 import com.knowgauge.core.model.enums.DocumentStatus;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class Document {
-
-	private Long id;
+@SuperBuilder
+public class Document extends AuditableObject {
 
 	private String title;
 
@@ -30,17 +30,13 @@ public class Document {
 	private Long topicId;
 
 	private String version;
-	
+
 	private String etag;
 
 	private DocumentStatus status;
 
-	private Instant uploadedAt;
+	private String errorMessage;
 
 	private Instant ingestedAt;
-
-	private String uploadedBy;
-
-	private String errorMessage;
 
 }

@@ -26,11 +26,13 @@ public interface DocumentMapper {
     @Mapping(target = "id", ignore = true)              // created by DB
     @Mapping(target = "storageKey", ignore = true)       // set by storage layer
     @Mapping(target = "etag", ignore = true)            // set after upload
-    @Mapping(target = "uploadedAt", ignore = true)      // set by service/DB
     @Mapping(target = "version", ignore = true) 
     @Mapping(target = "status", ignore = true) 
     @Mapping(target = "ingestedAt", ignore = true)
-    @Mapping(target = "uploadedBy", ignore = true) 
+    @Mapping(target = "createdAt", ignore = true)      // set by service/DB
+    @Mapping(target = "createdBy", ignore = true)      // set by service/DB
+    @Mapping(target = "updatedAt", ignore = true)      // set by service/DB
+    @Mapping(target = "updatedBy", ignore = true)      // set by service/DB
     @Mapping(target = "errorMessage", ignore = true) 
     Document toDomain(DocumentInput input, @Context MultipartFile file);
 

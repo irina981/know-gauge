@@ -22,15 +22,19 @@ public interface TopicMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "children", ignore = true)
     @Mapping(target = "path", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)      // set by service/DB
+    @Mapping(target = "createdBy", ignore = true)      // set by service/DB
+    @Mapping(target = "updatedAt", ignore = true)      // set by service/DB
+    @Mapping(target = "updatedBy", ignore = true)      // set by service/DB
     Topic toDomain(TopicInput input);
     
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "parentId", ignore = true) // set later in service while linking tree
     @Mapping(target = "path", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)      // set by service/DB
+    @Mapping(target = "createdBy", ignore = true)      // set by service/DB
+    @Mapping(target = "updatedAt", ignore = true)      // set by service/DB
+    @Mapping(target = "updatedBy", ignore = true)      // set by service/DB
     Topic toDomain(TopicTreeNodeInput input);
 
     /**

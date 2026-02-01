@@ -11,15 +11,13 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class DocumentSection extends AuditableObject {
+public abstract class PersistedObject {
 
-	private Long documentId;
+	protected Long id;
 
-	private String title;
+	// ---- optional helpers ----
 
-	private Integer orderIndex;
-
-	private Integer startPage;
-
-	private Integer endPage;
+	public boolean isNew() {
+		return id == null;
+	}
 }

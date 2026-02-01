@@ -1,22 +1,21 @@
 package com.knowgauge.core.model;
 
-import java.time.Instant;
 import java.util.List;
 
 import com.knowgauge.core.model.enums.AnswerOption;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class TestQuestion {
-
-	private Long id;
+@SuperBuilder
+public class TestQuestion extends AuditableObject {
 
 	private Long testId;
 
@@ -36,8 +35,6 @@ public class TestQuestion {
 
 	private String explanation;
 
-	private  List<Long> sourceChunkIdsJson;
-
-	private Instant createdAt;
+	private List<Long> sourceChunkIdsJson;
 
 }
