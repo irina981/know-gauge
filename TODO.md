@@ -5,11 +5,9 @@
 > Small, self-contained tasks. Typically < 1 day each.
 
 ### Storage / MinIO
-- [ ] Decide: disable retry for one-shot `InputStream` uploads (for now)
 - [ ] Add storage exception → HTTP mapping (ControllerAdvice)
 
 ### REST API / Validation
-- [ ] Add `spring-boot-starter-validation`
 - [ ] Add `@Valid` for `@RequestPart("meta")` and `@RequestBody`
 - [ ] Return consistent error payload for validation errors (field + message)
 
