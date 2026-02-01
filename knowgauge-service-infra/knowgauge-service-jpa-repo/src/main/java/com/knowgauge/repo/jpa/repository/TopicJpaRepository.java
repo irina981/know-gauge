@@ -11,4 +11,6 @@ import com.knowgauge.repo.jpa.entity.TopicEntity;
 public interface TopicJpaRepository extends JpaRepository<TopicEntity, Long> {
 
 	List<TopicEntity> findByParentId(Long parentId);
+	
+	boolean existsByParentIdAndName(Long parentId, String name);
 }

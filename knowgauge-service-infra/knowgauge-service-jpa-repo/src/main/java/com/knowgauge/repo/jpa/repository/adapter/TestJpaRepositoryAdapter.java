@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.port.repository.TestRepository;
-import com.knowgauge.repo.jpa.mapper.TestMapper;
+import com.knowgauge.repo.jpa.mapper.TestEntityMapper;
 import com.knowgauge.repo.jpa.repository.TestJpaRepository;
 
 @Repository
@@ -17,9 +17,9 @@ import com.knowgauge.repo.jpa.repository.TestJpaRepository;
 public class TestJpaRepositoryAdapter implements TestRepository {
 
     private final TestJpaRepository jpaRepository;
-    private final TestMapper mapper;
+    private final TestEntityMapper mapper;
 
-    public TestJpaRepositoryAdapter(TestJpaRepository jpaRepository, TestMapper mapper) {
+    public TestJpaRepositoryAdapter(TestJpaRepository jpaRepository, TestEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }

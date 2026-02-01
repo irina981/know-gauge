@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.port.repository.TopicRepository;
-import com.knowgauge.repo.jpa.mapper.TopicMapper;
+import com.knowgauge.repo.jpa.mapper.TopicEntityMapper;
 import com.knowgauge.repo.jpa.repository.TopicJpaRepository;
 
 @Repository
@@ -16,9 +16,9 @@ import com.knowgauge.repo.jpa.repository.TopicJpaRepository;
 public class TopicJpaRepositoryAdapter implements TopicRepository {
 
     private final TopicJpaRepository jpaRepository;
-    private final TopicMapper mapper;
+    private final TopicEntityMapper mapper;
 
-    public TopicJpaRepositoryAdapter(TopicJpaRepository jpaRepository, TopicMapper mapper) {
+    public TopicJpaRepositoryAdapter(TopicJpaRepository jpaRepository, TopicEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }
@@ -41,4 +41,9 @@ public class TopicJpaRepositoryAdapter implements TopicRepository {
                 .map(mapper::toDomain)
                 .toList();
     }
+
+	@Override
+	public boolean existsByParentIdAndName(Long parentId, String name) {
+		return jpaRepository.existsByParentIdAndName(parentId, name);
+	}
 }

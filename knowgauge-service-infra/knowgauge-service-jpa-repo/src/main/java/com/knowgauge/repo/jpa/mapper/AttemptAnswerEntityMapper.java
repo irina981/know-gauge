@@ -7,7 +7,7 @@ import com.knowgauge.core.model.AttemptAnswer;
 import com.knowgauge.repo.jpa.entity.AttemptAnswerEntity;
 
 @Mapper(componentModel = "spring")
-public interface AttemptAnswerMapper {
+public interface AttemptAnswerEntityMapper {
 
     @Mapping(target = "id", source = "id")
     AttemptAnswer toDomain(AttemptAnswerEntity entity);

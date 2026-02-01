@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.port.repository.ChunkEmbeddingRepository;
-import com.knowgauge.repo.jpa.mapper.ChunkEmbeddingMapper;
+import com.knowgauge.repo.jpa.mapper.ChunkEmbeddingEntityMapper;
 import com.knowgauge.repo.jpa.repository.ChunkEmbeddingJpaRepository;
 
 @Repository
@@ -15,9 +15,9 @@ import com.knowgauge.repo.jpa.repository.ChunkEmbeddingJpaRepository;
 public class ChunkEmbeddingJpaRepositoryAdapter implements ChunkEmbeddingRepository {
 
     private final ChunkEmbeddingJpaRepository jpaRepository;
-    private final ChunkEmbeddingMapper mapper;
+    private final ChunkEmbeddingEntityMapper mapper;
 
-    public ChunkEmbeddingJpaRepositoryAdapter(ChunkEmbeddingJpaRepository jpaRepository, ChunkEmbeddingMapper mapper) {
+    public ChunkEmbeddingJpaRepositoryAdapter(ChunkEmbeddingJpaRepository jpaRepository, ChunkEmbeddingEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }

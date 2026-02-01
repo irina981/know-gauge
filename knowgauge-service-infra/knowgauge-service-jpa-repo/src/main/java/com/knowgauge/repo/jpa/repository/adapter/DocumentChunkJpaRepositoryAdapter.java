@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
-import com.knowgauge.repo.jpa.mapper.DocumentChunkMapper;
+import com.knowgauge.repo.jpa.mapper.DocumentChunkEntityMapper;
 import com.knowgauge.repo.jpa.repository.DocumentChunkJpaRepository;
 
 @Repository
@@ -17,9 +17,9 @@ import com.knowgauge.repo.jpa.repository.DocumentChunkJpaRepository;
 public class DocumentChunkJpaRepositoryAdapter implements DocumentChunkRepository {
 
     private final DocumentChunkJpaRepository jpaRepository;
-    private final DocumentChunkMapper mapper;
+    private final DocumentChunkEntityMapper mapper;
 
-    public DocumentChunkJpaRepositoryAdapter(DocumentChunkJpaRepository jpaRepository, DocumentChunkMapper mapper) {
+    public DocumentChunkJpaRepositoryAdapter(DocumentChunkJpaRepository jpaRepository, DocumentChunkEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }

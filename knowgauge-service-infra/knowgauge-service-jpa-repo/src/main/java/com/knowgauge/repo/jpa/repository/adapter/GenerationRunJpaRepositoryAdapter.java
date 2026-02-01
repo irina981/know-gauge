@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.GenerationRun;
 import com.knowgauge.core.port.repository.GenerationRunRepository;
-import com.knowgauge.repo.jpa.mapper.GenerationRunMapper;
+import com.knowgauge.repo.jpa.mapper.GenerationRunEntityMapper;
 import com.knowgauge.repo.jpa.repository.GenerationRunJpaRepository;
 
 @Repository
@@ -17,9 +17,9 @@ import com.knowgauge.repo.jpa.repository.GenerationRunJpaRepository;
 public class GenerationRunJpaRepositoryAdapter implements GenerationRunRepository {
 
     private final GenerationRunJpaRepository jpaRepository;
-    private final GenerationRunMapper mapper;
+    private final GenerationRunEntityMapper mapper;
 
-    public GenerationRunJpaRepositoryAdapter(GenerationRunJpaRepository jpaRepository, GenerationRunMapper mapper) {
+    public GenerationRunJpaRepositoryAdapter(GenerationRunJpaRepository jpaRepository, GenerationRunEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }

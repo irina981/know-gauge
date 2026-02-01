@@ -1,9 +1,7 @@
 package com.knowgauge.contract.dto;
 
-public record DocumentInput(
-        Long topicId,
-        String title,
-        String originalFilename,
-        String contentType,
-        long fileSizeBytes
-) {}
+import jakarta.validation.constraints.NotEmpty;
+
+public record DocumentInput(@NotEmpty Long topicId, String title, String originalFileName, String contentType,
+		long fileSizeBytes) {
+}

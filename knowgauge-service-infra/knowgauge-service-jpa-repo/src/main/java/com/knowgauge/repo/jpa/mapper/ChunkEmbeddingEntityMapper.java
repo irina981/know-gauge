@@ -5,7 +5,7 @@ import com.knowgauge.repo.jpa.entity.ChunkEmbeddingEntity;
 import com.knowgauge.core.model.ChunkEmbedding;
 
 @Mapper(componentModel = "spring")
-public interface ChunkEmbeddingMapper {
+public interface ChunkEmbeddingEntityMapper {
     ChunkEmbedding toDomain(ChunkEmbeddingEntity entity);
     ChunkEmbeddingEntity toEntity(ChunkEmbedding domain);
 }

@@ -5,7 +5,7 @@ import com.knowgauge.repo.jpa.entity.DocumentEntity;
 import com.knowgauge.core.model.Document;
 
 @Mapper(componentModel = "spring")
-public interface DocumentMapper {
+public interface DocumentEntityMapper {
     Document toDomain(DocumentEntity entity);
     DocumentEntity toEntity(Document domain);
 }

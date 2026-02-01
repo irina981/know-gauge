@@ -30,6 +30,8 @@ public class Document {
 	private Long topicId;
 
 	private String version;
+	
+	private String etag;
 
 	private DocumentStatus status;
 

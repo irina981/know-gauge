@@ -11,4 +11,6 @@ public interface TopicRepository {
 	Optional<Topic> findById(Long id);
 
 	List<Topic> findByParentId(Long parentId);
+	
+	boolean existsByParentIdAndName(Long parentId, String name);
 }

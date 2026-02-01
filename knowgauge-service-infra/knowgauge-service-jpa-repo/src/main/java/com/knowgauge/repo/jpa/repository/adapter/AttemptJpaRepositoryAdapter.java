@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.Attempt;
 import com.knowgauge.core.port.repository.AttemptRepository;
-import com.knowgauge.repo.jpa.mapper.AttemptMapper;
+import com.knowgauge.repo.jpa.mapper.AttemptEntityMapper;
 import com.knowgauge.repo.jpa.repository.AttemptJpaRepository;
 
 @Repository
@@ -17,9 +17,9 @@ import com.knowgauge.repo.jpa.repository.AttemptJpaRepository;
 public class AttemptJpaRepositoryAdapter implements AttemptRepository {
 
     private final AttemptJpaRepository jpaRepository;
-    private final AttemptMapper mapper;
+    private final AttemptEntityMapper mapper;
 
-    public AttemptJpaRepositoryAdapter(AttemptJpaRepository jpaRepository, AttemptMapper mapper) {
+    public AttemptJpaRepositoryAdapter(AttemptJpaRepository jpaRepository, AttemptEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }

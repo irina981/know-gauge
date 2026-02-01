@@ -1,6 +1,7 @@
 package com.knowgauge.core.model;
 
 import java.time.Instant;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +21,8 @@ public class Topic {
 	private String name;
 
 	private String description;
+	
+	private List<Topic> children;
 
 	private String path;
 

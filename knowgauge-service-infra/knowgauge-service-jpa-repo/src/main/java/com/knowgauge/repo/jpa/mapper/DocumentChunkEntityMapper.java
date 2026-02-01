@@ -5,7 +5,7 @@ import com.knowgauge.repo.jpa.entity.DocumentChunkEntity;
 import com.knowgauge.core.model.DocumentChunk;
 
 @Mapper(componentModel = "spring")
-public interface DocumentChunkMapper {
+public interface DocumentChunkEntityMapper {
     DocumentChunk toDomain(DocumentChunkEntity entity);
     DocumentChunkEntity toEntity(DocumentChunk domain);
 }

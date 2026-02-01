@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
-import com.knowgauge.repo.jpa.mapper.TestQuestionMapper;
+import com.knowgauge.repo.jpa.mapper.TestQuestionEntityMapper;
 import com.knowgauge.repo.jpa.repository.TestQuestionJpaRepository;
 
 @Repository
@@ -16,9 +16,9 @@ import com.knowgauge.repo.jpa.repository.TestQuestionJpaRepository;
 public class TestQuestionJpaRepositoryAdapter implements TestQuestionRepository {
 
     private final TestQuestionJpaRepository jpaRepository;
-    private final TestQuestionMapper mapper;
+    private final TestQuestionEntityMapper mapper;
 
-    public TestQuestionJpaRepositoryAdapter(TestQuestionJpaRepository jpaRepository, TestQuestionMapper mapper) {
+    public TestQuestionJpaRepositoryAdapter(TestQuestionJpaRepository jpaRepository, TestQuestionEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }

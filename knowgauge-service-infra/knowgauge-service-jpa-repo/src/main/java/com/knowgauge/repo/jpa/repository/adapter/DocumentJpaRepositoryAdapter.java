@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.port.repository.DocumentRepository;
-import com.knowgauge.repo.jpa.mapper.DocumentMapper;
+import com.knowgauge.repo.jpa.mapper.DocumentEntityMapper;
 import com.knowgauge.repo.jpa.repository.DocumentJpaRepository;
 
 @Repository
@@ -17,9 +17,9 @@ import com.knowgauge.repo.jpa.repository.DocumentJpaRepository;
 public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 
     private final DocumentJpaRepository jpaRepository;
-    private final DocumentMapper mapper;
+    private final DocumentEntityMapper mapper;
 
-    public DocumentJpaRepositoryAdapter(DocumentJpaRepository jpaRepository, DocumentMapper mapper) {
+    public DocumentJpaRepositoryAdapter(DocumentJpaRepository jpaRepository, DocumentEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }

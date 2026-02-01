@@ -5,7 +5,7 @@ import com.knowgauge.repo.jpa.entity.TopicEntity;
 import com.knowgauge.core.model.Topic;
 
 @Mapper(componentModel = "spring")
-public interface TopicMapper {
+public interface TopicEntityMapper {
     Topic toDomain(TopicEntity entity);
     TopicEntity toEntity(Topic domain);
 }

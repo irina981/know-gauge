@@ -20,6 +20,6 @@ public interface ContentService {
      * Uploads a document and stores metadata + objectKey.
      * Ingestion/chunking can be triggered later (separate endpoint/job).
      */
-    public Long uploadDocument(Document document, InputStream contentStream);
+    public Document uploadDocument(Document document, InputStream contentStream);
 }
 

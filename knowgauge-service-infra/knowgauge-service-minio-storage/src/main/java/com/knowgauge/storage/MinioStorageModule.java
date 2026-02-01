@@ -1,4 +1,4 @@
-package com.knowgauge.storage.minio;
+package com.knowgauge.storage;
 
 /**
  * Placeholder class for the infrastructure module.
