@@ -5,7 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import com.knowgauge.contract.dto.TopicDto;
-import com.knowgauge.contract.dto.TopicInput;
+import com.knowgauge.contract.dto.TopicCreateInput;
 import com.knowgauge.contract.dto.TopicTreeNodeInput;
 import com.knowgauge.core.model.Topic;
 
@@ -26,7 +26,7 @@ public interface TopicMapper {
     @Mapping(target = "createdBy", ignore = true)      // set by service/DB
     @Mapping(target = "updatedAt", ignore = true)      // set by service/DB
     @Mapping(target = "updatedBy", ignore = true)      // set by service/DB
-    Topic toDomain(TopicInput input);
+    Topic toDomain(TopicCreateInput input);
     
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "parentId", ignore = true) // set later in service while linking tree

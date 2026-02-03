@@ -7,14 +7,7 @@ import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.Topic;
 
 
-public interface ContentService {
-
-    public Topic createTopic(Topic req);
-
-    /**
-     * Creates many topics in one call (tree), under an existing parent.
-     */
-    public Topic createTopicTree(Topic req);
+public interface DocumentService {
 
     /**
      * Uploads a document and stores metadata + objectKey.

@@ -74,6 +74,7 @@
 					<configuration>
 						<source>${java.version}</source>
 						<target>${java.version}</target>
+						<parameters>true</parameters>
 
 						<!-- IMPORTANT for annotation processors -->
 						<annotationProcessorPaths>

@@ -2,18 +2,20 @@ package com.knowgauge.core.model;
 
 import java.util.List;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @SuperBuilder
 public class Topic extends AuditableObject {
+	
+	public Topic(Long parentId, String name, String description) {
+		this.parentId = parentId;
+		this.name = name;
+		this.description = description;
+	}
 
 	private Long parentId;
 

@@ -23,6 +23,7 @@
 - [ ] Add indexes for common queries (topicId, documentId, createdAt)
 - [ ] Add constraints (FKs, NOT NULL, unique where needed)
 - [ ] Standardize audit columns (createdBy, updatedBy, createdAt, updatedAt)
+- [ ] Configurable rate/temperature defaults and a usage dashboard or logs to estimate model costs.
 
 ### User Management
 - [ ] Implement User Mangement (core)

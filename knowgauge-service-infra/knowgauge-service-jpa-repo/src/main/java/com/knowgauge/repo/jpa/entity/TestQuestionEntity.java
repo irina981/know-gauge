@@ -18,21 +18,19 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "test_questions")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class TestQuestionEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class TestQuestionEntity  extends AuditableEntity  {
 
     @Column(name = "test_id", nullable = false)
     private Long testId;
@@ -65,12 +63,4 @@ public class TestQuestionEntity {
     @Column(name = "source_chunk_ids_json", columnDefinition = "jsonb")
     @Type(JsonType.class)
     private List<Long> sourceChunkIdsJson;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-    }
 }

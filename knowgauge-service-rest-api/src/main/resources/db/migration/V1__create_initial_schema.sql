@@ -4,7 +4,7 @@ CREATE TABLE topics (
     parent_id BIGINT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    path VARCHAR(500) NOT NULL,
+    path VARCHAR(500),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(100) NOT NULL,

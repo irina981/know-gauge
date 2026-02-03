@@ -59,8 +59,10 @@ services:
       APP_STORAGE_ACCESSKEY: minio
       APP_STORAGE_SECRETKEY: minio12345
 
+      JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     ports:
       - "8080:8080"
+      - "5005:5005"
     depends_on:
       postgres:
         condition: service_healthy
