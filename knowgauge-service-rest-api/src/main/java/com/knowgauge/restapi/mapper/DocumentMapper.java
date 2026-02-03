@@ -34,6 +34,7 @@ public interface DocumentMapper {
     @Mapping(target = "updatedAt", ignore = true)      // set by service/DB
     @Mapping(target = "updatedBy", ignore = true)      // set by service/DB
     @Mapping(target = "errorMessage", ignore = true) 
+    @Mapping(target = "tenantId", ignore = true) 
     Document toDomain(DocumentInput input, @Context MultipartFile file);
 
     /**

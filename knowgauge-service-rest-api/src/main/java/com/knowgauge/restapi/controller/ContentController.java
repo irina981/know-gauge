@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.knowgauge.contract.dto.DocumentDto;
 import com.knowgauge.contract.dto.DocumentInput;
 import com.knowgauge.contract.dto.TopicCreateInput;
@@ -112,8 +113,11 @@ public class ContentController {
 	 * part "file": the actual PDF (or any file)
 	 */
 	@PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<DocumentDto> uploadDocument(@RequestPart("meta") @Valid DocumentInput documentInput,
+	public ResponseEntity<DocumentDto> uploadDocument(@RequestPart("meta") @Valid String metaJson,
 			@RequestPart("file") MultipartFile file) throws IOException {
+		
+		ObjectMapper mapper = new ObjectMapper();
+	    DocumentInput documentInput = mapper.readValue(metaJson, DocumentInput.class);
 
 		// Basic defensive checks (optional but recommended)
 		if (file.isEmpty()) {

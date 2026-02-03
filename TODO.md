@@ -9,10 +9,10 @@
 
 ### Storage / MinIO
 - [ ] Add storage exception → HTTP mapping (ControllerAdvice)
+- [ ] Currently, storage key pattern is: {tenantId}/docs/by-id/{shard3}/{documentId}/v{version}/source/content. Investigate: Is it a bad practice/security concern to expose internal system's IDs to external parties.
 
 ### REST API / Validation
 - [ ] Return consistent error payload for validation errors (field + message)
-
 
 ### Observability
 - [ ] Add correlationId in logs (filter/interceptor)
@@ -34,7 +34,7 @@
 - [ ] Two types of tenants: PERSONAL, ORGANIZATION
 
 ### Spring Data auditing
-- [ ] Wire Spring Data auditing (instead of @PrePersist, @PreUpdate)
+- [ ] Wire Spring Data auditing (instead of @PrePersist, @PreUpdate) - to update createdBy, modifiedBy
 
 
 ---

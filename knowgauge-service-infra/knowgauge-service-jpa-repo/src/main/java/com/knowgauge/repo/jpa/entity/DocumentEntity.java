@@ -41,8 +41,8 @@ public class DocumentEntity extends AuditableEntity {
     @Column(name = "topic_id", nullable = false)
     private Long topicId;
 
-    @Column
-    private String version;
+    @Column(name = "version", nullable = false)
+    private Integer version;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

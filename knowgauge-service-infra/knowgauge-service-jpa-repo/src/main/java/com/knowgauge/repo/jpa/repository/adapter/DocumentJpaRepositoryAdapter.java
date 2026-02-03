@@ -41,4 +41,8 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
         return jpaRepository.findByTopicId(topicId, pageable)
                 .map(mapper::toDomain);
     }
+    
+    public void updateStorageKey(Long id, String storageKey) {
+    	jpaRepository.updateStorageKey(id, storageKey);
+    }
 }

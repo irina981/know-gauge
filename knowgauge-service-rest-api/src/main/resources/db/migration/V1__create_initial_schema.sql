@@ -7,8 +7,8 @@ CREATE TABLE topics (
     path VARCHAR(500),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
 
     CONSTRAINT fk_topics_parent
         FOREIGN KEY (parent_id) REFERENCES topics(id) ON DELETE CASCADE,
@@ -32,16 +32,16 @@ CREATE TABLE documents (
     original_file_name VARCHAR(500) NOT NULL,
     content_type VARCHAR(100) NOT NULL,
     file_size_bytes BIGINT NOT NULL,
-    storage_key VARCHAR(1000) NOT NULL,
+    storage_key VARCHAR(1000),
     topic_id BIGINT NOT NULL,
-    version VARCHAR(100),
+    version INTEGER NOT NULL,
     status VARCHAR(50) NOT NULL,
     ingested_at TIMESTAMP,
     error_message TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
     
     CONSTRAINT fk_documents_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
     CONSTRAINT chk_documents_status CHECK (status IN ('UPLOADED','INGESTING','INGESTED','FAILED'))
@@ -61,8 +61,8 @@ CREATE TABLE document_sections (
     end_page INTEGER,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
 
     CONSTRAINT fk_document_sections_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
 );
@@ -84,8 +84,8 @@ CREATE TABLE document_chunks (
     checksum VARCHAR(64),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
 
     CONSTRAINT fk_document_chunks_document FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
     CONSTRAINT fk_document_chunks_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
@@ -110,8 +110,8 @@ CREATE TABLE tests (
     generation_params_json JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
 
     CONSTRAINT fk_tests_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
     CONSTRAINT chk_tests_status CHECK (status IN ( 'CREATED', 'GENERATED', 'FAILED')),
@@ -138,8 +138,8 @@ CREATE TABLE test_questions (
     source_chunk_ids_json JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
 
     CONSTRAINT fk_test_questions_test FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
     CONSTRAINT uk_test_questions_test_index UNIQUE (test_id, question_index),
@@ -172,8 +172,8 @@ CREATE TABLE attempts (
     scored_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
 
     CONSTRAINT fk_attempts_test FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
     CONSTRAINT chk_attempts_status CHECK (status IN ('STARTED','SUBMITTED','SCORED')),
@@ -193,8 +193,8 @@ CREATE TABLE attempt_answers (
     correct BOOLEAN NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
 
     CONSTRAINT fk_attempt_answers_attempt FOREIGN KEY (attempt_id) REFERENCES attempts(id) ON DELETE CASCADE,
     CONSTRAINT fk_attempt_answers_question FOREIGN KEY (question_id) REFERENCES test_questions(id) ON DELETE CASCADE,
@@ -217,8 +217,8 @@ CREATE TABLE generation_runs (
     error_message TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100) NOT NULL,
-    updated_by VARCHAR(100) NOT NULL,
+    created_by BIGINT NOT NULL,
+	updated_by BIGINT NOT NULL,
 
     CONSTRAINT fk_generation_runs_test FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
 );

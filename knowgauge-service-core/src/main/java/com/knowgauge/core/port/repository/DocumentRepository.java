@@ -13,4 +13,6 @@ public interface DocumentRepository {
 	Optional<Document> findById(Long id);
 
 	Page<Document> findByTopicId(Long topicId, Pageable pageable);
+	
+	void updateStorageKey(Long id, String storageKey);
 }

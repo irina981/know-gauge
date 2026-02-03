@@ -16,6 +16,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class Document extends AuditableObject {
+	private Long tenantId;
 
 	private String title;
 
@@ -29,7 +30,7 @@ public class Document extends AuditableObject {
 
 	private Long topicId;
 
-	private String version;
+	private Integer version;
 
 	private String etag;
 

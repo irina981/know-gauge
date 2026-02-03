@@ -8,8 +8,6 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.knowgauge.core.context.AuditContext;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
@@ -30,34 +28,35 @@ import lombok.experimental.SuperBuilder;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class AuditableEntity extends PersistedEntity {
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    protected Instant createdAt;
+	@CreatedDate
+	@Column(name = "created_at", nullable = false, updatable = false)
+	protected Instant createdAt;
 
-    @CreatedBy
-    @Column(name = "created_by", updatable = false, length = 100)
-    protected String createdBy;
+	@CreatedBy
+	@Column(name = "created_by", updatable = false, nullable = false)
+	protected Long createdBy;
 
-    @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
-    protected Instant updatedAt;
+	@LastModifiedDate
+	@Column(name = "updated_at", nullable = false)
+	protected Instant updatedAt;
 
-    @LastModifiedBy
-    @Column(name = "updated_by", length = 100)
-    protected String updatedBy;
-    
-    @PrePersist
+	@LastModifiedBy
+	@Column(name = "updated_by", nullable = false)
+	protected Long updatedBy;
+
+	// TODO: Replace with SpringBoot audit
+	@PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
         updatedAt = Instant.now();
-        createdBy = AuditContext.currentActor();
-        updatedBy = AuditContext.currentActor();
+        createdBy = 1L;
+        updatedBy = 1L;
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-        updatedBy = AuditContext.currentActor();
-    }
+	@PreUpdate
+	protected void onUpdate() {
+		updatedAt = Instant.now();
+		updatedBy = 1L;
+	}
+	// END TODO: Replace with SpringBoot audit
 }
-

@@ -60,6 +60,11 @@ services:
       APP_STORAGE_SECRETKEY: minio12345
 
       JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 50MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 50MB
+       
+      SPRING_PROFILES_ACTIVE: dev
     ports:
       - "8080:8080"
       - "5005:5005"

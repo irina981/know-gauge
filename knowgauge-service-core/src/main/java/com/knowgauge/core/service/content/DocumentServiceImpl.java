@@ -5,40 +5,48 @@ import java.io.InputStream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.model.Document;
-import com.knowgauge.core.model.Topic;
+import com.knowgauge.core.model.enums.DocumentStatus;
 import com.knowgauge.core.port.repository.DocumentRepository;
-import com.knowgauge.core.port.repository.TopicRepository;
 import com.knowgauge.core.port.storage.StorageService;
 import com.knowgauge.core.port.storage.StorageService.StoredObject;
-import com.knowgauge.core.properties.StorageProperties;
+import com.knowgauge.core.storage.StorageKeyBuilder;
 
 @Service
 public class DocumentServiceImpl implements DocumentService {
 
 	private final DocumentRepository documentRepository;
 	private final StorageService storageService;
-	private final StorageProperties storageProperties;
+	private final StorageKeyBuilder storageKeyBuilder;
+	private final ExecutionContext executionContext;
 
 	public DocumentServiceImpl(DocumentRepository documentRepository, StorageService storageService,
-			StorageProperties storageProperties) {
+			StorageKeyBuilder storageKeyBuilder, ExecutionContext executionContext) {
 		this.documentRepository = documentRepository;
 		this.storageService = storageService;
-		this.storageProperties = storageProperties;
+		this.storageKeyBuilder = storageKeyBuilder;
+		this.executionContext = executionContext;
 	}
 
 	@Override
 	@Transactional
-	public Document uploadDocument(Document document, InputStream contentStream) {
-		String objectKey = storageProperties.getObjectKeyTemplate().formatted(document.getId(),
-				document.getOriginalFileName());
-		document.setStorageKey(objectKey);
-		document = documentRepository.save(document);
+	public Document uploadDocument(Document document, InputStream contentStream) {	
+		document.setStatus(DocumentStatus.UPLOADED);
+		document.setVersion(Integer.valueOf(1));
+		document.setTenantId(executionContext.tenantId());
+		Document savedDocument = documentRepository.save(document);
+		
+		// TODO: Once tenant and user logic is implemented, replace executionContext.tenantId() with savedDocument.getTenantId()
+		String storageKey = storageKeyBuilder.build(executionContext.tenantId(), savedDocument.getId(), savedDocument.getVersion());
 
-		StoredObject storedObj = storageService.put(objectKey, contentStream, document.getFileSizeBytes(),
-				document.getContentType());
+		StoredObject storedObj = storageService.put(storageKey, contentStream, savedDocument.getFileSizeBytes(),
+				savedDocument.getContentType());
 
-		document.setEtag(storedObj.etag());
+		documentRepository.updateStorageKey(savedDocument.getId(), storageKey);
+		
+		// TODO: think if we need eTag persisted for documents
+		savedDocument.setEtag(storedObj.etag());
 
 		return document;
 	}
