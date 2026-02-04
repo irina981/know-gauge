@@ -6,7 +6,7 @@ import java.util.Optional;
 import com.knowgauge.core.model.Topic;
 
 public interface TopicService {
-	public Optional<Topic> findById(Long id);
+	public Optional<Topic> get(Long id);
 
 	public Topic create(Topic req);
 	

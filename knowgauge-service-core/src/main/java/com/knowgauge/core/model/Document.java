@@ -39,5 +39,7 @@ public class Document extends AuditableObject {
 	private String errorMessage;
 
 	private Instant ingestedAt;
+	
+	 private String checksum;
 
 }

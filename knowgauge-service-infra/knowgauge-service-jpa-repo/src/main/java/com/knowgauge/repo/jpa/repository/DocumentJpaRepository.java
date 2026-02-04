@@ -18,4 +18,8 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, Lon
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("update DocumentEntity d set d.storageKey = :storageKey where d.id = :id")
 	void updateStorageKey(@Param("id") Long id, @Param("storageKey") String storageKey);
+	
+	boolean existsByTopicIdAndOriginalFileName(Long topicId, String originalFileName);
+
+    boolean existsByTopicIdAndChecksum(Long topicId, String contentHash);
 }

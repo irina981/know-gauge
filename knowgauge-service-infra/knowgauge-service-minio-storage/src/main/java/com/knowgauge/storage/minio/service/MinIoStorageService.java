@@ -2,6 +2,7 @@ package com.knowgauge.storage.minio.service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,9 +18,11 @@ import com.knowgauge.storage.minio.mapper.MinioResponseMapper;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import io.minio.errors.ErrorResponseException;
 
 @Service
@@ -50,10 +53,47 @@ public class MinIoStorageService implements StorageService {
 		}
 	}
 
+	@Override
+	@Retry(name = "minio") // TODO: retry with InputStream is not safe - implement correctly retries!
+	@CircuitBreaker(name = "minio", fallbackMethod = "getFallback")
+	@Bulkhead(name = "minio", type = Bulkhead.Type.SEMAPHORE)
+	public void download(String objectKey, OutputStream out) {
+
+		try (InputStream in = minioClient.getObject(GetObjectArgs.builder().bucket(bucket).object(objectKey).build())) {
+
+			// Efficient streaming copy
+			in.transferTo(out);
+
+			// IMPORTANT: flush but DO NOT close OutputStream (caller owns it)
+			out.flush();
+
+		} catch (Exception e) {
+			throw translate(e);
+		}
+	}
+
+	@Override
+	@Retry(name = "minio") // TODO: retry with InputStream is not safe - implement correctly retries!
+	@CircuitBreaker(name = "minio", fallbackMethod = "deleteFallback")
+	@Bulkhead(name = "minio", type = Bulkhead.Type.SEMAPHORE)
+	public void delete(String objectKey) {
+		try {
+			minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(objectKey).build());
+		} catch (Exception e) {
+			throw translate(e);
+		}
+	}
+
 	private StoredObject putFallback(String objectKey, InputStream in, long size, String contentType, Throwable t) {
-		// Option A: map to a clean 503 + message
-		// throw new StorageUnavailableException("MinIO is temporarily unavailable", t);
-		throw new StorageUnavailableException("MinIO is temporarily unavailable", t);
+		throw new StorageUnavailableException("MinIO PUT failed for key=" + objectKey, t);
+	}
+
+	private StoredObject getFallback(String objectKey, InputStream in, long size, String contentType, Throwable t) {
+		throw new StorageUnavailableException("MinIO GET failed for key=" + objectKey, t);
+	}
+
+	private StoredObject deleteFallback(String objectKey, InputStream in, long size, String contentType, Throwable t) {
+		throw new StorageUnavailableException("MinIO DELETE failed for key=" + objectKey, t);
 	}
 
 	private RuntimeException translate(Exception e) {
@@ -83,4 +123,5 @@ public class MinIoStorageService implements StorageService {
 
 		return new StorageUnexpectedException(e);
 	}
+
 }

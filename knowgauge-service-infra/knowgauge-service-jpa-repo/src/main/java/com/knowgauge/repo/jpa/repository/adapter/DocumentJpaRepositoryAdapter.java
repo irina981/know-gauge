@@ -45,4 +45,20 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
     public void updateStorageKey(Long id, String storageKey) {
     	jpaRepository.updateStorageKey(id, storageKey);
     }
+    
+    @Override
+	public void deleteById(Long id) {
+    	jpaRepository.deleteById(id);
+		
+	}
+
+	@Override
+	public boolean existsByTopicIdAndOriginalFileName(Long topicId, String originalFileName) {
+		return jpaRepository.existsByTopicIdAndOriginalFileName(topicId, originalFileName);
+	}
+
+	@Override
+	public boolean existsByTopicIdAndChecksum(Long topicId, String contentHash) {
+		return jpaRepository.existsByTopicIdAndChecksum(topicId, contentHash);
+	}
 }

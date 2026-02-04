@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.port.storage.StorageService.StoredObject;
 
+import io.minio.GetObjectResponse;
 import io.minio.ObjectWriteResponse;
 
 @Component

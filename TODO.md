@@ -9,10 +9,12 @@
 
 ### Storage / MinIO
 - [ ] Add storage exception → HTTP mapping (ControllerAdvice)
+- [ ] MinIO upload retry safety — retry with InputStream is not safe: implement a retry-safe approach for upload operations (options: buffer to temporary file/byte[] before upload, accept Supplier<InputStream> or a rewindable stream, or mark upload as non-retryable and retry at a higher level). Add integration tests and update resilience4j configuration.
 - [ ] Currently, storage key pattern is: {tenantId}/docs/by-id/{shard3}/{documentId}/v{version}/source/content. Investigate: Is it a bad practice/security concern to expose internal system's IDs to external parties.
 
 ### REST API / Validation
 - [ ] Return consistent error payload for validation errors (field + message)
+
 
 ### Observability
 - [ ] Add correlationId in logs (filter/interceptor)

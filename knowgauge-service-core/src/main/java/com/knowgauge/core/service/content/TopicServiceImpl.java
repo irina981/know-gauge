@@ -136,7 +136,7 @@ public class TopicServiceImpl implements TopicService {
 
 	@Override
 	@Transactional
-	public Optional<Topic> findById(Long id) {
+	public Optional<Topic> get(Long id) {
 		return topicRepository.findById(id);
 	}
 

@@ -1,10 +1,14 @@
 package com.knowgauge.restapi.controller;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,7 +34,10 @@ import com.knowgauge.core.service.content.DocumentService;
 import com.knowgauge.core.service.content.TopicService;
 import com.knowgauge.restapi.mapper.DocumentMapper;
 import com.knowgauge.restapi.mapper.TopicMapper;
+import com.knowgauge.restapi.util.HashingHelper;
+import com.knowgauge.restapi.util.TempFilesHelper;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController
@@ -41,13 +48,15 @@ public class ContentController {
 	private final TopicService topicService;
 	private final TopicMapper topicMapper;
 	private final DocumentMapper documentMaper;
+	private final ObjectMapper objectMapper;
 
 	public ContentController(DocumentService documentService, TopicService topicService, TopicMapper topicMapper,
-			DocumentMapper documentMaper) {
+			DocumentMapper documentMaper, ObjectMapper objectMapper) {
 		this.documentService = documentService;
 		this.topicService = topicService;
 		this.documentMaper = documentMaper;
 		this.topicMapper = topicMapper;
+		this.objectMapper = objectMapper;
 	}
 
 	// -----------------------------
@@ -55,8 +64,8 @@ public class ContentController {
 	// -----------------------------
 
 	@GetMapping("/topics/{id}")
-	public ResponseEntity<TopicDto> getById(@PathVariable Long id) {
-		Topic topic = topicService.findById(id).orElse(null);
+	public ResponseEntity<TopicDto> getTopic(@PathVariable Long id) {
+		Topic topic = topicService.get(id).orElse(null);
 		return ResponseEntity.status(200).body(topicMapper.toDto(topic));
 	}
 
@@ -65,13 +74,13 @@ public class ContentController {
 		List<TopicDto> topics = topicService.getRoots().stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
 	}
-	
+
 	@GetMapping("/topics/children/{parentId}")
 	public ResponseEntity<List<TopicDto>> getChildren(@PathVariable Long parentId) {
 		List<TopicDto> topics = topicService.getChildren(parentId).stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
 	}
-	
+
 	@GetMapping("/topics/descendants/{parentId}")
 	public ResponseEntity<List<TopicDto>> getDescendants(@PathVariable Long parentId) {
 		List<TopicDto> topics = topicService.getDescendants(parentId).stream().map(topicMapper::toDto).toList();
@@ -79,7 +88,7 @@ public class ContentController {
 	}
 
 	@DeleteMapping("/topics/{id}")
-	public ResponseEntity<TopicDto> delete(@PathVariable Long id) {
+	public ResponseEntity<Void> deleteTopic(@PathVariable Long id) {
 		topicService.delete(id);
 		return ResponseEntity.status(200).body(null);
 	}
@@ -108,6 +117,18 @@ public class ContentController {
 	// Documents
 	// -----------------------------
 
+	@GetMapping("/documents/{id}")
+	public ResponseEntity<DocumentDto> getDocument(@PathVariable Long id) {
+		Document document = documentService.get(id).orElse(null);
+		return ResponseEntity.status(200).body(documentMaper.toDto(document));
+	}
+
+	@GetMapping("/documents/all/{topicId}")
+	public ResponseEntity<Page<DocumentDto>> getAllDocuments(@PathVariable Long topicId, Pageable pageable) {
+		Page<DocumentDto> documents = documentService.getAllDocuments(topicId, pageable).map(documentMaper::toDto);
+		return ResponseEntity.status(200).body(documents);
+	}
+
 	/**
 	 * Expects multipart/form-data with: - part "meta": JSON for DocumentInput -
 	 * part "file": the actual PDF (or any file)
@@ -115,28 +136,55 @@ public class ContentController {
 	@PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<DocumentDto> uploadDocument(@RequestPart("meta") @Valid String metaJson,
 			@RequestPart("file") MultipartFile file) throws IOException {
-		
-		ObjectMapper mapper = new ObjectMapper();
-	    DocumentInput documentInput = mapper.readValue(metaJson, DocumentInput.class);
 
 		// Basic defensive checks (optional but recommended)
 		if (file.isEmpty()) {
 			return ResponseEntity.badRequest().build();
 		}
 
+		// Create document domain object
+		DocumentInput documentInput = objectMapper.readValue(metaJson, DocumentInput.class);
 		Document document = documentMaper.toDomain(documentInput, file);
 
-		// IMPORTANT: try-with-resources is fine IF uploadDocument reads the stream
-		// fully inside the call.
-		// (Which it should, because the controller must not keep streams open after
-		// returning.)
-		try (InputStream in = file.getInputStream()) {
-			document = documentService.uploadDocument(document, in);
+		// Calculate content checksum and set it to document object
+		File tempFile = TempFilesHelper.toTempFile(file);
+		try {
+			String checksum = HashingHelper.sha256Hex(tempFile);
+			document.setChecksum(checksum);
+
+			try (var in = new FileInputStream(tempFile)) {
+				document = documentService.uploadDocument(document, in);
+			}
+		} finally {
+			TempFilesHelper.delete(tempFile);
 		}
 
 		URI location = tryBuildLocation("/api/content/documents/{id}", document);
 		return (location != null) ? ResponseEntity.created(location).body(documentMaper.toDto(document))
 				: ResponseEntity.status(201).body(documentMaper.toDto(document));
+	}
+
+	@GetMapping("/documents/{id}/content")
+	public void downloadDocument(@PathVariable Long id, HttpServletResponse response) throws IOException {
+
+		// Get metadata first (NO streaming yet)
+		Document document = documentService.get(id).orElseThrow();
+
+		// Set headers BEFORE writing body
+		response.setContentType(document.getContentType());
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + document.getOriginalFileName() + "\"");
+
+		// Now stream content
+		try (OutputStream out = response.getOutputStream()) {
+			documentService.download(id, out);
+		}
+
+	}
+
+	@DeleteMapping("/documents/{id}")
+	public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
+		documentService.delete(id);
+		return ResponseEntity.status(200).body(null);
 	}
 
 	/**

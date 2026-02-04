@@ -15,4 +15,10 @@ public interface DocumentRepository {
 	Page<Document> findByTopicId(Long topicId, Pageable pageable);
 	
 	void updateStorageKey(Long id, String storageKey);
+	
+	void deleteById(Long id);
+	
+	boolean existsByTopicIdAndOriginalFileName(Long topicId, String originalFileName);
+
+    boolean existsByTopicIdAndChecksum(Long topicId, String contentHash);
 }

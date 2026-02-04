@@ -53,4 +53,7 @@ public class DocumentEntity extends AuditableEntity {
     
     @Column(name = "ingested_at", nullable = false)
     protected Instant ingestedAt;
+    
+    @Column(name = "checksum", nullable = false)
+    private String checksum;
 }
