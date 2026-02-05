@@ -9,6 +9,8 @@ public interface StorageService {
     void download(String objectKey, OutputStream out);
     
     void delete(String objectKey);
+    
+    public void ensureBucketExists();
 
     record StoredObject(String objectKey, String etag, String versionId, long size, String contentType) {}
    

@@ -18,7 +18,9 @@ import com.knowgauge.storage.minio.mapper.MinioResponseMapper;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
+import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;
 import io.minio.PutObjectArgs;
@@ -81,6 +83,18 @@ public class MinIoStorageService implements StorageService {
 			minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(objectKey).build());
 		} catch (Exception e) {
 			throw translate(e);
+		}
+	}
+
+	@Override
+	public void ensureBucketExists() {
+		try {
+			boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
+			if (!exists) {
+				minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+			}
+		} catch (Exception e) {
+			throw new StorageUnavailableException("Cannot ensure bucket exists: " + bucket, e);
 		}
 	}
 
