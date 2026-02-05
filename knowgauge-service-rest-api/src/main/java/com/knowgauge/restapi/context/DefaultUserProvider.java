@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import com.knowgauge.core.context.CurrentUserProvider;
 
 @Component
-@Profile({"dev"})
+@Profile({"dev", "docker"})
 public class DefaultUserProvider implements CurrentUserProvider {
     @Override public OptionalLong userId() { return OptionalLong.of(1L); }
 }

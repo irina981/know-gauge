@@ -2,18 +2,18 @@ services:
   postgres:
     image: pgvector/pgvector:pg15
     container_name: knowgauge-postgres
+    env_file: [.env]
     environment:
-      POSTGRES_DB: knowgauge
-      POSTGRES_USER: knowgauge_user
-      POSTGRES_PASSWORD: knowgauge_pass
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - knowgauge-network
+    networks: [knowgauge-network]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U knowgauge_user -d knowgauge"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,18 +22,18 @@ services:
     image: minio/minio:latest
     container_name: knowgauge-minio
     command: server /data --console-address ":9001"
+    env_file: [.env]
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio12345
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Console
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio_data:/data
-    networks:
-      - knowgauge-network
+    networks: [knowgauge-network]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/ready || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,27 +44,19 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: knowgauge-service
+    env_file: [.env]
     environment:
-      # Database
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/knowgauge
-      SPRING_DATASOURCE_USERNAME: knowgauge_user
-      SPRING_DATASOURCE_PASSWORD: knowgauge_pass
-      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_PROFILES_ACTIVE: docker
 
-      # MinIO (IMPORTANT: service name, not localhost)
-      APP_STORAGE_TYPE: minio
-      APP_STORAGE_ENDPOINT: http://minio:9000
-      APP_STORAGE_BUCKET: knowgauge-content
-      APP_STORAGE_ACCESSKEY: minio
-      APP_STORAGE_SECRETKEY: minio12345
+      # Inject secrets from ONE place (.env). No duplication in Spring files.
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
 
+      APP_STORAGE_ACCESSKEY: ${MINIO_ROOT_USER}
+      APP_STORAGE_SECRETKEY: ${MINIO_ROOT_PASSWORD}
+
+      # Optional debug
       JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      
-      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 50MB
-      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 50MB
-       
-      SPRING_PROFILES_ACTIVE: dev
     ports:
       - "8080:8080"
       - "5005:5005"
@@ -73,8 +65,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    networks:
-      - knowgauge-network
+    networks: [knowgauge-network]
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
       interval: 10s

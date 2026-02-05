@@ -89,6 +89,13 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- Lombok must be present in the module -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>
