@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.port.repository.TopicRepository;
@@ -13,7 +12,6 @@ import com.knowgauge.repo.jpa.mapper.TopicEntityMapper;
 import com.knowgauge.repo.jpa.repository.TopicJpaRepository;
 
 @Repository
-@Transactional
 public class TopicJpaRepositoryAdapter implements TopicRepository {
 
 	private final TopicJpaRepository jpaRepository;

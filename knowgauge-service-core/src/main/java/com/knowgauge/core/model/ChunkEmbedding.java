@@ -1,7 +1,5 @@
 package com.knowgauge.core.model;
 
-import java.time.Instant;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,13 +12,23 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class ChunkEmbedding extends AuditableObject {
+	
+	private Long tenantId;
+
+	private Long topicId;
+	
+	private Long documentId;
+	
+	private Integer documentVersion;
+
+	private Long sectionId;
 
 	private Long chunkId;
 
 	private float[] embedding;
 
 	private String embeddingModel;
-
-	private Instant createdAt;
+	
+	private String chunkChecksum;
 
 }

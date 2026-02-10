@@ -13,7 +13,6 @@ import com.knowgauge.repo.jpa.mapper.AttemptEntityMapper;
 import com.knowgauge.repo.jpa.repository.AttemptJpaRepository;
 
 @Repository
-@Transactional
 public class AttemptJpaRepositoryAdapter implements AttemptRepository {
 
     private final AttemptJpaRepository jpaRepository;
@@ -30,13 +29,11 @@ public class AttemptJpaRepositoryAdapter implements AttemptRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<Attempt> findById(Long id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<Attempt> findByTestId(Long testId, Pageable pageable) {
         return jpaRepository.findByTestId(testId, pageable)
                 .map(mapper::toDomain);

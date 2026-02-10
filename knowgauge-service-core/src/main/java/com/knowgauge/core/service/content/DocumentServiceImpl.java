@@ -91,6 +91,13 @@ public class DocumentServiceImpl implements DocumentService {
 		return document;
 	}
 	
+	@Override
+	@Transactional
+	public InputStream download(Long id) {
+		Document document = documentRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+		return storageService.download(document.getStorageKey());
+	}
+	
 	private void validateUniqueNameUnderTopic(Long topicId, String originalFileName) {
 		if (documentRepository.existsByTopicIdAndOriginalFileName(topicId, originalFileName)) {
 			throw new IllegalArgumentException("Document with name \"" + originalFileName + "\" already exists for topic id " + topicId);
@@ -102,4 +109,22 @@ public class DocumentServiceImpl implements DocumentService {
 			throw new IllegalArgumentException("Document with the same content already exists for topic id " + topicId);
 		}
 	}
+
+	@Override
+	public int updateStatusIfCurrent(Long documentId, DocumentStatus fromStatus,
+			DocumentStatus toStatus) {
+		return documentRepository.updateStatusIfCurrent(documentId, fromStatus, toStatus);
+	}
+
+	@Override
+	public int markIngested(Long documentId) {
+		return documentRepository.markIngested(documentId);
+	}
+
+	@Override
+	public int markFailed(Long documentId, String errorMessage) {
+		return documentRepository.markFailed(documentId, errorMessage);
+	}
+	
+	
 }

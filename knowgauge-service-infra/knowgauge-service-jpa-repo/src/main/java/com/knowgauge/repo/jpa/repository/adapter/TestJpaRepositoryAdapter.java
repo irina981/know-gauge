@@ -13,32 +13,28 @@ import com.knowgauge.repo.jpa.mapper.TestEntityMapper;
 import com.knowgauge.repo.jpa.repository.TestJpaRepository;
 
 @Repository
-@Transactional
 public class TestJpaRepositoryAdapter implements TestRepository {
 
-    private final TestJpaRepository jpaRepository;
-    private final TestEntityMapper mapper;
+	private final TestJpaRepository jpaRepository;
+	private final TestEntityMapper mapper;
 
-    public TestJpaRepositoryAdapter(TestJpaRepository jpaRepository, TestEntityMapper mapper) {
-        this.jpaRepository = jpaRepository;
-        this.mapper = mapper;
-    }
+	public TestJpaRepositoryAdapter(TestJpaRepository jpaRepository, TestEntityMapper mapper) {
+		this.jpaRepository = jpaRepository;
+		this.mapper = mapper;
+	}
 
-    @Override
-    public Test save(Test domain) {
-        return mapper.toDomain(jpaRepository.save(mapper.toEntity(domain)));
-    }
+	@Override
+	public Test save(Test domain) {
+		return mapper.toDomain(jpaRepository.save(mapper.toEntity(domain)));
+	}
 
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<Test> findById(Long id) {
-        return jpaRepository.findById(id).map(mapper::toDomain);
-    }
+	@Override
+	public Optional<Test> findById(Long id) {
+		return jpaRepository.findById(id).map(mapper::toDomain);
+	}
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Test> findByTopicId(Long topicId, Pageable pageable) {
-        return jpaRepository.findByTopicId(topicId, pageable)
-                .map(mapper::toDomain);
-    }
+	@Override
+	public Page<Test> findByTopicId(Long topicId, Pageable pageable) {
+		return jpaRepository.findByTopicId(topicId, pageable).map(mapper::toDomain);
+	}
 }

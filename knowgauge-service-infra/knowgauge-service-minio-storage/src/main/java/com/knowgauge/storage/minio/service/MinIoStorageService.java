@@ -75,6 +75,22 @@ public class MinIoStorageService implements StorageService {
 	}
 
 	@Override
+	@Retry(name = "minio") // ⚠ retries with InputStream still need special handling (see note below)
+	@CircuitBreaker(name = "minio", fallbackMethod = "getFallbackStream")
+	@Bulkhead(name = "minio", type = Bulkhead.Type.SEMAPHORE)
+	public InputStream download(String objectKey) {
+
+		try {
+			return minioClient.getObject(GetObjectArgs.builder().bucket(bucket).object(objectKey).build());
+
+			// DO NOT close here → caller must close InputStream
+
+		} catch (Exception e) {
+			throw translate(e);
+		}
+	}
+
+	@Override
 	@Retry(name = "minio") // TODO: retry with InputStream is not safe - implement correctly retries!
 	@CircuitBreaker(name = "minio", fallbackMethod = "deleteFallback")
 	@Bulkhead(name = "minio", type = Bulkhead.Type.SEMAPHORE)

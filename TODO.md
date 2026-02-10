@@ -34,6 +34,7 @@
 ### Multi-tenant support
 - [ ] Tenant domain entity
 - [ ] Two types of tenants: PERSONAL, ORGANIZATION
+- [ ] Add tenantId to all domain objects (topics and documents are misisng it for sure) and make all the topics and documents queries tenant scoped
 
 ### Spring Data auditing
 - [ ] Wire Spring Data auditing (instead of @PrePersist, @PreUpdate) - to update createdBy, modifiedBy

@@ -12,12 +12,17 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class DocumentChunk extends AuditableObject {
+	private Long tenantId;
 
 	private Long topicId;
+	
+	private Long documentId;
+	
+	private Integer documentVersion;
 
 	private Long sectionId;
 
-	private Integer chunkIndex;
+	private Integer ordinal;
 
 	private String chunkText;
 

@@ -8,6 +8,8 @@ public interface StorageService {
     
     void download(String objectKey, OutputStream out);
     
+    InputStream download(String objectKey);
+    
     void delete(String objectKey);
     
     public void ensureBucketExists();
