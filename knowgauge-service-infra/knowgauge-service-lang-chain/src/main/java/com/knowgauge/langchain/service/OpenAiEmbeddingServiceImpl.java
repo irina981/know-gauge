@@ -21,10 +21,10 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 	private final String modelName;
 	private final int expectedDimension;
 
-	public OpenAiEmbeddingServiceImpl(@Value("${app.embedding.openai.api-key}") String apiKey,
-			@Value("${app.embedding.openai.model:text-embedding-3-small}") String modelName,
-			@Value("${app.embedding.openai.base-url:}") String baseUrl,
-			@Value("${app.embedding.dimension}") int expectedDimension) {
+	public OpenAiEmbeddingServiceImpl(@Value("${kg.embedding.openai.api-key}") String apiKey,
+			@Value("${kg.embedding.openai.model:text-embedding-3-small}") String modelName,
+			@Value("${kg.embedding.openai.base-url:}") String baseUrl,
+			@Value("${kg.embedding.dimension}") int expectedDimension) {
 		this.modelName = modelName;
 
 		OpenAiEmbeddingModel.OpenAiEmbeddingModelBuilder builder = OpenAiEmbeddingModel.builder().apiKey(apiKey)

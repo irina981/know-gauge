@@ -30,10 +30,10 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Copy the built JAR from builder stage
-COPY --from=builder /app/knowgauge-service-rest-api/target/*.jar app.jar
+COPY --from=builder /app/knowgauge-service-rest-api/target/*.jar knowgauge-service.jar
 
 # Expose application port
 EXPOSE 8080
 
 # Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "knowgauge-service.jar"]

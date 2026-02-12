@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties(prefix = "app.storage")
+@ConfigurationProperties(prefix = "kg.storage")
 public class StorageProperties {
 
     private String storageKeyTemplate;

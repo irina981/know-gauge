@@ -35,7 +35,7 @@ public class MinIoStorageService implements StorageService {
 	private final MinioResponseMapper responseMapper;
 
 	public MinIoStorageService(MinioClient minioClient, MinioResponseMapper responseMapper,
-			@Value("${app.storage.bucket}") String bucket) {
+			@Value("${kg.storage.bucket}") String bucket) {
 		this.minioClient = minioClient;
 		this.responseMapper = responseMapper;
 		this.bucket = bucket;

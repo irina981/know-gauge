@@ -11,8 +11,8 @@ import dev.langchain4j.data.document.splitter.DocumentSplitters;
 public class LangChainConfig {
 
 	@Bean
-	public DocumentSplitter getTextSplitter(@Value("${app.chunking.maxSegmentSizeInChars}") int maxSegmentSizeInChars,
-			@Value("${app.chunking.maxOverlapSizeInChars}") int maxOverlapSizeInChars) {
+	public DocumentSplitter getTextSplitter(@Value("${kg.chunking.maxSegmentSizeInChars}") int maxSegmentSizeInChars,
+			@Value("${kg.chunking.maxOverlapSizeInChars}") int maxOverlapSizeInChars) {
 		return DocumentSplitters.recursive(maxSegmentSizeInChars, maxOverlapSizeInChars);
 	}
 }

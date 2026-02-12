@@ -13,12 +13,12 @@ import okhttp3.OkHttpClient;
 public class MinIoConfig {
 
 	@Bean
-	MinioClient minioClient(@Value("${app.storage.endpoint}") String endpoint,
-			@Value("${app.storage.accessKey}") String accessKey, @Value("${app.storage.secretKey}") String secretKey,
-			@Value("${app.storage.connectTimeout}") Long connectTimeout,
-			@Value("${app.storage.readTimeout}") Long readTimeout,
-			@Value("${app.storage.writeTimeout}") Long writeTimeout,
-			@Value("${app.storage.callTimeout}") Long callTimeout) {
+	MinioClient minioClient(@Value("${kg.storage.endpoint}") String endpoint,
+			@Value("${kg.storage.accessKey}") String accessKey, @Value("${kg.storage.secretKey}") String secretKey,
+			@Value("${kg.storage.connectTimeout}") Long connectTimeout,
+			@Value("${kg.storage.readTimeout}") Long readTimeout,
+			@Value("${kg.storage.writeTimeout}") Long writeTimeout,
+			@Value("${kg.storage.callTimeout}") Long callTimeout) {
 		// Define custom timeouts on HTTP client level
 		OkHttpClient httpClient = new OkHttpClient.Builder().connectTimeout(Duration.ofSeconds(connectTimeout))
 				.readTimeout(Duration.ofSeconds(readTimeout)).writeTimeout(Duration.ofSeconds(writeTimeout))
