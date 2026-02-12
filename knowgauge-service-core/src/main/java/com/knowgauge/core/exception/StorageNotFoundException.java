@@ -3,7 +3,12 @@ package com.knowgauge.core.exception;
 //Used for: missing bucket, missing object, wrong key
 public class StorageNotFoundException extends StorageException {
 
-    public StorageNotFoundException(String message) {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	public StorageNotFoundException(String message) {
         super(message);
     }
 
