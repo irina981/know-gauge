@@ -3,12 +3,11 @@ package com.knowgauge.core.service.ingestion;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.DocumentChunk;
-import com.knowgauge.core.port.repository.ChunkEmbeddingRepository;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
+import com.knowgauge.core.port.vectorstore.VectorStore;
 import com.knowgauge.core.service.content.DocumentService;
 
 @Service
@@ -17,13 +16,13 @@ public class IngestionTransactionalServiceImpl {
 
 	private final DocumentService documentService;
 	private final DocumentChunkRepository documentChunkRepository;
-	private final ChunkEmbeddingRepository chunkEmbeddingRepository;
+	private final VectorStore vectorStore;
 
 	public IngestionTransactionalServiceImpl(DocumentService documentService,
-			DocumentChunkRepository documentChunkRepository, ChunkEmbeddingRepository chunkEmbeddingRepository) {
+			DocumentChunkRepository documentChunkRepository, VectorStore chunkEmbeddingRepository) {
 		this.documentService = documentService;
 		this.documentChunkRepository = documentChunkRepository;
-		this.chunkEmbeddingRepository = chunkEmbeddingRepository;
+		this.vectorStore = chunkEmbeddingRepository;
 	}
 
 	/**

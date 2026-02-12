@@ -9,19 +9,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocumentChunk;
-import com.knowgauge.core.port.repository.ChunkEmbeddingRepository;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
+import com.knowgauge.core.port.vectorstore.VectorStore;
 import com.knowgauge.core.service.content.DocumentService;
 
 @Service
 @Transactional(transactionManager = "vectorTransactionManager")
 public class IngestionVectorTransactionalServiceImpl {
 
-	private final ChunkEmbeddingRepository chunkEmbeddingRepository;
+	private final VectorStore vectorStore;
 
 	public IngestionVectorTransactionalServiceImpl(DocumentService documentService,
-			DocumentChunkRepository documentChunkRepository, ChunkEmbeddingRepository chunkEmbeddingRepository) {
-		this.chunkEmbeddingRepository = chunkEmbeddingRepository;
+			DocumentChunkRepository documentChunkRepository, VectorStore chunkEmbeddingRepository) {
+		this.vectorStore = chunkEmbeddingRepository;
 	}
 
 	public List<ChunkEmbedding> persistEmbeddings(Long tenantId, Long documentId, Integer documentVersion,
@@ -32,7 +32,7 @@ public class IngestionVectorTransactionalServiceImpl {
 		}
 
 		// Delete old embeddings first
-		chunkEmbeddingRepository.deleteByTenantIdAndDocumentIdAndDocumentVersionAndEmbeddingModel(tenantId, documentId,
+		vectorStore.deleteByTenantIdAndDocumentIdAndDocumentVersionAndEmbeddingModel(tenantId, documentId,
 				documentVersion, embeddingModel);
 
 		List<ChunkEmbedding> embeddings = IntStream.range(0, vectors.size()).mapToObj(i -> {
@@ -45,7 +45,7 @@ public class IngestionVectorTransactionalServiceImpl {
 					.embedding(vector).embeddingModel(embeddingModel).build();
 		}).collect(Collectors.toList());
 
-		List<ChunkEmbedding> savedEmbeddings = chunkEmbeddingRepository.saveAll(embeddings);
+		List<ChunkEmbedding> savedEmbeddings = vectorStore.saveAll(embeddings);
 
 		return savedEmbeddings;
 	}

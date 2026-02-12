@@ -11,10 +11,10 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 
-import com.knowgauge.core.port.ingestion.PageExtractionService;
+import com.knowgauge.core.port.documentparser.DocumentParser;
 
 @Service
-public class PdfPageExtractionService implements PageExtractionService {
+public class PdfPageExtractionService implements DocumentParser {
 	private static final String CONTENT_TYPE = "application/pdf";
 
 	@Override
@@ -40,7 +40,7 @@ public class PdfPageExtractionService implements PageExtractionService {
 	}
 
 	@Override
-	public String getSupportedContentType() {
+	public String contentType() {
 		return CONTENT_TYPE;
 	}
 

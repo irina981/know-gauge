@@ -5,12 +5,13 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.knowgauge.core.chunking.ChunkingPolicy;
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.enums.DocumentStatus;
-import com.knowgauge.core.port.ingestion.ChunkingService;
-import com.knowgauge.core.port.ingestion.EmbeddingService;
-import com.knowgauge.core.port.ingestion.PageExtractionService;
+import com.knowgauge.core.port.documentparser.DocumentParser;
+import com.knowgauge.core.port.embedding.EmbeddingService;
+import com.knowgauge.core.service.chunking.ChunkingService;
 import com.knowgauge.core.service.content.DocumentService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -19,22 +20,24 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class IngestionServiceImpl implements IngestionService {
 
-	private final List<PageExtractionService> pageExtractionServices;
+	private final List<DocumentParser> pageExtractionServices;
 	private final ChunkingService chunkingService;
 	private final EmbeddingService embeddingService;
 	private final DocumentService documentService;
 	private final IngestionTransactionalServiceImpl ingestionTransactionalService;
 	private final IngestionVectorTransactionalServiceImpl ingestionVectorTransactionalService;
+	private final ChunkingPolicy chunkingPolicy;
 
-	public IngestionServiceImpl(List<PageExtractionService> pageExtractionServices,
+	public IngestionServiceImpl(List<DocumentParser> pageExtractionServices,
 			ChunkingService chunkingService, DocumentService documentService,
-			IngestionTransactionalServiceImpl ingestionTransactionalService, EmbeddingService embeddingService, IngestionVectorTransactionalServiceImpl ingestionVectorTransactionalService) {
+			IngestionTransactionalServiceImpl ingestionTransactionalService, EmbeddingService embeddingService, IngestionVectorTransactionalServiceImpl ingestionVectorTransactionalService, ChunkingPolicy chunkingPolicy) {
 		this.pageExtractionServices = pageExtractionServices;
 		this.chunkingService = chunkingService;
 		this.embeddingService = embeddingService;
 		this.documentService = documentService;
 		this.ingestionTransactionalService = ingestionTransactionalService;
 		this.ingestionVectorTransactionalService = ingestionVectorTransactionalService;
+		this.chunkingPolicy = chunkingPolicy;
 	}
 
 	@Override
@@ -63,13 +66,13 @@ public class IngestionServiceImpl implements IngestionService {
 			// 3) Load document content from storage
 			try (InputStream in = documentService.download(documentId)) {
 				// 4) Extract document text into pages
-				PageExtractionService pageExtractionService = getPageExtractionService(document.getContentType());
+				DocumentParser pageExtractionService = getPageExtractionService(document.getContentType());
 				pages = pageExtractionService.extractPages(in);
 				log.info("   Ingesting document {} - Content extracted to {} pages.", documentId, pages.size());
 			}
 
 			// 5) Split each page into chunks
-			List<DocumentChunk> chunks = chunkingService.chunkDocument(tenantId, topicId, documentId, documentVersion, pages);
+			List<DocumentChunk> chunks = chunkingService.chunkDocument(tenantId, topicId, documentId, documentVersion, pages, chunkingPolicy);
 			log.info("   Ingesting document {} - Pages devided into {} chunks.", documentId, chunks.size());
 
 			// 6) Replace old chunks (if exist) with new ones in repository
@@ -101,8 +104,8 @@ public class IngestionServiceImpl implements IngestionService {
 		
 	}
 
-	private PageExtractionService getPageExtractionService(String contentType) {
-		return pageExtractionServices.stream().filter(service -> contentType.equals(service.getSupportedContentType()))
+	private DocumentParser getPageExtractionService(String contentType) {
+		return pageExtractionServices.stream().filter(service -> contentType.equals(service.contentType()))
 				.findFirst()
 				.orElseThrow(() -> new RuntimeException(String.format("Content type {} not supported", contentType)));
 	}

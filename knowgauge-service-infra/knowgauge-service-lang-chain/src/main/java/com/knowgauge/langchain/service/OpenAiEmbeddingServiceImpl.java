@@ -14,7 +14,7 @@ import com.knowgauge.core.exception.EmbeddingBadRequestException;
 import com.knowgauge.core.exception.EmbeddingRateLimitedException;
 import com.knowgauge.core.exception.EmbeddingUnavailableException;
 import com.knowgauge.core.exception.EmbeddingUnexpectedException;
-import com.knowgauge.core.port.ingestion.EmbeddingService;
+import com.knowgauge.core.port.embedding.EmbeddingService;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;

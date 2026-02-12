@@ -5,52 +5,74 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.knowgauge.core.chunking.ChunkingPolicy;
 import com.knowgauge.core.model.DocumentChunk;
-import com.knowgauge.core.port.ingestion.ChunkingService;
+import com.knowgauge.core.service.chunking.ChunkingService;
 import com.knowgauge.core.util.HashingHelper;
 
 import dev.langchain4j.data.document.DefaultDocument;
 import dev.langchain4j.data.document.DocumentSplitter;
+import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.segment.TextSegment;
 
 @Service
 public class LangChainChunkingServiceImpl implements ChunkingService {
-	private final DocumentSplitter splitter;
-
-	public LangChainChunkingServiceImpl(DocumentSplitter splitter) {
-		this.splitter = splitter;
-	}
 
 	@Override
-	public List<DocumentChunk> chunkDocument(Long tenantId, Long topicId, Long documentId, Integer version, List<String> pages) {
+	public List<DocumentChunk> chunkDocument(Long tenantId, Long topicId, Long documentId, Integer version,
+			List<String> pages, ChunkingPolicy policy) {
+
+		DocumentSplitter splitter = createSplitter(policy);
+
 		List<DocumentChunk> chunks = new ArrayList<>();
-        int globalOrdinal = 0;
+		int globalOrdinal = 0;
 
-        for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
-            String pageText = pages.get(pageIndex);
-            int pageNumber = pageIndex + 1;
+		for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
 
-            List<TextSegment> segments = splitter.split(new DefaultDocument(pageText));
+			String pageText = pages.get(pageIndex);
 
-            int cursor = 0;
+			if (policy.isTrimWhitespace()) {
+				pageText = pageText.trim();
+			}
 
-            for (TextSegment segment : segments) {
-                String chunkText = segment.text();
+			int pageNumber = pageIndex + 1;
 
-                // find chunk position in page text starting from cursor
-                int start = pageText.indexOf(chunkText, cursor);
-                if (start == -1) {
-                    // fallback (rare, but defensive)
-                    start = cursor;
-                }
-                int end = start + chunkText.length();
+			List<TextSegment> segments = splitter.split(new DefaultDocument(pageText));
 
-                chunks.add(new DocumentChunk(tenantId, topicId, documentId, version, null, ++globalOrdinal, chunkText, pageNumber, pageNumber, start, end, HashingHelper.sha256Hex(chunkText)));
+			int cursor = 0;
 
-                cursor = end;
-            }
-        }
-        return chunks;
+			for (TextSegment segment : segments) {
+
+				String chunkText = segment.text();
+
+				if (policy.isTrimWhitespace()) {
+					chunkText = chunkText.trim();
+				}
+
+				int start = pageText.indexOf(chunkText, cursor);
+
+				if (start == -1) {
+					start = cursor;
+				}
+
+				int end = start + chunkText.length();
+
+				DocumentChunk chunk = new DocumentChunk(tenantId, topicId, documentId, version, null, ++globalOrdinal,
+						chunkText, policy.isIncludePageMetadata() ? pageNumber : null,
+						policy.isIncludePageMetadata() ? pageNumber : null, start, end,
+						HashingHelper.sha256Hex(chunkText));
+
+				chunks.add(chunk);
+
+				cursor = end;
+			}
+		}
+
+		return chunks;
 	}
 
+	private DocumentSplitter createSplitter(ChunkingPolicy policy) {
+
+		return DocumentSplitters.recursive(policy.getMaxChunkSizeChars(), policy.getOverlapSizeChars());
+	}
 }

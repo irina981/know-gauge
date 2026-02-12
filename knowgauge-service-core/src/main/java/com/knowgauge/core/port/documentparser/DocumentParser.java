@@ -1,10 +1,10 @@
-package com.knowgauge.core.port.ingestion;
+package com.knowgauge.core.port.documentparser;
 
 import java.io.InputStream;
 import java.util.List;
 
-public interface PageExtractionService {
+public interface DocumentParser {
 	  List<String> extractPages(InputStream in) throws Exception;
 	  
-	  String getSupportedContentType();
+	  String contentType();
 }

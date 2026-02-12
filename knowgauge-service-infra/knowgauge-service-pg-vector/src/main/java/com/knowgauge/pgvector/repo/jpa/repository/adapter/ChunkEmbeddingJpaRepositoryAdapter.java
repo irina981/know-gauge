@@ -7,7 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.ChunkEmbedding;
-import com.knowgauge.core.port.repository.ChunkEmbeddingRepository;
+import com.knowgauge.core.port.vectorstore.VectorStore;
 import com.knowgauge.pgvector.repo.jpa.mapper.ChunkEmbeddingEntityMapper;
 import com.knowgauge.pgvector.repo.jpa.repository.ChunkEmbeddingJpaRepository;
 
@@ -15,7 +15,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
 @Repository
-public class ChunkEmbeddingJpaRepositoryAdapter implements ChunkEmbeddingRepository {
+public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 	@PersistenceContext(unitName = "pgvector")
 	private EntityManager em;
 

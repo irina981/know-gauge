@@ -1,4 +1,4 @@
-package com.knowgauge.core.port.repository;
+package com.knowgauge.core.port.vectorstore;
 
 import java.util.Collection;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.Optional;
 
 import com.knowgauge.core.model.ChunkEmbedding;
 
-public interface ChunkEmbeddingRepository {
+public interface VectorStore {
 
 	ChunkEmbedding save(ChunkEmbedding embedding);
 	

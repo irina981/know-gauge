@@ -1,4 +1,4 @@
-package com.knowgauge.core.port.ingestion;
+package com.knowgauge.core.port.embedding;
 
 import java.util.List;
 
