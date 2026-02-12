@@ -1,4 +1,4 @@
-package com.knowgauge.vector.pg;
+package com.knowgauge.pgvector;
 
 /**
  * Placeholder class for the infrastructure module.

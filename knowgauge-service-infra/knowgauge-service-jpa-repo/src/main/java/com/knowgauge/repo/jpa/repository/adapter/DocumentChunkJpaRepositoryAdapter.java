@@ -14,8 +14,13 @@ import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.repo.jpa.mapper.DocumentChunkEntityMapper;
 import com.knowgauge.repo.jpa.repository.DocumentChunkJpaRepository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 @Repository
 public class DocumentChunkJpaRepositoryAdapter implements DocumentChunkRepository {
+	@PersistenceContext
+	private EntityManager em;
 
 	private final DocumentChunkJpaRepository jpaRepository;
 	private final DocumentChunkEntityMapper mapper;
@@ -29,6 +34,11 @@ public class DocumentChunkJpaRepositoryAdapter implements DocumentChunkRepositor
 	@Override
 	public DocumentChunk save(DocumentChunk domain) {
 		return mapper.toDomain(jpaRepository.save(mapper.toEntity(domain)));
+	}
+	
+	@Override
+	public List<DocumentChunk> saveAll(List<DocumentChunk> chunks) {
+		return jpaRepository.saveAll(chunks.stream().map(mapper::toEntity).toList()).stream().map(mapper::toDomain).toList();
 	}
 
 	@Override
@@ -85,5 +95,7 @@ public class DocumentChunkJpaRepositoryAdapter implements DocumentChunkRepositor
 	public void deleteByTenantIdAndDocumentIdAndDocumentVersion(Long tenantId, Long documentId,
 			Integer documentVersion) {
 		jpaRepository.deleteByTenantIdAndDocumentIdAndDocumentVersion(tenantId, documentId, documentVersion);
+		em.flush();
+		em.clear();
 	}
 }

@@ -17,6 +17,9 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class TopicEntity extends AuditableEntity {
+	@Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+	
     @Column(name = "parent_id")
     private Long parentId;
 

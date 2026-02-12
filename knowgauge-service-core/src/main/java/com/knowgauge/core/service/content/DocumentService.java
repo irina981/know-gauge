@@ -28,7 +28,7 @@ public interface DocumentService {
 
 	Page<Document> getAllDocuments(Long topicId, Pageable pageable);
 
-	int updateStatusIfCurrent(Long documentId, DocumentStatus fromStatus, DocumentStatus toStatus);
+	int markIngesting(Long documentId);
 
 	int markIngested(Long documentId);
 

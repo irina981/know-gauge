@@ -18,6 +18,25 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-vectors:
+    image: pgvector/pgvector:pg15
+    container_name: knowgauge-postgres-vectors
+    env_file: [.env]
+    environment:
+      POSTGRES_DB: ${POSTGRES_VECTORS_DB}
+      POSTGRES_USER: ${POSTGRES_VECTORS_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_VECTORS_PASSWORD}
+    ports:
+      - "5433:5432"   # host 5433 -> container 5432 (avoid conflict with main)
+    volumes:
+      - postgres_vectors_data:/var/lib/postgresql/data
+    networks: [knowgauge-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_VECTORS_USER} -d ${POSTGRES_VECTORS_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   minio:
     image: minio/minio:latest
     container_name: knowgauge-minio
@@ -48,10 +67,19 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
 
-      # Inject secrets from ONE place (.env). No duplication in Spring files.
+      # ✅ Main DB (Spring default datasource)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
 
+      # ✅ Vector DB (your custom pgvector datasource)
+      # IMPORTANT: use jdbc-url (Hikari) to avoid "jdbcUrl is required..."
+      KG_PGVECTOR_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-vectors:5432/${POSTGRES_VECTORS_DB}
+      KG_PGVECTOR_DATASOURCE_USERNAME: ${POSTGRES_VECTORS_USER}
+      KG_PGVECTOR_DATASOURCE_PASSWORD: ${POSTGRES_VECTORS_PASSWORD}
+      KG_PGVECTOR_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+
+      # MinIO
       APP_STORAGE_ACCESSKEY: ${MINIO_ROOT_USER}
       APP_STORAGE_SECRETKEY: ${MINIO_ROOT_PASSWORD}
 
@@ -62,6 +90,8 @@ services:
       - "5005:5005"
     depends_on:
       postgres:
+        condition: service_healthy
+      postgres-vectors:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -75,6 +105,7 @@ services:
 
 volumes:
   postgres_data:
+  postgres_vectors_data:
   minio_data:
 
 networks:

@@ -32,9 +32,10 @@ import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.service.content.DocumentService;
 import com.knowgauge.core.service.content.TopicService;
+import com.knowgauge.core.service.ingestion.IngestionService;
+import com.knowgauge.core.util.HashingHelper;
 import com.knowgauge.restapi.mapper.DocumentMapper;
 import com.knowgauge.restapi.mapper.TopicMapper;
-import com.knowgauge.restapi.util.HashingHelper;
 import com.knowgauge.restapi.util.TempFilesHelper;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -49,14 +50,16 @@ public class ContentController {
 	private final TopicMapper topicMapper;
 	private final DocumentMapper documentMaper;
 	private final ObjectMapper objectMapper;
+	private final IngestionService ingestionService;
 
 	public ContentController(DocumentService documentService, TopicService topicService, TopicMapper topicMapper,
-			DocumentMapper documentMaper, ObjectMapper objectMapper) {
+			DocumentMapper documentMaper, ObjectMapper objectMapper, IngestionService ingestionService) {
 		this.documentService = documentService;
 		this.topicService = topicService;
 		this.documentMaper = documentMaper;
 		this.topicMapper = topicMapper;
 		this.objectMapper = objectMapper;
+		this.ingestionService = ingestionService;
 	}
 
 	// -----------------------------
@@ -184,6 +187,12 @@ public class ContentController {
 	@DeleteMapping("/documents/{id}")
 	public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
 		documentService.delete(id);
+		return ResponseEntity.status(200).body(null);
+	}
+	
+	@PostMapping("/documents/ingestion/{id}")
+	public ResponseEntity<Void> startIngestion(@PathVariable Long id) {
+		ingestionService.ingest(id);
 		return ResponseEntity.status(200).body(null);
 	}
 

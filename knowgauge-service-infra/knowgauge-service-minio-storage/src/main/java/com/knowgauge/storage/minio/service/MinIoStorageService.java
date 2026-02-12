@@ -57,7 +57,7 @@ public class MinIoStorageService implements StorageService {
 
 	@Override
 	@Retry(name = "minio") // TODO: retry with InputStream is not safe - implement correctly retries!
-	@CircuitBreaker(name = "minio", fallbackMethod = "getFallback")
+	@CircuitBreaker(name = "minio", fallbackMethod = "downloadToStreamFallback")
 	@Bulkhead(name = "minio", type = Bulkhead.Type.SEMAPHORE)
 	public void download(String objectKey, OutputStream out) {
 
@@ -76,7 +76,7 @@ public class MinIoStorageService implements StorageService {
 
 	@Override
 	@Retry(name = "minio") // ⚠ retries with InputStream still need special handling (see note below)
-	@CircuitBreaker(name = "minio", fallbackMethod = "getFallbackStream")
+	@CircuitBreaker(name = "minio", fallbackMethod = "downloadFallback")
 	@Bulkhead(name = "minio", type = Bulkhead.Type.SEMAPHORE)
 	public InputStream download(String objectKey) {
 
@@ -118,12 +118,16 @@ public class MinIoStorageService implements StorageService {
 		throw new StorageUnavailableException("MinIO PUT failed for key=" + objectKey, t);
 	}
 
-	private StoredObject getFallback(String objectKey, InputStream in, long size, String contentType, Throwable t) {
+	private StoredObject deleteFallback(String objectKey, Throwable t) {
+		throw new StorageUnavailableException("MinIO DELETE failed for key=" + objectKey, t);
+	}
+	
+	private StoredObject downloadFallback(String objectKey, Throwable t) {
 		throw new StorageUnavailableException("MinIO GET failed for key=" + objectKey, t);
 	}
-
-	private StoredObject deleteFallback(String objectKey, InputStream in, long size, String contentType, Throwable t) {
-		throw new StorageUnavailableException("MinIO DELETE failed for key=" + objectKey, t);
+	
+	private StoredObject downloadToStreamFallback(String objectKey, OutputStream out, Throwable t) {
+		throw new StorageUnavailableException("MinIO GET failed for key=" + objectKey, t);
 	}
 
 	private RuntimeException translate(Exception e) {

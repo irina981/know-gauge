@@ -111,9 +111,8 @@ public class DocumentServiceImpl implements DocumentService {
 	}
 
 	@Override
-	public int updateStatusIfCurrent(Long documentId, DocumentStatus fromStatus,
-			DocumentStatus toStatus) {
-		return documentRepository.updateStatusIfCurrent(documentId, fromStatus, toStatus);
+	public int markIngesting(Long documentId) {
+		return documentRepository.markIngesting(documentId);
 	}
 
 	@Override

@@ -18,10 +18,11 @@
 		<module>knowgauge-service-contract</module>
 		<module>knowgauge-service-client</module>
 		<module>knowgauge-service-rest-api</module>
-		<module>knowgauge-service-infra/knowgauge-service-llm</module>
+		<module>knowgauge-service-infra/knowgauge-service-lang-chain</module>
 		<module>knowgauge-service-infra/knowgauge-service-jpa-repo</module>
 		<module>knowgauge-service-infra/knowgauge-service-minio-storage</module>
 		<module>knowgauge-service-infra/knowgauge-service-pg-vector</module>
+		<module>knowgauge-service-infra/knowgauge-service-pdfbox</module>
 	</modules>
 
 	<properties>
@@ -50,6 +51,14 @@
 				<artifactId>lombok</artifactId>
 				<version>${lombok.version}</version>
 				<scope>provided</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>dev.langchain4j</groupId>
+				<artifactId>langchain4j-bom</artifactId>
+				<version>1.1.0</version>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

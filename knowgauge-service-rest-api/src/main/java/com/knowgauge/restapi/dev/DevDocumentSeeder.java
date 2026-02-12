@@ -13,7 +13,7 @@ import com.knowgauge.core.model.Document;
 import com.knowgauge.core.port.repository.DocumentRepository;
 import com.knowgauge.core.port.storage.StorageService;
 import com.knowgauge.core.service.content.DocumentService;
-import com.knowgauge.restapi.util.HashingHelper;
+import com.knowgauge.core.util.HashingHelper;
 
 import lombok.extern.slf4j.Slf4j;
 

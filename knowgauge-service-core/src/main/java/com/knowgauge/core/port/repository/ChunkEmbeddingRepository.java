@@ -9,6 +9,8 @@ import com.knowgauge.core.model.ChunkEmbedding;
 public interface ChunkEmbeddingRepository {
 
 	ChunkEmbedding save(ChunkEmbedding embedding);
+	
+	List<ChunkEmbedding> saveAll(List<ChunkEmbedding> embedding);
 
 	Optional<ChunkEmbedding> findByTenantIdAndChunkIdAndEmbeddingModel(Long tenantId, Long chunkId,
 			String embeddingModel);
@@ -16,8 +18,8 @@ public interface ChunkEmbeddingRepository {
 	List<ChunkEmbedding> findByTenantIdAndChunkIdInAndEmbeddingModel(Long tenantId, Collection<Long> chunkIds,
 			String embeddingModel);
 
-	void deleteByTenantIdAndDocumentIdAndDocumentVersionAndEmbeddingModel(Long tenantId, Long documentId,
+	long deleteByTenantIdAndDocumentIdAndDocumentVersionAndEmbeddingModel(Long tenantId, Long documentId,
 			Integer documentVersion, String embeddingModel);
 
-	void deleteByTenantIdAndChunkId(Long tenantId, Long chunkId);
+	long deleteByTenantIdAndChunkId(Long tenantId, Long chunkId);
 }

@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.knowgauge.core.model.enums.DocumentStatus;
 import com.knowgauge.repo.jpa.entity.DocumentEntity;
 
 @Repository
@@ -23,12 +22,11 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, Lon
 	@Modifying
 	@Query("""
 			update DocumentEntity d
-			set d.status = :toStatus
-			where d.id = :documentId and d.status = :fromStatus
+			set d.status = com.knowgauge.core.model.enums.DocumentStatus.INGESTING
+			where d.id = :documentId 
+			  and (d.status = com.knowgauge.core.model.enums.DocumentStatus.UPLOADED or d.status = com.knowgauge.core.model.enums.DocumentStatus.FAILED)
 			""")
-	int updateStatusIfCurrent(@Param("documentId") Long documentId, @Param("fromStatus") DocumentStatus fromStatus,
-			@Param("toStatus") DocumentStatus toStatus);
-
+	int markIngesting(@Param("documentId") Long documentId);
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""
@@ -40,7 +38,6 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, Lon
 			       and d.status = com.knowgauge.core.model.enums.DocumentStatus.INGESTING
 			""")
 	int markIngested(@Param("documentId") Long documentId);
-
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""

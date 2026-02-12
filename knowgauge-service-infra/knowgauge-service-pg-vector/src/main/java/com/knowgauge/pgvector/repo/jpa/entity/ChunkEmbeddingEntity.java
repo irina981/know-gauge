@@ -1,4 +1,4 @@
-package com.knowgauge.repo.jpa.entity;
+package com.knowgauge.pgvector.repo.jpa.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

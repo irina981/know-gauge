@@ -16,6 +16,8 @@ public class Topic extends AuditableObject {
 		this.name = name;
 		this.description = description;
 	}
+	
+	private Long tenantId;
 
 	private Long parentId;
 

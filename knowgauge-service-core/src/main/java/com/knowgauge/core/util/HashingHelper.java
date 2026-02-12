@@ -1,11 +1,11 @@
-package com.knowgauge.restapi.util;
+package com.knowgauge.core.util;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -31,6 +31,16 @@ public class HashingHelper {
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException(e);
 		}
+	}
+	
+	public static String sha256Hex(String text) {
+	    try {
+	        MessageDigest md = MessageDigest.getInstance("SHA-256");
+	        byte[] digest = md.digest(text.getBytes(StandardCharsets.UTF_8));
+	        return HexFormat.of().formatHex(digest);
+	    } catch (NoSuchAlgorithmException e) {
+	        throw new IllegalStateException(e);
+	    }
 	}
 
 	private static String toHex(byte[] bytes) {

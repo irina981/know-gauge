@@ -4,10 +4,8 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.query.Param;
 
 import com.knowgauge.core.model.Document;
-import com.knowgauge.core.model.enums.DocumentStatus;
 
 public interface DocumentRepository {
 	Document save(Document document);
@@ -18,7 +16,7 @@ public interface DocumentRepository {
 	
 	void updateStorageKey(Long id, String storageKey);
 	
-	int updateStatusIfCurrent(Long documentId, DocumentStatus fromStatus, DocumentStatus toStatus);
+	int markIngesting(Long documentId);
 	
 	int markIngested(Long documentId);
 	

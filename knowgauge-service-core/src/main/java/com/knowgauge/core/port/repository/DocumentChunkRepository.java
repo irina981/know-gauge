@@ -12,6 +12,8 @@ import com.knowgauge.core.model.DocumentChunk;
 public interface DocumentChunkRepository {
 
 	DocumentChunk save(DocumentChunk chunk);
+	
+	List<DocumentChunk> saveAll(List<DocumentChunk> chunks);
 
 	Optional<DocumentChunk> findByTenantIdAndId(Long tenantId, Long id);
 

@@ -20,6 +20,7 @@ public interface TopicMapper {
      * For create requests you usually ignore id and let persistence assign it.
      */
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "children", ignore = true)
     @Mapping(target = "path", ignore = true)
     @Mapping(target = "createdAt", ignore = true)      // set by service/DB
@@ -29,6 +30,7 @@ public interface TopicMapper {
     Topic toDomain(TopicCreateInput input);
     
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "parentId", ignore = true) // set later in service while linking tree
     @Mapping(target = "path", ignore = true)
     @Mapping(target = "createdAt", ignore = true)      // set by service/DB

@@ -66,7 +66,13 @@
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-llm</artifactId>
+			<artifactId>knowgauge-service-lang-chain</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.knowgauge</groupId>
+			<artifactId>knowgauge-service-pdfbox</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

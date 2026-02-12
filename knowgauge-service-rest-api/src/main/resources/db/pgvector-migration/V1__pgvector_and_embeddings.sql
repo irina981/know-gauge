@@ -21,11 +21,8 @@ CREATE TABLE chunk_embeddings (
     created_by BIGINT NOT NULL,
     updated_by BIGINT NOT NULL,
 
-    CONSTRAINT fk_chunk_embeddings_chunk
-        FOREIGN KEY (chunk_id) REFERENCES document_chunks(id) ON DELETE CASCADE,
-
     CONSTRAINT uk_chunk_embeddings_chunk_model
-        UNIQUE (chunk_id, embedding_model)
+        UNIQUE (tenant_id, chunk_id, embedding_model)
 );
 
 -- 3) Useful filtering indexes

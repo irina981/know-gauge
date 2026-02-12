@@ -9,10 +9,11 @@ COPY knowgauge-service-core/pom.xml knowgauge-service-core/
 COPY knowgauge-service-contract/pom.xml knowgauge-service-contract/
 COPY knowgauge-service-client/pom.xml knowgauge-service-client/
 COPY knowgauge-service-rest-api/pom.xml knowgauge-service-rest-api/
-COPY knowgauge-service-infra/knowgauge-service-llm/pom.xml knowgauge-service-infra/knowgauge-service-llm/
+COPY knowgauge-service-infra/knowgauge-service-lang-chain/pom.xml knowgauge-service-infra/knowgauge-service-lang-chain/
 COPY knowgauge-service-infra/knowgauge-service-jpa-repo/pom.xml knowgauge-service-infra/knowgauge-service-jpa-repo/
 COPY knowgauge-service-infra/knowgauge-service-minio-storage/pom.xml knowgauge-service-infra/knowgauge-service-minio-storage/
 COPY knowgauge-service-infra/knowgauge-service-pg-vector/pom.xml knowgauge-service-infra/knowgauge-service-pg-vector/
+COPY knowgauge-service-infra/knowgauge-service-pdfbox/pom.xml knowgauge-service-infra/knowgauge-service-pdfbox/
 
 # go-offline is flaky; just warm cache by validating model
 RUN mvn -B -DskipTests -q validate

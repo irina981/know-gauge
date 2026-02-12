@@ -23,6 +23,9 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 public class DocumentEntity extends AuditableEntity {
+	@Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+	
     @Column(nullable = false)
     private String title;
 

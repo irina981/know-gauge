@@ -4,9 +4,7 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.enums.DocumentStatus;
@@ -61,8 +59,8 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 	}
 
 	@Override
-	public int updateStatusIfCurrent(Long documentId, DocumentStatus fromStatus, DocumentStatus toStatus) {
-		return jpaRepository.updateStatusIfCurrent(documentId, fromStatus, toStatus);
+	public int markIngesting(Long documentId) {
+		return jpaRepository.markIngesting(documentId);
 	}
 
 	@Override
