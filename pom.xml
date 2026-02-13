@@ -15,14 +15,14 @@
 
 	<modules>
 		<module>knowgauge-service-core</module>
-		<module>knowgauge-service-contract</module>
+		<module>knowgauge-service-rest-contract</module>
 		<module>knowgauge-service-client</module>
 		<module>knowgauge-service-rest-api</module>
-		<module>knowgauge-service-infra/knowgauge-service-lang-chain</module>
-		<module>knowgauge-service-infra/knowgauge-service-jpa-repo</module>
-		<module>knowgauge-service-infra/knowgauge-service-minio-storage</module>
-		<module>knowgauge-service-infra/knowgauge-service-pg-vector</module>
-		<module>knowgauge-service-infra/knowgauge-service-pdfbox</module>
+		 <module>knowgauge-service-infra/knowgauge-service-infra-storage-minio</module>
+	<module>knowgauge-service-infra/knowgauge-service-infra-repository-jpa</module>
+  <module>knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector</module>
+  <module>knowgauge-service-infra/knowgauge-service-infra-embedding-openai</module>
+  <module>knowgauge-service-infra/knowgauge-service-infra-documentparser-pdfbox</module>
 	</modules>
 
 	<properties>

@@ -41,38 +41,38 @@
 		<!-- Contract/DTOs -->
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-contract</artifactId>
+			<artifactId>knowgauge-service-rest-contract</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<!-- Infra adapters (runtime wiring) -->
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-jpa-repo</artifactId>
+			<artifactId>knowgauge-service-infra-repository-jpa</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-pg-vector</artifactId>
+			<artifactId>knowgauge-service-infra-vectorstore-pgvector</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-minio-storage</artifactId>
+			<artifactId>knowgauge-service-infra-storage-minio</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-lang-chain</artifactId>
+			<artifactId>knowgauge-service-infra-embedding-openai</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-pdfbox</artifactId>
+			<artifactId>knowgauge-service-infra-documentparser-pdfbox</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

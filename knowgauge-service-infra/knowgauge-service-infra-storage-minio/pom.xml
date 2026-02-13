@@ -11,11 +11,11 @@
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 
-	<artifactId>knowgauge-service-pdfbox</artifactId>
+	<artifactId>knowgauge-service-infra-storage-minio</artifactId>
 	<packaging>jar</packaging>
 
-	<name>KnowGauge Service PDF Box Adapter</name>
-	<description>Layer containing external integration with PDF Box</description>
+	<name>KnowGauge Service Infra Storage Adapter</name>
+	<description>Layer containing external integration with MinIO storage</description>
 
 	<dependencies>
 		<dependency>
@@ -25,9 +25,19 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.apache.pdfbox</groupId>
-			<artifactId>pdfbox</artifactId>
-			<version>3.0.6</version> <!-- Use the latest stable version -->
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+			<version>8.5.17</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot3</artifactId>
 		</dependency>
 
 	</dependencies>

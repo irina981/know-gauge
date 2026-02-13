@@ -11,10 +11,10 @@
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 
-	<artifactId>knowgauge-service-jpa-repo</artifactId>
+	<artifactId>knowgauge-service-infra-repository-jpa</artifactId>
 	<packaging>jar</packaging>
 
-	<name>KnowGauge Service Spring Data JPA Repository Adapter</name>
+	<name>KnowGauge Service Infra Repository Adapter</name>
 	<description>Layer containing external integration with Spring Data JPA
 		Repository</description>
 

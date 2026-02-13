@@ -11,12 +11,11 @@
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 
-	<artifactId>knowgauge-service-lang-chain</artifactId>
+	<artifactId>knowgauge-service-infra-documentparser-pdfbox</artifactId>
 	<packaging>jar</packaging>
 
-	<name>KnowGauge Service LangChain4j Adapter</name>
-	<description>Layer containing external integration with LLM, using
-		LangChain4j</description>
+	<name>KnowGauge Service Infra Adapter for Document Parser</name>
+	<description>Layer containing external integration with PDF Box</description>
 
 	<dependencies>
 		<dependency>
@@ -26,20 +25,10 @@
 		</dependency>
 
 		<dependency>
-			<groupId>dev.langchain4j</groupId>
-			<artifactId>langchain4j</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>dev.langchain4j</groupId>
-			<artifactId>langchain4j-open-ai</artifactId>
-		</dependency>
-		
-		<dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-spring-boot3</artifactId>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.6</version> <!-- Use the latest stable version -->
 		</dependency>
 
 	</dependencies>
-
-
 </project>

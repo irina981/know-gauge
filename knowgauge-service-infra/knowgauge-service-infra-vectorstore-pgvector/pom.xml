@@ -11,10 +11,10 @@
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 
-	<artifactId>knowgauge-service-pg-vector</artifactId>
+	<artifactId>knowgauge-service-infra-vectorstore-pgvector</artifactId>
 	<packaging>jar</packaging>
 
-	<name>KnowGauge Service PG Vector Adapter</name>
+	<name>KnowGauge Service Infra Vector Store Adapter</name>
 	<description>Layer containing external integration with PG Vector</description>
 
 	<dependencies>
