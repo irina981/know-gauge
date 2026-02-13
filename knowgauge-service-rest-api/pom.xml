@@ -75,6 +75,13 @@
 			<artifactId>knowgauge-service-infra-documentparser-pdfbox</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>com.knowgauge</groupId>
+			<artifactId>knowgauge-service-infra-chunking-langchain4j</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
 
 		<!-- Ensure JDBC driver is present in the final boot jar -->
 		<dependency>

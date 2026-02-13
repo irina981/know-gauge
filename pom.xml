@@ -23,6 +23,7 @@
   <module>knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector</module>
   <module>knowgauge-service-infra/knowgauge-service-infra-embedding-openai</module>
   <module>knowgauge-service-infra/knowgauge-service-infra-documentparser-pdfbox</module>
+  <module>knowgauge-service-infra/knowgauge-service-infra-chunking-langchain4j</module>
 	</modules>
 
 	<properties>
