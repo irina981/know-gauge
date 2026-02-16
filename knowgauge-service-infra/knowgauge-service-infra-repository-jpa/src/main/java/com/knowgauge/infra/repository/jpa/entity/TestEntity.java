@@ -1,8 +1,8 @@
 package com.knowgauge.infra.repository.jpa.entity;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.hibernate.annotations.Type;
 
@@ -34,13 +34,23 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class TestEntity extends AuditableEntity {
-	@Column(name = "topic_id", nullable = false)
-	private Long topicId;
+	@Column(name = "tenant_id", nullable = false)
+	private Long tenantId;
+
+	@Builder.Default
+	@ManyToMany
+	@JoinTable(name = "test_covered_topics", joinColumns = @JoinColumn(name = "test_id"), inverseJoinColumns = @JoinColumn(name = "topic_id"))
+	private List<TopicEntity> topics = new ArrayList<>();
+
+	@Builder.Default
+	@ManyToMany
+	@JoinTable(name = "test_covered_documents", joinColumns = @JoinColumn(name = "test_id"), inverseJoinColumns = @JoinColumn(name = "document_id"))
+	private List<DocumentEntity> documents = new ArrayList<>();
 
 	@Builder.Default
 	@ManyToMany
 	@JoinTable(name = "test_used_chunks", joinColumns = @JoinColumn(name = "test_id"), inverseJoinColumns = @JoinColumn(name = "chunk_id"))
-	private Set<DocumentChunkEntity> usedChunks = new HashSet<>();
+	private List<DocumentChunkEntity> usedChunks = new ArrayList<DocumentChunkEntity>();
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
@@ -53,7 +63,7 @@ public class TestEntity extends AuditableEntity {
 	@Builder.Default
 	@Enumerated(EnumType.STRING)
 	@Column(name = "coverage_mode", nullable = false)
-	private TestCoverageMode coverageMode = TestCoverageMode.BALANCED;
+	private TestCoverageMode coverageMode = TestCoverageMode.BALANCED_PER_DOC_CHUNKS;
 
 	@Column(name = "question_count", nullable = false)
 	private Integer questionCount;
@@ -64,6 +74,9 @@ public class TestEntity extends AuditableEntity {
 
 	@Column(name = "generation_model")
 	private String generationModel;
+
+	@Column(name = "promptTemplateId")
+	private String promptTemplateId;
 
 	@Column(name = "generation_params_json", columnDefinition = "jsonb")
 	@Type(JsonType.class)

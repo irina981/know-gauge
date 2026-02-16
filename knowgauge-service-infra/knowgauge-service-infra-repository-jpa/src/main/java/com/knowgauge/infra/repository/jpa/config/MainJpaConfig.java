@@ -18,7 +18,7 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
-@EnableJpaRepositories(basePackages = "com.knowgauge.repo.jpa.repository", entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
+@EnableJpaRepositories(basePackages = "com.knowgauge.infra.repository.jpa.repository", entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
 public class MainJpaConfig {
 	@Bean(name = "mainDataSourceProperties")
 	@Primary
@@ -39,7 +39,7 @@ public class MainJpaConfig {
 
 		LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
 		emf.setDataSource(dataSource);
-		emf.setPackagesToScan("com.knowgauge.repo.jpa.entity");
+		emf.setPackagesToScan("com.knowgauge.infra.repository.jpa.entity");
 		emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 
 		Map<String, Object> props = new HashMap<>();

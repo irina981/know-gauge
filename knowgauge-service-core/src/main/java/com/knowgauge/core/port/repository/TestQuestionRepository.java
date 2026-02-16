@@ -7,6 +7,8 @@ import com.knowgauge.core.model.TestQuestion;
 
 public interface TestQuestionRepository {
 	TestQuestion save(TestQuestion question);
+	
+	List<TestQuestion> saveAll(List<TestQuestion> chunks);
 
 	Optional<TestQuestion> findById(Long id);
 

@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>com.knowgauge</groupId>
-            <artifactId>knowgauge-service-contract</artifactId>
+            <artifactId>knowgauge-service-rest-contract</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

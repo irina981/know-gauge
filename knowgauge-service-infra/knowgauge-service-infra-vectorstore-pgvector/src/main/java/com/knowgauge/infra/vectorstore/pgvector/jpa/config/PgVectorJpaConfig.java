@@ -18,7 +18,7 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
-@EnableJpaRepositories(basePackages = "com.knowgauge.pgvector.repo.jpa.repository", entityManagerFactoryRef = "vectorEntityManagerFactory", transactionManagerRef = "vectorTransactionManager")
+@EnableJpaRepositories(basePackages = "com.knowgauge.infra.vectorstore.pgvector.jpa.repository", entityManagerFactoryRef = "vectorEntityManagerFactory", transactionManagerRef = "vectorTransactionManager")
 @EntityScan(basePackages = "com.knowgauge.pgvector.repo.jpa.entity")
 public class PgVectorJpaConfig {
 
@@ -39,7 +39,7 @@ public class PgVectorJpaConfig {
 
 		LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
 		emf.setDataSource(dataSource);
-		emf.setPackagesToScan("com.knowgauge.pgvector.repo.jpa.entity");
+		emf.setPackagesToScan("com.knowgauge.infra.vectorstore.pgvector.jpa.entity");
 		emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 
 		Map<String, Object> props = new HashMap<>();

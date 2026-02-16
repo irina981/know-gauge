@@ -2,8 +2,6 @@ package com.knowgauge.infra.repository.jpa.repository.adapter;
 
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.Test;
@@ -28,12 +26,7 @@ public class TestJpaRepositoryAdapter implements TestRepository {
 	}
 
 	@Override
-	public Optional<Test> findById(Long id) {
+	public Optional<Test> findByTenantIdAndId(Long tenantId, Long id) {
 		return jpaRepository.findById(id).map(mapper::toDomain);
-	}
-
-	@Override
-	public Page<Test> findByTopicId(Long topicId, Pageable pageable) {
-		return jpaRepository.findByTopicId(topicId, pageable).map(mapper::toDomain);
 	}
 }

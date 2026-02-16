@@ -16,6 +16,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class TestQuestion extends AuditableObject {
+	private Long tenantId;
 
 	private Long testId;
 

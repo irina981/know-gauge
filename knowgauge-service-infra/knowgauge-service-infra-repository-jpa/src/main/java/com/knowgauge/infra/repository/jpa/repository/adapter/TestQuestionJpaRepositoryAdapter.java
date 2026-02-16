@@ -35,4 +35,10 @@ public class TestQuestionJpaRepositoryAdapter implements TestQuestionRepository 
 	public List<TestQuestion> findByTestId(Long testId) {
 		return jpaRepository.findByTestId(testId).stream().map(mapper::toDomain).toList();
 	}
+
+	@Override
+	public List<TestQuestion> saveAll(List<TestQuestion> chunks) {
+		return jpaRepository.saveAll(chunks.stream().map(mapper::toEntity).toList()).stream().map(mapper::toDomain)
+				.toList();
+	}
 }
