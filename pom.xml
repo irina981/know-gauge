@@ -20,10 +20,16 @@
 		<module>knowgauge-service-rest-api</module>
 		<module>knowgauge-service-infra/knowgauge-service-infra-storage-minio</module>
 		<module>knowgauge-service-infra/knowgauge-service-infra-repository-jpa</module>
-		<module>knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector</module>
+		<module>
+			knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector</module>
 		<module>knowgauge-service-infra/knowgauge-service-infra-embedding-openai</module>
-		<module>knowgauge-service-infra/knowgauge-service-infra-documentparser-pdfbox</module>
-		<module>knowgauge-service-infra/knowgauge-service-infra-chunking-langchain4j</module>
+		<module>
+			knowgauge-service-infra/knowgauge-service-infra-testgeneration-openai</module>
+		<module>
+			knowgauge-service-infra/knowgauge-service-infra-documentparser-pdfbox</module>
+		<module>
+			knowgauge-service-infra/knowgauge-service-infra-chunking-langchain4j</module>
+
 	</modules>
 
 	<properties>
@@ -92,6 +98,8 @@
 					<configuration>
 						<source>${java.version}</source>
 						<target>${java.version}</target>
+						<debug>true</debug>
+						<debuglevel>lines,vars,source</debuglevel>
 						<parameters>true</parameters>
 
 						<!-- IMPORTANT for annotation processors -->

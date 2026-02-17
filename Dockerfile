@@ -10,6 +10,7 @@ COPY knowgauge-service-rest-contract/pom.xml knowgauge-service-rest-contract/
 COPY knowgauge-service-client/pom.xml knowgauge-service-client/
 COPY knowgauge-service-rest-api/pom.xml knowgauge-service-rest-api/
 COPY knowgauge-service-infra/knowgauge-service-infra-embedding-openai/pom.xml knowgauge-service-infra/knowgauge-service-infra-embedding-openai/
+COPY knowgauge-service-infra/knowgauge-service-infra-testgeneration-openai/pom.xml knowgauge-service-infra/knowgauge-service-infra-testgeneration-openai/
 COPY knowgauge-service-infra/knowgauge-service-infra-repository-jpa/pom.xml knowgauge-service-infra/knowgauge-service-infra-repository-jpa/
 COPY knowgauge-service-infra/knowgauge-service-infra-storage-minio/pom.xml knowgauge-service-infra/knowgauge-service-infra-storage-minio/
 COPY knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector/pom.xml knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector/

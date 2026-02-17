@@ -77,34 +77,19 @@ public class TestGenerationTransactionalServiceImpl {
 
 	@Transactional
 	public Test markTestGenerated(Long tenantId, Long testId) {
-		Test test = testRepository.findByTenantIdAndId(tenantId, testId)
-				.orElseThrow(() -> new IllegalArgumentException("Test not found: " + testId));
-
-		test.setStatus(TestStatus.GENERATED);
-
-		Map<String, Object> params = test.getGenerationParams();
-		if (params == null)
-			params = new HashMap<>();
-		params.put("generationFinishedAt", Instant.now().toString());
-		test.setGenerationParams(params);
-
-		return testRepository.save(test);
+	    int updated = testRepository.markGenerated(tenantId, testId, Instant.now());
+	    if (updated == 0) throw new IllegalArgumentException("Test not found: " + testId);
+	    return testRepository.findByTenantIdAndId(tenantId, testId).orElseThrow();
 	}
 
 	@Transactional
 	public void markTestFailed(Long tenantId, Long testId, String errorMessage) {
-		Test test = testRepository.findByTenantIdAndId(tenantId, testId)
-				.orElseThrow(() -> new IllegalArgumentException("Test not found: " + testId));
-
-		test.setStatus(TestStatus.FAILED);
-
-		Map<String, Object> params = test.getGenerationParams();
-		if (params == null)
-			params = new HashMap<>();
-		params.put("error", errorMessage);
-		params.put("generationFailedAt", Instant.now().toString());
-		test.setGenerationParams(params);
-
-		testRepository.save(test);
+	    int updated = testRepository.markFailed(tenantId, testId, errorMessage, Instant.now());
+	    if (updated == 0) throw new IllegalArgumentException("Test not found: " + testId);
+	}
+	
+	@Transactional
+	public void setUsedChunks(Long tenantId, Long testId, List<Long> chunkIds) {
+	    testRepository.setUsedChunks(tenantId, testId, chunkIds);
 	}
 }

@@ -2,6 +2,7 @@ package com.knowgauge.core.service.content;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -123,6 +124,11 @@ public class DocumentServiceImpl implements DocumentService {
 	@Override
 	public int markFailed(Long documentId, String errorMessage) {
 		return documentRepository.markFailed(documentId, errorMessage);
+	}
+
+	@Override
+	public List<Document> findByTopicIds(Long tenantId, List<Long> topicIds) {
+		return documentRepository.findByTenantIdAndTopicIdIn(tenantId, topicIds);
 	}
 	
 	

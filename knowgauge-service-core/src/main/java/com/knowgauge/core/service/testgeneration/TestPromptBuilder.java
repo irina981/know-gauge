@@ -19,7 +19,7 @@ public class TestPromptBuilder {
 	private final String defaultTemplateId;
 
 	public TestPromptBuilder(PromptTemplateLoader templateLoader, PromptTemplateRenderer templateRenderer,
-			@Value("${kg.testgeneration.prompt.templates.defaultTemplateId}") String defaultTemplateId) {
+			@Value("${kg.llm.testgen.prompt.templates.defaultTemplateId}") String defaultTemplateId) {
 		super();
 		this.templateLoader = templateLoader;
 		this.templateRenderer = templateRenderer;
@@ -27,8 +27,8 @@ public class TestPromptBuilder {
 	}
 
 	public String buildPrompt(Test test, List<DocumentChunk> chunks) {
-		Objects.requireNonNull(test, "test must not be null");
-		Objects.requireNonNull(chunks, "chunks must not be null");
+		Objects.requireNonNull(test, "Test must not be null.");
+		Objects.requireNonNull(chunks, "Chunks must not be null.");
 
 		String templateId = resolveTemplateId(test);
 		String template = templateLoader.loadTemplate(templateId);
@@ -38,8 +38,7 @@ public class TestPromptBuilder {
 		// --- Test / generation params (adapt names to your Test model) ---
 		vars.put("difficulty", safe(test.getDifficulty()));
 		vars.put("questionCount", test.getQuestionCount());
-		// vars.put("language", safe(test.getLanguage())); // not supported at the
-		// moment
+		vars.put("language", safe(test.getLanguage()));
 
 		// --- The generating model (more below) ---
 		vars.put("model", safe(test.getGenerationModel()));

@@ -1,5 +1,6 @@
 package com.knowgauge.core.port.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -13,6 +14,8 @@ public interface DocumentRepository {
 	Optional<Document> findById(Long id);
 
 	Page<Document> findByTopicId(Long topicId, Pageable pageable);
+	
+	List<Document> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicId);
 	
 	void updateStorageKey(Long id, String storageKey);
 	

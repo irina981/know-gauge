@@ -2,10 +2,10 @@ package com.knowgauge.infra.embedding.openai.service;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +20,6 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.exception.HttpException;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -32,22 +31,11 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 	private final String modelName;
 	private final int expectedDimension;
 
-	public OpenAiEmbeddingServiceImpl(@Value("${kg.embedding.openai.api-key}") String apiKey,
+	public OpenAiEmbeddingServiceImpl(@Qualifier("openAiEmbeddingModel") EmbeddingModel model,
 			@Value("${kg.embedding.openai.model:text-embedding-3-small}") String modelName,
-			@Value("${kg.embedding.openai.base-url:}") String baseUrl,
-			@Value("${kg.embedding.dimension}") int expectedDimension,
-			@Value("${kg.embedding.openai.timeout}") int modelTimeout) {
+			@Value("${kg.embedding.dimension}") int expectedDimension) {
+		this.model = model;
 		this.modelName = modelName;
-
-		OpenAiEmbeddingModel.OpenAiEmbeddingModelBuilder builder = OpenAiEmbeddingModel.builder().apiKey(apiKey)
-				.modelName(modelName).timeout(Duration.ofSeconds(modelTimeout));
-
-		// baseUrl is optional (useful for proxies / OpenAI-compatible providers)
-		if (baseUrl != null && !baseUrl.isBlank()) {
-			builder.baseUrl(baseUrl);
-		}
-
-		this.model = builder.build();
 		this.expectedDimension = expectedDimension;
 	}
 
@@ -106,7 +94,6 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 	private String normalize(String text) {
 		String t = Objects.requireNonNull(text, "Text must not be null").trim();
 		if (t.isEmpty()) {
-			// Decide policy: either reject or embed empty (OpenAI may reject empty)
 			throw new IllegalArgumentException("Text must not be blank");
 		}
 		return t;
@@ -116,7 +103,6 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 		if (vector == null) {
 			throw new IllegalStateException("Embedding vector is null");
 		}
-
 		if (vector.length != expectedDimension) {
 			throw new IllegalStateException("Embedding dimension mismatch. Expected " + expectedDimension + " but got "
 					+ vector.length + " for model " + modelName);
@@ -124,9 +110,6 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 	}
 
 	private float[] embedFallback(String text, Throwable t) {
-		// Decide policy: either rethrow or return sentinel value.
-		// For embeddings, returning fake vectors is usually dangerous -> rethrow a
-		// domain exception.
 		throw new IllegalStateException("Embedding failed (fallback). " + t.getMessage(), t);
 	}
 
@@ -136,14 +119,12 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 
 	private RuntimeException translateEmbeddingException(Exception e) {
 
-		// Network/IO → transient
 		if (e instanceof SocketTimeoutException || e instanceof IOException) {
 			return new EmbeddingUnavailableException("Embedding call failed due to IO/timeout", e);
 		}
 
-		// LangChain4j HTTP wrapper
 		if (e instanceof HttpException he) {
-			int code = he.statusCode(); // if your version uses a different accessor, adjust
+			int code = he.statusCode();
 
 			return switch (code) {
 			case 400, 404, 422 -> new EmbeddingBadRequestException("Embedding request rejected (" + code + ")", e);
@@ -151,7 +132,6 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 			case 408 -> new EmbeddingUnavailableException("Embedding request timed out (" + code + ")", e);
 			case 429 -> new EmbeddingRateLimitedException("Embedding rate limited (" + code + ")", e);
 			default -> {
-				// 5xx → transient
 				if (code >= 500 && code <= 599) {
 					yield new EmbeddingUnavailableException("Embedding provider unavailable (" + code + ")", e);
 				}
@@ -160,7 +140,6 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 			};
 		}
 
-		// Anything else
 		return new EmbeddingUnexpectedException("Unexpected embedding failure", e);
 	}
 }

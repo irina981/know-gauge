@@ -6,16 +6,14 @@ import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.model.ChunkEmbedding;
-import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
-import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
 import com.knowgauge.core.port.vectorstore.VectorStore;
-import com.knowgauge.core.service.content.DocumentService;
-import com.knowgauge.core.service.content.TopicService;
+import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
+import com.knowgauge.core.service.testgeneration.validation.TestQuestionValidator;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,27 +21,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TestGenerationServiceImpl implements TestGenerationService {
 
-	private final TopicService topicService;
-	private final DocumentService documentService;
 	private final VectorStore vectorStore;
 
 	private final TestPromptBuilder promptBuilder;
 	private final LlmTestGenerationService llmTestGenerationService;
-	private final TestGenerationValidator validator;
+	private final TestQuestionValidator testQuestionValidator;
+	private final TestDraftValidator testDraftValidator;
 	private final TestGenerationTransactionalServiceImpl tx;
 	private final DocumentChunkRepository documentChunkRepository;
 	private final ExecutionContext executionContext;
 
-	public TestGenerationServiceImpl(TopicService topicService, DocumentService documentService,
-			VectorStore vectorStore, TestPromptBuilder promptBuilder, LlmTestGenerationService llmTestGenerationService,
-			TestGenerationValidator validator, TestGenerationTransactionalServiceImpl tx,
+	public TestGenerationServiceImpl(VectorStore vectorStore, TestPromptBuilder promptBuilder,
+			LlmTestGenerationService llmTestGenerationService, TestQuestionValidator testQuestionValidator,
+			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext) {
-		this.topicService = topicService;
-		this.documentService = documentService;
 		this.vectorStore = vectorStore;
 		this.promptBuilder = promptBuilder;
 		this.llmTestGenerationService = llmTestGenerationService;
-		this.validator = validator;
+		this.testQuestionValidator = testQuestionValidator;
+		this.testDraftValidator = testDraftValidator;
 		this.tx = tx;
 		this.documentChunkRepository = documentChunkRepository;
 		this.executionContext = executionContext;
@@ -53,47 +49,69 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	public Test generate(Test testDraft) {
 		Long tenantId = executionContext.tenantId();
 		testDraft.setTenantId(tenantId);
+		log.info("*** Test generation - Started for tenantId={}, topicIds={}, documentIds={}. questionCount={}",
+				tenantId, testDraft.getTopicIds(), testDraft.getDocumentIds(), testDraft.getQuestionCount());
 
-		validate(tenantId, testDraft);
-
+		// 0) Validate test and expand:
+		// - topic IDs - with all the descendants of the selected topics
+		// - document IDs - with all the documents for all expanded topic IDs
+		testDraft = testDraftValidator.validateAndExpandTopicsAndDocuments(tenantId, testDraft);
 		List<Long> topicIds = testDraft.getTopicIds();
+		log.info("    Test generation - Expanded topic IDs: [{}],", topicIds);
 		List<Long> documentIds = testDraft.getDocumentIds();
-
-		log.info("*** Test generation started for topicIds={}, documentIds={}. questionCount={}", topicIds, documentIds,
-				testDraft.getQuestionCount());
+		log.info("    Test generation - Expanded document IDs: [{}],", documentIds);
 
 		// 1) Persist test and mark it GENERATING
 		Test test = tx.persistTest(tenantId, testDraft);
+		log.info("    Test generation {} - Test persisted", test.getId());
 
 		try {
 
-			// 2) Select embeddings based on topis IDs, document IDs, chunk limit, coverage mode and avoiding repeats
-			List<ChunkEmbedding> embeddings = vectorStore.findTop(tenantId, topicIds, documentIds, recommendedChunkLimit(test),
+			// 2) Select embeddings based on topis IDs, document IDs, chunk limit, coverage
+			// mode and avoiding repeats
+			List<ChunkEmbedding> embeddings = vectorStore.findTop(tenantId, documentIds, recommendedChunkLimit(test),
 					test.getCoverageMode(), test.isAvoidRepeats());
-			log.info("   Retrieved {} embeddings from vector store", embeddings.size());
+			if (embeddings == null || embeddings.isEmpty()) {
+				throw new IllegalStateException("No relevant context chunks found (tenantId=" + tenantId + ", topicIds="
+						+ topicIds + ", documentIds=" + documentIds + ").");
+			}
+			log.info("    Test generation {} - Retrieved {} embeddings from vector store", test.getId(),
+					embeddings.size());
 
-	
 			List<Long> chunkIds = embeddings.stream().map(ChunkEmbedding::getChunkId).toList();
+			log.info("    Test generation {} - Chunk IDs that will be used for test generation: [{}]", test.getId(),
+					chunkIds);
+
 			List<DocumentChunk> chunks = documentChunkRepository.findByTenantIdAndIdIn(tenantId, chunkIds);
-			test.setUsedChunks(chunks);
+			if (chunks == null || chunks.isEmpty()) {
+				throw new IllegalStateException("No chunks could be loaded for retrieved embeddings (tenantId="
+						+ tenantId + ", chunkIds=" + chunkIds.size() + ").");
+			}
+
+			tx.setUsedChunks(tenantId, test.getId(), chunkIds);
+			log.info("    Test generation {} - Used chunks [{}] persisted for test {}", test.getId(), chunkIds,
+					test.getId());
 
 			// 3) Build prompt
 			String prompt = promptBuilder.buildPrompt(test, chunks);
+			log.debug("    Test generation {} - Built prompt: {}", test.getId(), prompt);
 
 			// 4) Generate questions
 			List<TestQuestion> generatedTestQuestions = llmTestGenerationService.generate(prompt, test);
-			log.info("   Generated {} questions", generatedTestQuestions.size());
+			log.info("    Test generation {} - Generated {} questions.", test.getId(), generatedTestQuestions.size());
 
 			// 5) Validate questions
-			List<TestQuestion> validatedTestQuestions = validator.validateAndNormalize(generatedTestQuestions, test, embeddings);
+			List<TestQuestion> validatedTestQuestions = testQuestionValidator
+					.validateAndNormalize(generatedTestQuestions, test, embeddings);
 
 			// 6) Persist questions
 			tx.persistTestQuestions(tenantId, test.getId(), validatedTestQuestions, embeddings);
 
 			// 7) Mark test GENERATED
 			Test ready = tx.markTestGenerated(tenantId, test.getId());
+			log.info("    Test generation {} - Test marked GENERATED.", test.getId());
 
-			log.info("*** Test generation completed for testId={}", ready.getId());
+			log.info("*** Test generation {} - Completed", ready.getId());
 
 			return ready;
 
@@ -101,43 +119,10 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 			// Mark test FAILED
 			tx.markTestFailed(tenantId, test.getId(), ex.getMessage());
+			log.info("    Test generation {} - Test marked FAILED, with message: {}.", test.getId(), ex.getMessage());
 
 			throw new RuntimeException("Test generation failed for test " + test.getId(), ex);
 		}
-	}
-
-	private void validate(Long tenantId, Test test) {
-
-		if (test == null)
-			throw new IllegalArgumentException("Test must not be null");
-
-		List<Long> topicIds = test.getTopicIds();
-		List<Long> documentIds = test.getDocumentIds();
-
-		if (topicIds.isEmpty() && documentIds.isEmpty()) {
-			throw new IllegalArgumentException("Test must specify at least one topicId or documentId.");
-		}
-
-		topicIds.stream().forEach(topicId -> {
-			Topic topic = topicService.get(topicId).orElseThrow(() -> new IllegalArgumentException("Topic not found: " + topicId));
-			
-			if (tenantId.equals(topic.getTenantId())) {
-				 new IllegalArgumentException("Topic " + topicId + " does not belong to a tenant: " + tenantId);
-			}
-
-		});
-
-		documentIds.stream().forEach(documentId -> {
-			Document document = documentService.get(documentId).orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentId));
-			
-			if (tenantId.equals(document.getTenantId())) {
-				 new IllegalArgumentException("Document " + document + " does not belong to a tenant: " + tenantId);
-			}
-
-		});
-
-		if (test.getQuestionCount() == null || test.getQuestionCount() <= 0)
-			throw new IllegalArgumentException("Test.questionCount must be > 0");
 	}
 
 	private int recommendedChunkLimit(Test test) {

@@ -5,19 +5,36 @@ Number of questions: {{questionCount}}
 Language: {{language}}
 Model: {{model}}
 
-Use ONLY the context below. If the context is insufficient, say so.
+Use ONLY the following context to create multiple-choice questions.
+If the context is insufficient, return INSUFFICIENT_CONTEXT.
 
 CONTEXT:
 {{context}}
 
-Return the result in JSON:
+Rules:
+- Generate {{questionCount}} MCQs
+- Each question has exactly 4 options (A–D)
+- Exactly one option must be correct
+- Provide a short explanation for the correct answer
+- Cite source chunk IDs used to derive the question
+- Do not use external knowledge
+
+
+Return JSON in the following format only:
 {
   "questions": [
     {
-      "question": "...",
-      "options": ["A", "B", "C", "D"],
-      "answerIndex": 0,
-      "explanation": "grounded explanation with citations to SOURCE blocks"
+      "question": "",
+      "options": {
+        "A": "",
+        "B": "",
+        "C": "",
+        "D": ""
+      },
+      "correct": "A",
+      "explanation": "",
+      "sources": ["chunk12", "chunk45"]
     }
   ]
 }
+

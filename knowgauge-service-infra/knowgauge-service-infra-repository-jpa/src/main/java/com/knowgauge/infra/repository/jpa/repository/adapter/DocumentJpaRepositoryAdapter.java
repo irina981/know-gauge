@@ -1,5 +1,6 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -70,5 +71,10 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 	@Override
 	public int markFailed(Long documentId, String errorMessage) {
 		return jpaRepository.markFailed(documentId, errorMessage);
+	}
+
+	@Override
+	public List<Document> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicIds) {
+		return jpaRepository.findByTenantIdAndTopicIdIn(tenantId, topicIds);
 	}
 }

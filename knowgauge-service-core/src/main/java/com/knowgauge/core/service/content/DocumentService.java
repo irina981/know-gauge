@@ -2,13 +2,13 @@ package com.knowgauge.core.service.content;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import com.knowgauge.core.model.Document;
-import com.knowgauge.core.model.enums.DocumentStatus;
 
 public interface DocumentService {
 
@@ -33,4 +33,6 @@ public interface DocumentService {
 	int markIngested(Long documentId);
 
 	int markFailed(Long documentId, String errorMessage);
+	
+	List<Document> findByTopicIds(Long tenantId, List<Long> topicIds);
 }

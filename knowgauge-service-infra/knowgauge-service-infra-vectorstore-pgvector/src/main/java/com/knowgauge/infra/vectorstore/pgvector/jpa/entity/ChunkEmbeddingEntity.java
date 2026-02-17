@@ -1,5 +1,9 @@
 package com.knowgauge.infra.vectorstore.pgvector.jpa.entity;
 
+import org.hibernate.annotations.Array;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -47,7 +51,9 @@ public class ChunkEmbeddingEntity extends AuditableEntity {
 	@Column(name = "chunk_checksum", nullable = false, length = 64)
 	private String chunkChecksum;
 
-	@Column(name = "embedding", nullable = false, columnDefinition = "vector(1536)")
+	@Column(name = "embedding", columnDefinition = "vector")
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Array(length = 1536)
 	private float[] embedding;
 
 	@Column(name = "embedding_model", nullable = false, length = 100)

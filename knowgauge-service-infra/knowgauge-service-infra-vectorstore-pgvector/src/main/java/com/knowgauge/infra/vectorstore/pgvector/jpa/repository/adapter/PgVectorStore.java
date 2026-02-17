@@ -1,10 +1,16 @@
 package com.knowgauge.infra.vectorstore.pgvector.jpa.repository.adapter;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
+import org.hibernate.query.NativeQuery;
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.ChunkEmbedding;
@@ -18,8 +24,31 @@ import com.knowgauge.infra.vectorstore.pgvector.jpa.repository.ChunkEmbeddingJpa
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
+/**
+ * PgVector-backed VectorStore adapter that retrieves chunk embeddings from the
+ * pgvector database.
+ *
+ * This adapter currently supports "balanced random selection" strategies: -
+ * BALANCED_PER_DOCS: diversify across documents (each document contributes ~
+ * equally) - BALANCED_PER_DOC_CHUNKS: proportional to document chunk volume
+ * (size-aware balancing)
+ *
+ * NOTE: This is NOT a semantic similarity retrieval yet. - FOCUSED mode would
+ * require query embedding + ORDER BY distance(embedding, queryEmbedding).
+ *
+ * Selection approach overview (BALANCED modes): 1) Compute corpus shape (how
+ * many chunks exist per document in the scope). 2) Compute per-document quotas
+ * (budgets) based on selected coverage mode. 3) Over-fetch candidates: up to
+ * maxQuota rows per document using window function row_number(). 4) Shuffle
+ * candidates to mix documents. 5) Apply budgets + checksum dedupe in-memory
+ * until we reach the requested limit.
+ *
+ * This keeps DB load bounded even for very large documents while still
+ * returning a diverse set.
+ */
 @Repository
-public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
+public class PgVectorStore implements VectorStore {
+
 	@PersistenceContext(unitName = "pgvector")
 	private EntityManager em;
 
@@ -27,7 +56,7 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 	private final ChunkEmbeddingEntityMapper mapper;
 	private final EmbeddingService embeddingService;
 
-	public ChunkEmbeddingJpaRepositoryAdapter(ChunkEmbeddingJpaRepository jpaRepository,
+	public PgVectorStore(ChunkEmbeddingJpaRepository jpaRepository,
 			ChunkEmbeddingEntityMapper mapper, EmbeddingService embeddingService) {
 		this.jpaRepository = jpaRepository;
 		this.mapper = mapper;
@@ -56,9 +85,8 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 	@Override
 	public long deleteByTenantIdAndDocumentIdAndDocumentVersionAndEmbeddingModel(Long tenantId, Long documentId,
 			Integer documentVersion, String embeddingModel) {
-		long deletedRows = jpaRepository.deleteByTenantIdAndDocumentIdAndDocumentVersionAndEmbeddingModel(tenantId,
-				documentId, documentVersion, embeddingModel);
-		return deletedRows;
+		return jpaRepository.deleteByTenantIdAndDocumentIdAndDocumentVersionAndEmbeddingModel(tenantId, documentId,
+				documentVersion, embeddingModel);
 	}
 
 	@Override
@@ -70,31 +98,34 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 	public List<ChunkEmbedding> saveAll(List<ChunkEmbedding> embeddings) {
 		return jpaRepository.saveAll(embeddings.stream().map(mapper::toEntity).toList()).stream().map(mapper::toDomain)
 				.toList();
-
 	}
 
 	@Override
-	public List<ChunkEmbedding> findTop(Long tenantId, Collection<Long> topicIds, Collection<Long> documentIds,
-			int limit, TestCoverageMode coverageMode, boolean avoidRepeats) {
+	public List<ChunkEmbedding> findTop(Long tenantId, Collection<Long> documentIds, int limit,
+			TestCoverageMode coverageMode, boolean avoidRepeats) {
 
 		// =========================
 		// Step 0: Validate inputs
 		// =========================
-		// - tenantId: mandatory (multi-tenant isolation)
-		// - limit: how many chunk candidates we want to return at most
+		// tenantId is mandatory for isolation.
+		// limit<=0 returns empty.
+		// empty documentIds means "no corpus scope" -> return empty (no candidates).
 		if (tenantId == null) {
 			throw new IllegalArgumentException("tenantId must not be null");
 		}
 		if (limit <= 0) {
 			return List.of();
 		}
+		if (documentIds == null || documentIds.isEmpty()) {
+			return List.of();
+		}
 
 		// =========================
 		// Step 1: Validate supported coverage modes
 		// =========================
-		// FOCUSED will later use vector similarity based on query text:
-		// queryText -> queryEmbedding -> ORDER BY distance(embedding, queryEmbedding)
-		// Until then, we fail fast to avoid silently returning "balanced" data.
+		// FOCUSED requires query embedding + vector distance ordering.
+		// Until implemented, fail-fast to avoid silently returning random/balanced
+		// results.
 		if (coverageMode == TestCoverageMode.FOCUSED) {
 			throw new UnsupportedOperationException(
 					"FOCUSED coverage mode requires vector similarity search with a query text/embedding. Not implemented yet.");
@@ -104,84 +135,60 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 		// Step 2: Determine embedding model used in the vector store
 		// =========================
 		// IMPORTANT:
-		// - generationModel (LLM) != embeddingModel (vector space)
-		// - embeddings are only comparable inside the same embedding model space
+		// - generationModel (LLM) != embeddingModel (vector space model)
+		// - embeddings are comparable only within the same embedding_model
 		String embeddingModel = embeddingService.modelName();
 
 		// =========================
-		// Step 3: Determine active filters (topics/docs)
+		// Step 3: Discover corpus shape (chunks per document in scope)
 		// =========================
-		// If filters are empty, we treat them as "not applied".
-		boolean filterTopics = topicIds != null && !topicIds.isEmpty();
-		boolean filterDocs = documentIds != null && !documentIds.isEmpty();
-
-		// =========================
-		// Step 4: Discover corpus shape (how many chunks exist per document in scope)
-		// =========================
-		// We need this because "balanced" selection depends on how many documents and
-		// how large they are.
-		// Example: 1 huge document + many small docs -> per-doc balancing may
-		// underrepresent the huge doc,
-		// while per-chunk balancing keeps proportional representation.
-		List<DocChunkCount> docCounts = loadDocChunkCounts(tenantId, embeddingModel, filterTopics, topicIds, filterDocs,
-				documentIds);
+		// We need doc-level chunk counts because "balanced" selection depends on:
+		// - how many documents exist in the scope
+		// - how large each document is (chunk volume)
+		//
+		// Example: one 100-page doc + many 3-page docs:
+		// - PER_DOC may under-represent the big doc
+		// - PER_DOC_CHUNKS keeps proportional representation
+		List<DocChunkCount> docCounts = loadDocChunkCounts(tenantId, embeddingModel, documentIds);
 		if (docCounts.isEmpty()) {
 			return List.of();
 		}
 
 		// =========================
-		// Step 5: Compute per-document selection limits (allocation)
+		// Step 4: Compute per-document quotas (allocation)
 		// =========================
-		// maxChunksPerDocumentMap tells us how many chunks each document is allowed to
-		// contribute:
-		// documentId -> maxChunksFromThatDocument
+		// For each document: documentId -> maxChunks allowed from that doc.
 		//
-		// Two supported strategies:
-		// a) BALANCED_PER_DOCS:
-		// Each document gets approximately the same chunk budget (diversity across
-		// docs).
-		// b) BALANCED_PER_DOC_CHUNKS:
-		// Each document budget is proportional to its number of available chunks in
-		// scope
-		// (size-aware balancing; avoids penalizing large docs).
+		// BALANCED_PER_DOCS:
+		// - each document gets roughly ceil(limit/docCount)
+		//
+		// BALANCED_PER_DOC_CHUNKS:
+		// - quotas proportional to each document's chunkCount
+		// - rounding drift is corrected so total allocated ~= limit
 		Map<Long, Integer> maxChunksPerDocumentMap = calculateMaxChunksPerDocument(docCounts, limit, coverageMode);
 
-		// Max quota among all documents; we use it to "over-fetch" candidates per doc
-		// once,
-		// then apply the exact per-doc budgets in memory.
+		// Max quota among all documents; used to over-fetch bounded candidates per doc.
 		int maxChunks = maxChunksPerDocumentMap.values().stream().mapToInt(Integer::intValue).max().orElse(0);
-
 		if (maxChunks <= 0) {
 			return List.of();
 		}
 
 		// =========================
-		// Step 6: Fetch candidate embeddings from DB (balanced pre-selection)
+		// Step 5: Fetch ranked candidates from DB (bounded per-doc sampling)
 		// =========================
-		// We fetch up to 'maxChunks' embeddings per document using a window function:
-		// row_number() OVER (PARTITION BY document_id ORDER BY random()) as rn
+		// Over-fetch up to 'maxChunks' candidates per document using:
+		// row_number() OVER (PARTITION BY document_id ORDER BY random())
 		//
-		// Then we take rn <= maxChunks
-		//
-		// This gives us an initial candidate set that:
-		// - contains a reasonable sample from each document
-		// - is already randomized per-document
-		//
-		// After that, we enforce the EXACT budgets (per document) in Java.
-		String sql = buildRankedCandidatesSql(filterTopics, filterDocs);
+		// This prevents pulling all embeddings for huge documents.
+		// Final per-document quotas are applied in memory.
+		String sql = buildRankedCandidatesSql();
 
 		@SuppressWarnings("unchecked")
-		org.hibernate.query.NativeQuery<ChunkEmbeddingEntity> q = em.createNativeQuery(sql, ChunkEmbeddingEntity.class)
+		NativeQuery<ChunkEmbeddingEntity> q = em.createNativeQuery(sql, ChunkEmbeddingEntity.class)
 				.setParameter("tenantId", tenantId).setParameter("embeddingModel", embeddingModel)
-				.setParameter("maxChunks", maxChunks) // IMPORTANT: must match the SQL parameter name
-				.unwrap(org.hibernate.query.NativeQuery.class);
+				.setParameter("maxChunks", maxChunks).unwrap(NativeQuery.class);
 
-		if (filterTopics) {
-			q.setParameterList("topicIds", topicIds);
-		}
-		if (filterDocs) {
-			q.setParameterList("documentIds", documentIds);
-		}
+		q.setParameterList("documentIds", documentIds);
 
 		List<ChunkEmbeddingEntity> candidates = q.getResultList();
 		if (candidates.isEmpty()) {
@@ -189,27 +196,27 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 		}
 
 		// =========================
-		// Step 7: Final selection in memory (apply per-doc budgets + dedupe)
+		// Step 6: Final selection in memory (apply quotas + dedupe + limit)
 		// =========================
-		// We now build the final result list:
-		// - enforce each document's max chunk budget: maxChunksPerDocumentMap
-		// - eliminate duplicate content using chunk_checksum (same content repeated
-		// across docs/sections)
-		// - stop once we reach 'limit'
+		// - shuffle candidates to mix documents
+		// - enforce per-doc quota
+		// - dedupe by chunk_checksum (prevents identical content dominating)
+		// - stop at requested limit
 		//
-		// Note:
-		// - candidates are randomized per-doc already, but we shuffle to mix documents
-		// together
-		// (prevents selecting all chunks from one doc early in iteration).
-		java.util.Map<Long, Integer> usedPerDoc = new java.util.HashMap<>();
-		java.util.Set<String> seenChecksums = new java.util.HashSet<>();
-		java.util.List<ChunkEmbedding> result = new java.util.ArrayList<>(limit);
+		// TODO: avoidRepeats
+		// - currently avoidRepeats has no effect
+		// - should exclude chunks already used in previous tests / sessions
+		// - requires an "excludedChunkIds" or retrieval context input
+		Map<Long, Integer> usedPerDoc = new HashMap<>();
+		Set<String> seenChecksums = new HashSet<>();
+		List<ChunkEmbedding> result = new ArrayList<>(limit);
 
-		java.util.Collections.shuffle(candidates);
+		// Shuffle to mix docs; prevents taking all candidates from the same doc early
+		// due to list ordering.
+		Collections.shuffle(candidates);
 
 		for (ChunkEmbeddingEntity e : candidates) {
 
-			// Stop once we reached requested size
 			if (result.size() >= limit) {
 				break;
 			}
@@ -228,20 +235,13 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 				continue;
 			}
 
-			// Dedupe: if another chunk with the same checksum was already selected, skip it
-			// (prevents identical content from dominating the selection).
+			// Dedupe: identical content should not dominate the selection.
 			String checksum = e.getChunkChecksum();
 			if (checksum != null && !seenChecksums.add(checksum)) {
 				continue;
 			}
 
-			// TODO (future):
-			// avoidRepeats should exclude chunks already used in previous tests (or earlier
-			// runs),
-			// but we need an "excludedChunkIds" parameter or a retrieval context to
-			// implement this.
 			usedPerDoc.put(docId, used + 1);
-
 			result.add(mapper.toDomain(e));
 		}
 
@@ -253,7 +253,7 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 	 * documentId: which document the chunk belongs to - chunkCount: how many
 	 * embedding rows are available for that document in the scope
 	 *
-	 * This is used to calculate document budgets (balanced selection).
+	 * Used to calculate per-document quotas (balanced selection).
 	 */
 	private static final class DocChunkCount {
 		final Long documentId;
@@ -266,39 +266,32 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 	}
 
 	/**
-	 * Step 4 helper: For each document in scope, returns how many chunk embeddings
-	 * exist (after filters): tenant + embeddingModel + (topicIds?) + (documentIds?)
+	 * Returns chunk counts per document within the active scope.
 	 *
-	 * This gives us the corpus shape needed for proportional allocation.
+	 * Scope filters: - tenant_id - embedding_model - document_id IN (:documentIds)
+	 *
+	 * This is used to calculate per-document quotas (balanced selection).
 	 */
-	private List<DocChunkCount> loadDocChunkCounts(Long tenantId, String embeddingModel, boolean filterTopics,
-			Collection<Long> topicIds, boolean filterDocs, Collection<Long> documentIds) {
+	private List<DocChunkCount> loadDocChunkCounts(Long tenantId, String embeddingModel, Collection<Long> documentIds) {
 
 		String sql = """
 				SELECT ce.document_id, count(*) AS cnt
 				FROM chunk_embeddings ce
 				WHERE ce.tenant_id = :tenantId
 				  AND ce.embedding_model = :embeddingModel
-				  %s
-				  %s
+				  AND ce.document_id IN (:documentIds)
 				GROUP BY ce.document_id
-				""".formatted(filterTopics ? "AND ce.topic_id IN (:topicIds)" : "",
-				filterDocs ? "AND ce.document_id IN (:documentIds)" : "");
+				""";
 
-		org.hibernate.query.NativeQuery<?> q = em.createNativeQuery(sql).setParameter("tenantId", tenantId)
-				.setParameter("embeddingModel", embeddingModel).unwrap(org.hibernate.query.NativeQuery.class);
+		NativeQuery<?> q = em.createNativeQuery(sql).setParameter("tenantId", tenantId)
+				.setParameter("embeddingModel", embeddingModel).unwrap(NativeQuery.class);
 
-		if (filterTopics) {
-			q.setParameterList("topicIds", topicIds);
-		}
-		if (filterDocs) {
-			q.setParameterList("documentIds", documentIds);
-		}
+		q.setParameterList("documentIds", documentIds);
 
 		@SuppressWarnings("unchecked")
 		List<Object[]> rows = (List<Object[]>) q.getResultList();
 
-		List<DocChunkCount> out = new java.util.ArrayList<>(rows.size());
+		List<DocChunkCount> out = new ArrayList<>(rows.size());
 		for (Object[] r : rows) {
 			Long docId = ((Number) r[0]).longValue();
 			long cnt = ((Number) r[1]).longValue();
@@ -308,27 +301,24 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 	}
 
 	/**
-	 * Step 5 helper: Calculates how many chunks EACH document is allowed to
-	 * contribute to the final result.
+	 * Calculates how many chunks EACH document is allowed to contribute to the
+	 * final result.
 	 *
 	 * Output: documentId -> maxChunksFromThatDocument
 	 *
-	 * Supported strategies: - BALANCED_PER_DOCS: All documents are treated equally:
-	 * each gets roughly ceil(limit / docCount). This maximizes document diversity.
+	 * Strategies: - BALANCED_PER_DOCS: Each document gets roughly
+	 * ceil(limit/docCount). Maximizes diversity across docs.
 	 *
-	 * - BALANCED_PER_DOC_CHUNKS: Documents get chunk budgets proportional to their
-	 * available chunks in scope. This handles highly uneven document sizes better.
+	 * - BALANCED_PER_DOC_CHUNKS: Each document quota is proportional to its
+	 * available chunk volume. Handles uneven document sizes better.
 	 *
-	 * Implementation details for BALANCED_PER_DOC_CHUNKS: 1) Initial proportional
-	 * allocation using round(share * limit). 2) Fix rounding drift so total
-	 * allocation equals 'limit' (or as close as possible): - if under-allocated:
-	 * add 1 to largest documents first - if over-allocated: remove 1 from documents
-	 * with largest allocated budgets first
+	 * Notes: - Some documents may end up with 0 quota after proportional rounding
+	 * (small docs). - Rounding drift is corrected so total allocated ~= limit.
 	 */
 	private Map<Long, Integer> calculateMaxChunksPerDocument(List<DocChunkCount> docCounts, int limit,
 			TestCoverageMode mode) {
 
-		Map<Long, Integer> maxChunksPerDocumentMap = new java.util.HashMap<>();
+		Map<Long, Integer> maxChunksPerDocumentMap = new HashMap<>();
 
 		int docN = docCounts.size();
 
@@ -398,19 +388,18 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 	}
 
 	/**
-	 * Step 6 helper: Fetch candidate embeddings using a window function to cap "how
-	 * many rows per document" we fetch.
+	 * SQL that returns up to :maxChunks random candidate rows per document, using a
+	 * window function.
 	 *
-	 * Why: - We want to avoid pulling the entire embedding table for large
-	 * documents. - We only need a sample per doc to later apply budgets and dedupe.
+	 * Mechanics: - row_number() partitions by document_id and randomizes within
+	 * each partition - rn <= :maxChunks caps fetched rows per document
 	 *
-	 * Mechanism: - row_number() partitions by document_id and randomizes within
-	 * each doc - rn <= :maxChunks keeps at most :maxChunks candidates per doc
+	 * This keeps DB work bounded and avoids pulling the entire embeddings table.
 	 *
-	 * IMPORTANT: - Parameter name must match what you set in code. - In your
-	 * current code you set :maxChunks, so SQL must use :maxChunks (NOT :maxQuota).
+	 * IMPORTANT: - parameter names must match code: :tenantId, :embeddingModel,
+	 * :documentIds, :maxChunks
 	 */
-	private String buildRankedCandidatesSql(boolean filterTopics, boolean filterDocs) {
+	private String buildRankedCandidatesSql() {
 		return """
 				WITH ranked AS (
 				    SELECT ce.*,
@@ -418,14 +407,25 @@ public class ChunkEmbeddingJpaRepositoryAdapter implements VectorStore {
 				    FROM chunk_embeddings ce
 				    WHERE ce.tenant_id = :tenantId
 				      AND ce.embedding_model = :embeddingModel
-				      %s
-				      %s
+				      AND ce.document_id IN (:documentIds)
 				)
-				SELECT *
+				SELECT
+					ranked.id,
+					ranked.tenant_id,
+					ranked.topic_id,
+					ranked.document_id,
+					ranked.document_version,
+					ranked.section_id,
+					ranked.chunk_id,
+					ranked.chunk_checksum,
+					ranked.embedding_model,
+					ranked.embedding,
+					ranked.created_at,
+					ranked.created_by,
+					ranked.updated_at,
+					ranked.updated_by
 				FROM ranked
-				WHERE rn <= :maxChunks
-				""".formatted(filterTopics ? "AND ce.topic_id IN (:topicIds)" : "",
-				filterDocs ? "AND ce.document_id IN (:documentIds)" : "");
+				WHERE ranked.rn <= :maxChunks
+				""";
 	}
-
 }
