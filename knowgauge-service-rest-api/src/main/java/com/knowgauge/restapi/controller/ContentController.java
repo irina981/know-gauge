@@ -38,11 +38,20 @@ import com.knowgauge.restapi.mapper.DocumentMapper;
 import com.knowgauge.restapi.mapper.TopicMapper;
 import com.knowgauge.restapi.util.TempFilesHelper;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/content")
+@Tag(name = "Content", description = "Manage topics and source documents")
 public class ContentController {
 
 	private final DocumentService documentService;
@@ -67,36 +76,44 @@ public class ContentController {
 	// -----------------------------
 
 	@GetMapping("/topics/{id}")
+	@Operation(summary = "Get topic by id")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Topic returned") })
 	public ResponseEntity<TopicDto> getTopic(@PathVariable Long id) {
 		Topic topic = topicService.get(id).orElse(null);
 		return ResponseEntity.status(200).body(topicMapper.toDto(topic));
 	}
 
 	@GetMapping("/topics/roots")
+	@Operation(summary = "List root topics")
 	public ResponseEntity<List<TopicDto>> getRoots() {
 		List<TopicDto> topics = topicService.getRoots().stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
 	}
 
 	@GetMapping("/topics/children/{parentId}")
+	@Operation(summary = "List children topics")
 	public ResponseEntity<List<TopicDto>> getChildren(@PathVariable Long parentId) {
 		List<TopicDto> topics = topicService.getChildren(parentId).stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
 	}
 
 	@GetMapping("/topics/descendants/{parentId}")
+	@Operation(summary = "List all descendant topics")
 	public ResponseEntity<List<TopicDto>> getDescendants(@PathVariable Long parentId) {
 		List<TopicDto> topics = topicService.getDescendants(parentId).stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
 	}
 
 	@DeleteMapping("/topics/{id}")
+	@Operation(summary = "Delete topic")
 	public ResponseEntity<Void> deleteTopic(@PathVariable Long id) {
 		topicService.delete(id);
 		return ResponseEntity.status(200).body(null);
 	}
 
 	@PostMapping("/topics")
+	@Operation(summary = "Create topic")
+	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Topic created") })
 	public ResponseEntity<TopicDto> createTopic(@RequestBody @Valid TopicCreateInput topicInput) {
 		Topic created = topicService.create(topicMapper.toDomain(topicInput));
 
@@ -108,6 +125,8 @@ public class ContentController {
 	}
 
 	@PostMapping("/topics/tree")
+	@Operation(summary = "Create topic tree")
+	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Topic tree created") })
 	public ResponseEntity<TopicDto> createTopicTree(@RequestBody @Valid TopicTreeNodeInput topicTreeNodeInput) {
 		Topic createdRoot = topicService.createTopicTree(topicMapper.toDomain(topicTreeNodeInput));
 
@@ -121,12 +140,14 @@ public class ContentController {
 	// -----------------------------
 
 	@GetMapping("/documents/{id}")
+	@Operation(summary = "Get document metadata by id")
 	public ResponseEntity<DocumentDto> getDocument(@PathVariable Long id) {
 		Document document = documentService.get(id).orElse(null);
 		return ResponseEntity.status(200).body(documentMaper.toDto(document));
 	}
 
 	@GetMapping("/documents/all/{topicId}")
+	@Operation(summary = "List documents for topic (paged)")
 	public ResponseEntity<Page<DocumentDto>> getAllDocuments(@PathVariable Long topicId, Pageable pageable) {
 		Page<DocumentDto> documents = documentService.getAllDocuments(topicId, pageable).map(documentMaper::toDto);
 		return ResponseEntity.status(200).body(documents);
@@ -137,6 +158,9 @@ public class ContentController {
 	 * part "file": the actual PDF (or any file)
 	 */
 	@PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "Upload document", description = "Multipart upload with meta JSON and file binary parts")
+	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Document uploaded"),
+			@ApiResponse(responseCode = "400", description = "Invalid upload payload") })
 	public ResponseEntity<DocumentDto> uploadDocument(@RequestPart("meta") @Valid String metaJson,
 			@RequestPart("file") MultipartFile file) throws IOException {
 
@@ -168,6 +192,7 @@ public class ContentController {
 	}
 
 	@GetMapping("/documents/{id}/content")
+	@Operation(summary = "Download document content")
 	public void downloadDocument(@PathVariable Long id, HttpServletResponse response) throws IOException {
 
 		// Get metadata first (NO streaming yet)
@@ -185,12 +210,14 @@ public class ContentController {
 	}
 
 	@DeleteMapping("/documents/{id}")
+	@Operation(summary = "Delete document")
 	public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
 		documentService.delete(id);
 		return ResponseEntity.status(200).body(null);
 	}
 	
 	@PostMapping("/documents/ingestion/{id}")
+	@Operation(summary = "Start ingestion for document")
 	public ResponseEntity<Void> startIngestion(@PathVariable Long id) {
 		ingestionService.ingest(id);
 		return ResponseEntity.status(200).body(null);

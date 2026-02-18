@@ -21,10 +21,20 @@ import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.service.testgeneration.TestGenerationService;
 import com.knowgauge.restapi.mapper.TestMapper;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/tests")
+@Tag(name = "Test Generation", description = "Generate, retrieve, list and delete generated tests")
 public class TestGenerationController {
 
 	private final TestGenerationService testGenerationService;
@@ -37,6 +47,27 @@ public class TestGenerationController {
 	}
 
 	@PostMapping("")
+	@Operation(summary = "Generate a new test", description = "Creates a new test draft, runs generation, validates questions and returns the generated test metadata.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "201", description = "Test generated successfully", content = @Content(schema = @Schema(implementation = TestDto.class))),
+			@ApiResponse(responseCode = "400", description = "Invalid request payload"),
+			@ApiResponse(responseCode = "500", description = "Generation failed") })
+	@io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, description = "Test generation input", content = @Content(mediaType = "application/json", examples = {
+			@ExampleObject(name = "basic", value = """
+					{
+					  "topicIds": [101],
+					  "documentIds": [201],
+					  "difficulty": "MEDIUM",
+					  "questionCount": 10,
+					  "language": "EN",
+					  "generationParams": {
+					    "temperature": 0.2,
+					    "maxOutputTokens": 1200,
+					    "strictJson": true
+					  }
+					}
+					""")
+	}))
 	public ResponseEntity<TestDto> generateTest(@RequestBody @Valid TestInput testInput) {
 		Test created = testGenerationService.generate(testMapper.toDomain(testInput));
 
@@ -48,13 +79,22 @@ public class TestGenerationController {
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<TestDto> getTestById(@PathVariable Long id) {
+	@Operation(summary = "Get test by id", description = "Returns a previously generated test for the current tenant.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Test found", content = @Content(schema = @Schema(implementation = TestDto.class))),
+			@ApiResponse(responseCode = "404", description = "Test not found") })
+	public ResponseEntity<TestDto> getTestById(
+			@Parameter(description = "Test ID", example = "1") @PathVariable Long id) {
 		return testGenerationService.getById(id).map(testMapper::toDto).map(ResponseEntity::ok)
 				.orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
 	@GetMapping("")
-	public ResponseEntity<List<TestDto>> getAllTests(@RequestParam(required = false) String status) {
+	@Operation(summary = "List tests", description = "Returns all tests for the current tenant. Optionally filter by status.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Tests returned") })
+	public ResponseEntity<List<TestDto>> getAllTests(
+			@Parameter(description = "Optional status filter", example = "GENERATED") @RequestParam(required = false) String status) {
 		List<Test> tests = (status == null || status.isBlank()) ? testGenerationService.getAll()
 				: testGenerationService.getAllByStatus(TestStatus.valueOf(status.toUpperCase()));
 
@@ -62,7 +102,11 @@ public class TestGenerationController {
 	}
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> deleteTestById(@PathVariable Long id) {
+	@Operation(summary = "Delete test", description = "Deletes a test and associated generated questions for the current tenant.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Test deleted") })
+	public ResponseEntity<Void> deleteTestById(
+			@Parameter(description = "Test ID", example = "1") @PathVariable Long id) {
 		testGenerationService.deleteById(id);
 		return ResponseEntity.status(200).build();
 	}

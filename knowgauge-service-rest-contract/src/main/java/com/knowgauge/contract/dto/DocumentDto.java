@@ -2,26 +2,29 @@ package com.knowgauge.contract.dto;
 
 import java.time.Instant;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Document metadata")
 public record DocumentDto(
 
-        Long id,
+        @Schema(description = "Document id", example = "2001") Long id,
 
-        Long topicId,
+        @Schema(description = "Owning topic id", example = "101") Long topicId,
 
-        String title,
+        @Schema(description = "Document title", example = "Spring Boot Fundamentals") String title,
 
-        String originalFileName,
+        @Schema(description = "Original uploaded file name", example = "spring-boot-fundamentals.pdf") String originalFileName,
 
-        String contentType,
+        @Schema(description = "MIME type", example = "application/pdf") String contentType,
 
-        long fileSizeBytes,
+        @Schema(description = "File size in bytes", example = "245760") long fileSizeBytes,
 
-        String storageKey,     // MinIO key
+        @Schema(description = "Object storage key", example = "docs/2026/02/18/2001.pdf") String storageKey,     // MinIO key
 
-        String etag,          // storage fingerprint
+        @Schema(description = "Storage ETag", example = "a1b2c3d4") String etag,          // storage fingerprint
 
-        String version,     // nullable if versioning disabled
+        @Schema(description = "Object version id, if versioning is enabled", example = "3Lgk9J") String version,     // nullable if versioning disabled
 
-        Instant createdAt   // useful for UI & auditing
+        @Schema(description = "Creation time (UTC)", example = "2026-02-18T10:15:30Z") Instant createdAt   // useful for UI & auditing
 ) {}
 
