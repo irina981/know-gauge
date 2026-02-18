@@ -14,6 +14,8 @@
 
 ### REST API / Validation
 - [ ] Return consistent error payload for validation errors (field + message)
+- [ ] Standardize enum handling for all client `Input` DTOs: parse case-insensitively, validate unknown values centrally, and return consistent 400 error messages instead of raw `IllegalArgumentException`.
+- [ ] Introduce shared enum parsing/validation utility (e.g., `EnumParser`) plus `@ControllerAdvice` mapper for enum conversion errors to a unified API error response format.
 
 
 ### Observability
