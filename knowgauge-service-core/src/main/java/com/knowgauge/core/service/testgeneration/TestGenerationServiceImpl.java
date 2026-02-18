@@ -1,6 +1,7 @@
 package com.knowgauge.core.service.testgeneration;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -9,7 +10,9 @@ import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
+import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
+import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
 import com.knowgauge.core.port.vectorstore.VectorStore;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
@@ -28,19 +31,22 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final TestQuestionValidator testQuestionValidator;
 	private final TestDraftValidator testDraftValidator;
 	private final TestGenerationTransactionalServiceImpl tx;
+	private final TestRepository testRepository;
 	private final DocumentChunkRepository documentChunkRepository;
 	private final ExecutionContext executionContext;
 
 	public TestGenerationServiceImpl(VectorStore vectorStore, TestPromptBuilder promptBuilder,
 			LlmTestGenerationService llmTestGenerationService, TestQuestionValidator testQuestionValidator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
-			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext) {
+			TestRepository testRepository, DocumentChunkRepository documentChunkRepository,
+			ExecutionContext executionContext) {
 		this.vectorStore = vectorStore;
 		this.promptBuilder = promptBuilder;
 		this.llmTestGenerationService = llmTestGenerationService;
 		this.testQuestionValidator = testQuestionValidator;
 		this.testDraftValidator = testDraftValidator;
 		this.tx = tx;
+		this.testRepository = testRepository;
 		this.documentChunkRepository = documentChunkRepository;
 		this.executionContext = executionContext;
 	}
@@ -127,5 +133,29 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	private int recommendedChunkLimit(Test test) {
 		return Math.max(20, test.getQuestionCount() * 4);
+	}
+
+	@Override
+	public Optional<Test> getById(Long testId) {
+		Long tenantId = executionContext.tenantId();
+		return testRepository.findByTenantIdAndId(tenantId, testId);
+	}
+
+	@Override
+	public List<Test> getAll() {
+		Long tenantId = executionContext.tenantId();
+		return testRepository.findByTenantId(tenantId);
+	}
+
+	@Override
+	public List<Test> getAllByStatus(TestStatus status) {
+		Long tenantId = executionContext.tenantId();
+		return testRepository.findByTenantIdAndStatus(tenantId, status);
+	}
+
+	@Override
+	public void deleteById(Long testId) {
+		Long tenantId = executionContext.tenantId();
+		testRepository.deleteByTenantIdAndId(tenantId, testId);
 	}
 }

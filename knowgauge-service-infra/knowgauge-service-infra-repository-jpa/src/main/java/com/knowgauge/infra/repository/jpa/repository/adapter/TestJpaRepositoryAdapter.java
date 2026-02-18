@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.Test;
+import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.infra.repository.jpa.entity.DocumentChunkEntity;
 import com.knowgauge.infra.repository.jpa.entity.TestEntity;
@@ -35,6 +36,21 @@ public class TestJpaRepositoryAdapter implements TestRepository {
 	@Override
 	public Optional<Test> findByTenantIdAndId(Long tenantId, Long id) {
 		return jpaRepository.findByTenantIdAndId(tenantId, id).map(mapper::toDomain);
+	}
+
+	@Override
+	public List<Test> findByTenantId(Long tenantId) {
+		return jpaRepository.findByTenantId(tenantId).stream().map(mapper::toDomain).toList();
+	}
+
+	@Override
+	public List<Test> findByTenantIdAndStatus(Long tenantId, TestStatus status) {
+		return jpaRepository.findByTenantIdAndStatus(tenantId, status).stream().map(mapper::toDomain).toList();
+	}
+
+	@Override
+	public void deleteByTenantIdAndId(Long tenantId, Long id) {
+		jpaRepository.deleteByTenantIdAndId(tenantId, id);
 	}
 	
 	@Override

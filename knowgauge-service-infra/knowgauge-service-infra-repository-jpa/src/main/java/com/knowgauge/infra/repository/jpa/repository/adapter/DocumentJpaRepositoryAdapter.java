@@ -75,6 +75,6 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 
 	@Override
 	public List<Document> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicIds) {
-		return jpaRepository.findByTenantIdAndTopicIdIn(tenantId, topicIds);
+		return jpaRepository.findByTenantIdAndTopicIdIn(tenantId, topicIds).stream().map(mapper::toDomain).toList();
 	}
 }

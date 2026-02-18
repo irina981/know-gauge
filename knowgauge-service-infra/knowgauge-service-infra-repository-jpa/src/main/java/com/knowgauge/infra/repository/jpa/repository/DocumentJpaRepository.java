@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.knowgauge.core.model.Document;
 import com.knowgauge.infra.repository.jpa.entity.DocumentEntity;
 
 @Repository
@@ -55,5 +54,5 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, Lon
 
 	boolean existsByTopicIdAndChecksum(Long topicId, String contentHash);
 	
-	List<Document> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicId);
+	List<DocumentEntity> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicId);
 }
