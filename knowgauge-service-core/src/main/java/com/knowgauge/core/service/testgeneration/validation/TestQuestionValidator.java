@@ -2,11 +2,13 @@ package com.knowgauge.core.service.testgeneration.validation;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -76,6 +78,8 @@ public class TestQuestionValidator {
 
             String key = dedupeKey(q);
             if (!seen.add(key)) continue;
+
+            shuffleOptionsAndRemapCorrectOption(q);
 
             q.setQuestionIndex(nextIndex++);
             out.add(q);
@@ -170,6 +174,48 @@ public class TestQuestionValidator {
                 .toList();
 
         return normalized.size() != new HashSet<>(normalized).size();
+    }
+
+    private void shuffleOptionsAndRemapCorrectOption(TestQuestion q) {
+
+        if (isBlank(q.getOptionA()) || isBlank(q.getOptionB()) || isBlank(q.getOptionC()) || isBlank(q.getOptionD())) {
+            return;
+        }
+
+        AnswerOption originalCorrectOption = q.getCorrectOption();
+        if (originalCorrectOption == null) {
+            return;
+        }
+
+        String originalCorrectText = optionText(q, originalCorrectOption);
+
+        List<String> shuffledOptions = new ArrayList<>(List.of(
+                q.getOptionA(),
+                q.getOptionB(),
+                q.getOptionC(),
+                q.getOptionD()));
+
+        Collections.shuffle(shuffledOptions, ThreadLocalRandom.current());
+
+        q.setOptionA(shuffledOptions.get(0));
+        q.setOptionB(shuffledOptions.get(1));
+        q.setOptionC(shuffledOptions.get(2));
+        q.setOptionD(shuffledOptions.get(3));
+
+        if (Objects.equals(q.getOptionA(), originalCorrectText)) {
+            q.setCorrectOption(AnswerOption.A);
+            return;
+        }
+        if (Objects.equals(q.getOptionB(), originalCorrectText)) {
+            q.setCorrectOption(AnswerOption.B);
+            return;
+        }
+        if (Objects.equals(q.getOptionC(), originalCorrectText)) {
+            q.setCorrectOption(AnswerOption.C);
+            return;
+        }
+
+        q.setCorrectOption(AnswerOption.D);
     }
 
     private String optionText(TestQuestion q, AnswerOption opt) {

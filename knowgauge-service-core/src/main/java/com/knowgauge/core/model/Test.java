@@ -53,16 +53,13 @@ public class Test extends AuditableObject {
 
 	private TestDifficulty difficulty;
 
-	@Builder.Default
-	private boolean avoidRepeats = true;
+	private Boolean avoidRepeats;
 
-	@Builder.Default
-	private TestCoverageMode coverageMode = TestCoverageMode.BALANCED_PER_DOC_CHUNKS;
+	private TestCoverageMode coverageMode;
 
 	private Integer questionCount;
 
-	@Builder.Default
-	private Language language = Language.EN;
+	private Language language;
 
 	// ============================================================
 	// Generation configuration

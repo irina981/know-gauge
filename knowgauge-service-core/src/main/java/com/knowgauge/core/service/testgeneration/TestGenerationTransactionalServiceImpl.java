@@ -36,12 +36,12 @@ public class TestGenerationTransactionalServiceImpl {
 		// toSave.setTenantId(tenantId);
 
 		toSave.setStatus(TestStatus.CREATED);
+		toSave.setGenerationStartedAt(Instant.now());
 
 		Map<String, Object> params = toSave.getGenerationParams();
 		if (params == null)
 			params = new HashMap<>();
-		params.remove("error");
-		params.put("generationStartedAt", Instant.now().toString());
+		params.remove("error"); // Just in case, remove any error info from previous failed attempt.
 		toSave.setGenerationParams(params);
 
 		return testRepository.save(toSave);

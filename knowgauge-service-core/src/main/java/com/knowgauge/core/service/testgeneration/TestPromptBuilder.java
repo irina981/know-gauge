@@ -11,18 +11,22 @@ import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
+import com.knowgauge.core.port.testgeneration.TestQuestionSchemaProvider;
 
 @Component
 public class TestPromptBuilder {
 	private final PromptTemplateLoader templateLoader;
 	private final PromptTemplateRenderer templateRenderer;
+	private final TestQuestionSchemaProvider schemaProvider;
 	private final String defaultTemplateId;
 
 	public TestPromptBuilder(PromptTemplateLoader templateLoader, PromptTemplateRenderer templateRenderer,
-			@Value("${kg.llm.testgen.prompt.templates.defaultTemplateId}") String defaultTemplateId) {
+			TestQuestionSchemaProvider schemaProvider,
+			@Value("${kg.testgen.defaults.prompt-template-id}") String defaultTemplateId) {
 		super();
 		this.templateLoader = templateLoader;
 		this.templateRenderer = templateRenderer;
+		this.schemaProvider = schemaProvider;
 		this.defaultTemplateId = defaultTemplateId;
 	}
 
@@ -45,6 +49,7 @@ public class TestPromptBuilder {
 
 		// --- Grounding context from retrieved chunks ---
 		vars.put("context", buildContextBlock(chunks));
+		vars.put("outputSchema", schemaProvider.getOutputSchemaJson());
 
 		return templateRenderer.render(template, vars);
 	}

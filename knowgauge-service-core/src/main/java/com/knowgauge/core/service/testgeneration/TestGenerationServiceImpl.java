@@ -34,12 +34,13 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final TestRepository testRepository;
 	private final DocumentChunkRepository documentChunkRepository;
 	private final ExecutionContext executionContext;
+	private final TestGenerationDefaultsProperties defaults;
 
 	public TestGenerationServiceImpl(VectorStore vectorStore, TestPromptBuilder promptBuilder,
 			LlmTestGenerationService llmTestGenerationService, TestQuestionValidator testQuestionValidator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, DocumentChunkRepository documentChunkRepository,
-			ExecutionContext executionContext) {
+			ExecutionContext executionContext, TestGenerationDefaultsProperties defaults) {
 		this.vectorStore = vectorStore;
 		this.promptBuilder = promptBuilder;
 		this.llmTestGenerationService = llmTestGenerationService;
@@ -49,11 +50,13 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		this.testRepository = testRepository;
 		this.documentChunkRepository = documentChunkRepository;
 		this.executionContext = executionContext;
+		this.defaults = defaults;
 	}
 
 	@Override
 	public Test generate(Test testDraft) {
 		Long tenantId = executionContext.tenantId();
+		applyDefaults(testDraft);
 		testDraft.setTenantId(tenantId);
 		log.info("*** Test generation - Started for tenantId={}, topicIds={}, documentIds={}. questionCount={}",
 				tenantId, testDraft.getTopicIds(), testDraft.getDocumentIds(), testDraft.getQuestionCount());
@@ -76,7 +79,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 			// 2) Select embeddings based on topis IDs, document IDs, chunk limit, coverage
 			// mode and avoiding repeats
 			List<ChunkEmbedding> embeddings = vectorStore.findTop(tenantId, documentIds, recommendedChunkLimit(test),
-					test.getCoverageMode(), test.isAvoidRepeats());
+					test.getCoverageMode(), Boolean.TRUE.equals(test.getAvoidRepeats()));
 			if (embeddings == null || embeddings.isEmpty()) {
 				throw new IllegalStateException("No relevant context chunks found (tenantId=" + tenantId + ", topicIds="
 						+ topicIds + ", documentIds=" + documentIds + ").");
@@ -133,6 +136,34 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	private int recommendedChunkLimit(Test test) {
 		return Math.max(20, test.getQuestionCount() * 4);
+	}
+
+	private void applyDefaults(Test test) {
+		if (test.getDifficulty() == null) {
+			test.setDifficulty(defaults.getDifficulty());
+		}
+		if (test.getAvoidRepeats() == null) {
+			test.setAvoidRepeats(defaults.getAvoidRepeats());
+		}
+		if (test.getCoverageMode() == null) {
+			test.setCoverageMode(defaults.getCoverageMode());
+		}
+		if (test.getQuestionCount() == null) {
+			test.setQuestionCount(defaults.getQuestionCount());
+		}
+		if (test.getLanguage() == null) {
+			test.setLanguage(defaults.getLanguage());
+		}
+		if (isBlank(test.getPromptTemplateId())) {
+			test.setPromptTemplateId(defaults.getPromptTemplateId());
+		}
+		if (isBlank(test.getGenerationModel())) {
+			test.setGenerationModel(defaults.getGenerationModel());
+		}
+	}
+
+	private boolean isBlank(String value) {
+		return value == null || value.isBlank();
 	}
 
 	@Override
