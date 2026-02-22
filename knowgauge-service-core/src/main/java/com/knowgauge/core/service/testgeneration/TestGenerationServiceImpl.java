@@ -15,7 +15,8 @@ import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
-import com.knowgauge.core.port.vectorstore.VectorStore;
+import com.knowgauge.core.service.retrieving.RetrievingService;
+import com.knowgauge.core.service.testgeneration.prompt.TestPromptBuilder;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
 import com.knowgauge.core.service.testgeneration.validation.TestQuestionValidator;
 
@@ -25,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TestGenerationServiceImpl implements TestGenerationService {
 
-	private final VectorStore vectorStore;
+	private final RetrievingService retrievingService;
 
 	private final TestPromptBuilder promptBuilder;
 	private final LlmTestGenerationService llmTestGenerationService;
@@ -38,13 +39,13 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final ExecutionContext executionContext;
 	private final TestGenerationDefaultsProperties defaults;
 
-	public TestGenerationServiceImpl(VectorStore vectorStore, TestPromptBuilder promptBuilder,
+	public TestGenerationServiceImpl(RetrievingService retrievingService, TestPromptBuilder promptBuilder,
 			LlmTestGenerationService llmTestGenerationService, TestQuestionValidator testQuestionValidator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
-			DocumentChunkRepository documentChunkRepository,
-			ExecutionContext executionContext, TestGenerationDefaultsProperties defaults) {
-		this.vectorStore = vectorStore;
+			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
+			TestGenerationDefaultsProperties defaults) {
+		this.retrievingService = retrievingService;
 		this.promptBuilder = promptBuilder;
 		this.llmTestGenerationService = llmTestGenerationService;
 		this.testQuestionValidator = testQuestionValidator;
@@ -82,8 +83,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 			// 2) Select embeddings based on topis IDs, document IDs, chunk limit, coverage
 			// mode and avoiding repeats
-			List<ChunkEmbedding> embeddings = vectorStore.findTop(tenantId, documentIds, recommendedChunkLimit(test),
-					test.getCoverageMode(), Boolean.TRUE.equals(test.getAvoidRepeats()));
+			List<ChunkEmbedding> embeddings = retrievingService.retrieveTop(tenantId, documentIds,
+					recommendedChunkLimit(test), test.getCoverageMode(), Boolean.TRUE.equals(test.getAvoidRepeats()));
 			if (embeddings == null || embeddings.isEmpty()) {
 				throw new IllegalStateException("No relevant context chunks found (tenantId=" + tenantId + ", topicIds="
 						+ topicIds + ", documentIds=" + documentIds + ").");
@@ -139,7 +140,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	}
 
 	private int recommendedChunkLimit(Test test) {
-		return Math.max(20, test.getQuestionCount() * 4);
+		return Math.max(defaults.getMinChunksPerTest(), test.getQuestionCount() * defaults.getChunksPerQuestion());
 	}
 
 	private void applyDefaults(Test test) {
@@ -186,6 +187,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	public List<Test> getAllByStatus(TestStatus status) {
 		Long tenantId = executionContext.tenantId();
 		return testRepository.findByTenantIdAndStatus(tenantId, status);
+
 	}
 
 	@Override

@@ -1,4 +1,4 @@
-package com.knowgauge.core.service.testgeneration;
+package com.knowgauge.core.service.testgeneration.prompt;
 
 import java.util.Map;
 import java.util.Objects;

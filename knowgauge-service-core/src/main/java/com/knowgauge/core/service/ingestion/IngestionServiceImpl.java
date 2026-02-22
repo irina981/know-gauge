@@ -5,12 +5,12 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.knowgauge.core.chunking.ChunkingPolicy;
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.enums.DocumentStatus;
 import com.knowgauge.core.port.documentparser.DocumentParser;
 import com.knowgauge.core.port.embedding.EmbeddingService;
+import com.knowgauge.core.service.chunking.ChunkingPolicy;
 import com.knowgauge.core.service.chunking.ChunkingService;
 import com.knowgauge.core.service.content.DocumentService;
 

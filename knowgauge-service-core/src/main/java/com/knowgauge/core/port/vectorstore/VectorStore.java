@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.knowgauge.core.model.ChunkEmbedding;
-import com.knowgauge.core.model.enums.TestCoverageMode;
+import com.knowgauge.core.model.DocChunkCount;
 
 public interface VectorStore {
 
@@ -19,11 +19,13 @@ public interface VectorStore {
 	List<ChunkEmbedding> findByTenantIdAndChunkIdInAndEmbeddingModel(Long tenantId, Collection<Long> chunkIds,
 			String embeddingModel);
 
-	public List<ChunkEmbedding> findTop(Long tenantId, Collection<Long> documentIds, int limit,
-			TestCoverageMode coverageMode, boolean avoidRepeats);
-
 	long deleteByTenantIdAndDocumentIdAndDocumentVersionAndEmbeddingModel(Long tenantId, Long documentId,
 			Integer documentVersion, String embeddingModel);
 
 	long deleteByTenantIdAndChunkId(Long tenantId, Long chunkId);
+
+	List<DocChunkCount> loadDocChunkCounts(Long tenantId, String embeddingModel, Collection<Long> documentIds);
+
+	public List<ChunkEmbedding> findCandidates(Long tenantId, Collection<Long> documentIds, int maxChunksPerDoc,
+			String embeddingModel, boolean avoidRepeats);
 }

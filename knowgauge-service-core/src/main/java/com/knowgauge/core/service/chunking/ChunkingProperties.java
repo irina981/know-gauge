@@ -1,4 +1,4 @@
-package com.knowgauge.core.chunking;
+package com.knowgauge.core.service.chunking;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

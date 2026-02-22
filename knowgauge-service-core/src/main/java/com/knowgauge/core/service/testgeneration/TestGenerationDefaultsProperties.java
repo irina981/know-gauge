@@ -18,6 +18,8 @@ public class TestGenerationDefaultsProperties {
 	private Language language;
 	private String promptTemplateId;
 	private String generationModel;
+	private Integer chunksPerQuestion;
+	private Integer minChunksPerTest;
 
 	public TestDifficulty getDifficulty() {
 		return difficulty;
@@ -73,5 +75,21 @@ public class TestGenerationDefaultsProperties {
 
 	public void setGenerationModel(String generationModel) {
 		this.generationModel = generationModel;
+	}
+
+	public Integer getChunksPerQuestion() {
+		return chunksPerQuestion;
+	}
+
+	public void setChunksPerQuestion(Integer chunksPerQuestion) {
+		this.chunksPerQuestion = chunksPerQuestion;
+	}
+
+	public Integer getMinChunksPerTest() {
+		return minChunksPerTest;
+	}
+
+	public void setMinChunksPerTest(Integer minChunksPerTest) {
+		this.minChunksPerTest = minChunksPerTest;
 	}
 }

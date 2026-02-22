@@ -1,28 +1,26 @@
-package com.knowgauge.infra.chunking.langchain4j.service;
+package com.knowgauge.core.service.chunking;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.knowgauge.core.chunking.ChunkingPolicy;
 import com.knowgauge.core.model.DocumentChunk;
-import com.knowgauge.core.service.chunking.ChunkingService;
+import com.knowgauge.core.port.documentsplitter.DocumentSplitter;
 import com.knowgauge.core.util.HashingHelper;
 
-import dev.langchain4j.data.document.DefaultDocument;
-import dev.langchain4j.data.document.DocumentSplitter;
-import dev.langchain4j.data.document.splitter.DocumentSplitters;
-import dev.langchain4j.data.segment.TextSegment;
-
 @Service
-public class LangChainChunkingServiceImpl implements ChunkingService {
+public class ChunkingServiceImpl implements ChunkingService {
+	private final DocumentSplitter documentSplitter;
+	
+
+	public ChunkingServiceImpl(DocumentSplitter documentSplitter) {
+		this.documentSplitter = documentSplitter;
+	}
 
 	@Override
 	public List<DocumentChunk> chunkDocument(Long tenantId, Long topicId, Long documentId, Integer version,
 			List<String> pages, ChunkingPolicy policy) {
-
-		DocumentSplitter splitter = createSplitter(policy);
 
 		List<DocumentChunk> chunks = new ArrayList<>();
 		int globalOrdinal = 0;
@@ -38,15 +36,14 @@ public class LangChainChunkingServiceImpl implements ChunkingService {
 
 			int pageNumber = pageIndex + 1;
 
-			List<TextSegment> segments = splitter.split(new DefaultDocument(pageText));
+			List<String> segments = documentSplitter.split(pageText, policy);
 
 			int cursor = 0;
 
 			for (int segIndex = 0; segIndex < segments.size(); segIndex++) {
 
-				TextSegment segment = segments.get(segIndex);
+				String chunkText = segments.get(segIndex);
 
-				String chunkText = segment.text();
 				if (policy.isTrimWhitespace() && chunkText != null) {
 					chunkText = chunkText.trim();
 				}
@@ -105,9 +102,5 @@ public class LangChainChunkingServiceImpl implements ChunkingService {
 		}
 
 		return chunks;
-	}
-
-	private DocumentSplitter createSplitter(ChunkingPolicy policy) {
-		return DocumentSplitters.recursive(policy.getMaxChunkSizeChars(), policy.getOverlapSizeChars());
 	}
 }
