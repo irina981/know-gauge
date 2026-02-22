@@ -16,19 +16,19 @@
 	<modules>
 		<module>knowgauge-service-core</module>
 		<module>knowgauge-service-rest-contract</module>
-		<module>knowgauge-service-client</module>
+		<module>knowgauge-service-rest-client</module>
 		<module>knowgauge-service-rest-api</module>
 		<module>knowgauge-service-infra/knowgauge-service-infra-storage-minio</module>
-		<module>knowgauge-service-infra/knowgauge-service-infra-repository-jpa</module>
+		<module>knowgauge-service-infra/knowgauge-service-infra-repository-springdata-jpa</module>
 		<module>
 			knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector</module>
-		<module>knowgauge-service-infra/knowgauge-service-infra-embedding-openai</module>
+		<module>knowgauge-service-infra/knowgauge-service-infra-embedding-langchain4j-openai</module>
 		<module>
-			knowgauge-service-infra/knowgauge-service-infra-testgeneration-openai</module>
+			knowgauge-service-infra/knowgauge-service-infra-testgeneration-langchain4j-openai</module>
 		<module>
-			knowgauge-service-infra/knowgauge-service-infra-documentparser-pdfbox</module>
+			knowgauge-service-infra/knowgauge-service-infra-documentparsing-pdfbox</module>
 		<module>
-			knowgauge-service-infra/knowgauge-service-infra-chunking-langchain4j</module>
+			knowgauge-service-infra/knowgauge-service-infra-documentsplitting-langchain4j</module>
 
 	</modules>
 

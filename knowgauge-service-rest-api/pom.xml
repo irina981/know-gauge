@@ -54,7 +54,7 @@
 		<!-- Infra adapters (runtime wiring) -->
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-infra-repository-jpa</artifactId>
+			<artifactId>knowgauge-service-infra-repository-springdata-jpa</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -72,25 +72,25 @@
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-infra-embedding-openai</artifactId>
+			<artifactId>knowgauge-service-infra-embedding-langchain4j-openai</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-infra-testgeneration-openai</artifactId>
+			<artifactId>knowgauge-service-infra-testgeneration-langchain4j-openai</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-infra-documentparser-pdfbox</artifactId>
+			<artifactId>knowgauge-service-infra-documentparsing-pdfbox</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>com.knowgauge</groupId>
-			<artifactId>knowgauge-service-infra-chunking-langchain4j</artifactId>
+			<artifactId>knowgauge-service-infra-documentsplitting-langchain4j</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		

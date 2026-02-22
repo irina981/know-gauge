@@ -28,15 +28,18 @@ knowgauge-service/
 ├── Dockerfile
 ├── DOMAIN_MODEL.md                                     # Complete domain model documentation
 ├── knowgauge-service-core/                             # Core business logic and domain models
-├── knowgauge-service-contract/                         # API contracts and DTOs
-├── knowgauge-service-client/                           # Client library for consuming services
+├── knowgauge-service-rest-contract/                    # API contracts and DTOs
+├── knowgauge-service-rest-client/                      # Client library for consuming services
 ├── knowgauge-service-rest-api/                         # REST API layer (executable application)
 │   └── src/main/resources/static/                      # Static web content (landing page, logo)
 └── knowgauge-service-infra/                            # Infrastructure layer
-    ├── knowgauge-service-jpa-repo/                     # JPA repositories and entities
-    ├── knowgauge-service-llm/                          # LLM integration
-    ├── knowgauge-service-minio-storage/                # MinIO object storage
-    └── knowgauge-service-pg-vector/                    # PostgreSQL pgvector integration
+  ├── knowgauge-service-infra-repository-springdata-jpa/         # Spring Data JPA repository adapter
+  ├── knowgauge-service-infra-vectorstore-pgvector/              # PGVector vector store adapter
+  ├── knowgauge-service-infra-storage-minio/                     # MinIO storage adapter
+  ├── knowgauge-service-infra-embedding-langchain4j-openai/      # Embedding adapter
+  ├── knowgauge-service-infra-testgeneration-langchain4j-openai/ # Test generation adapter
+  ├── knowgauge-service-infra-documentparsing-pdfbox/            # PDF parsing adapter
+  └── knowgauge-service-infra-documentsplitting-langchain4j/     # Document splitting adapter
 ```
 
 ## Modules
@@ -44,46 +47,55 @@ knowgauge-service/
 ### knowgauge-service-core
 Core business logic and domain models. Contains all domain entities (Topic, Document, DocumentSection, DocumentChunk, Test, TestQuestion, Attempt, etc.) with JPA annotations, and enums. Uses Lombok for boilerplate reduction.
 
-### knowgauge-service-contract
+### knowgauge-service-rest-contract
 API contracts and DTOs (Data Transfer Objects). Defines the interface contracts that other modules and external clients can depend on.
 
-### knowgauge-service-client
+### knowgauge-service-rest-client
 Client library for consuming KnowGauge services. This module can be used by external applications to interact with the KnowGauge service.
 
 ### knowgauge-service-rest-api
 REST API layer built with Spring Boot. This is the executable application that exposes the REST endpoints.
 - Contains the main `@SpringBootApplication` class
-- Depends on core, contract, and infra modules
+- Depends on core, rest-contract, and infra modules
 - Contains Flyway database migration scripts
 - Serves static web content (landing page with logo)
 
 ### knowgauge-service-infra
 Infrastructure layer split into specialized modules for better separation of concerns:
 
-#### knowgauge-service-jpa-repo
+#### knowgauge-service-infra-repository-springdata-jpa
 - JPA/Hibernate repositories for database access
 - PostgreSQL support
 - References domain entities from core module
 
-#### knowgauge-service-llm
-- Integration with Large Language Models (LLMs)
-- Question generation logic
-- RAG (Retrieval-Augmented Generation) pipeline
+#### knowgauge-service-infra-vectorstore-pgvector
+- PostgreSQL pgvector extension integration
+- Vector similarity retrieval primitives
+- Candidate chunk retrieval for core orchestration
 
-#### knowgauge-service-minio-storage
+#### knowgauge-service-infra-storage-minio
 - MinIO object storage integration
 - Document upload and storage
 - File management
 
-#### knowgauge-service-pg-vector
-- PostgreSQL pgvector extension integration
-- Vector embeddings storage and retrieval
-- Semantic similarity search
+#### knowgauge-service-infra-embedding-langchain4j-openai
+- OpenAI embedding model integration via LangChain4j
+- Embedding generation for document chunks
+
+#### knowgauge-service-infra-testgeneration-langchain4j-openai
+- OpenAI chat model integration via LangChain4j
+- LLM-based test question generation
+
+#### knowgauge-service-infra-documentparsing-pdfbox
+- PDF parsing and page text extraction via PDFBox
+
+#### knowgauge-service-infra-documentsplitting-langchain4j
+- Document splitting/chunking via LangChain4j
 
 ## Building the Project
 
 ### Prerequisites
-- Java 17 or higher
+- Java 21 or higher
 - Maven 3.6 or higher
 
 ### Build Commands
@@ -167,27 +179,30 @@ See `DOMAIN_MODEL.md` for complete details on all entities, fields, and relation
 ### Module Dependencies
 
 ```
-rest-api → core, contract, infra modules (jpa-repo, llm, minio-storage, pg-vector)
-client → contract
-infra/jpa-repo → core
-infra/llm → core
-infra/minio-storage → core
-infra/pg-vector → core
+rest-api → core, rest-contract, infra modules (repository-springdata-jpa, testgeneration-langchain4j-openai, storage-minio, vectorstore-pgvector, embedding-langchain4j-openai, documentparsing-pdfbox, documentsplitting-langchain4j)
+client → rest-contract
+infra/repository-springdata-jpa → core
+infra/testgeneration-langchain4j-openai → core
+infra/storage-minio → core
+infra/vectorstore-pgvector → core
+infra/embedding-langchain4j-openai → core
+infra/documentparsing-pdfbox → core
+infra/documentsplitting-langchain4j → core
 core → (independent)
-contract → (independent)
+rest-contract → (independent)
 ```
 
 ### Adding New Features
 
 1. Add domain logic to `knowgauge-service-core`
-2. Define API contracts in `knowgauge-service-contract`
+2. Define API contracts in `knowgauge-service-rest-contract`
 3. Implement REST endpoints in `knowgauge-service-rest-api`
-4. Add database entities and repositories in `knowgauge-service-infra/knowgauge-service-jpa-repo`
-5. Implement external integrations in appropriate infra modules (llm, minio-storage, pg-vector)
+4. Add database entities and repositories in `knowgauge-service-infra/knowgauge-service-infra-repository-springdata-jpa`
+5. Implement external integrations in appropriate infra modules (`...-testgeneration-langchain4j-openai`, `...-embedding-langchain4j-openai`, `...-storage-minio`, `...-vectorstore-pgvector`, `...-documentparsing-pdfbox`, `...-documentsplitting-langchain4j`)
 
 ## Technology Stack
 
-- Java 17
+- Java 21
 - Spring Boot 3.2.1
 - Spring Data JPA
 - Flyway (database migrations)
@@ -197,4 +212,5 @@ contract → (independent)
 - Docker & Docker Compose
 - MinIO (object storage)
 - LLM integration (RAG-based question generation)
+- LangChain4j (OpenAI integration for embeddings and test generation)
 

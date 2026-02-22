@@ -14,7 +14,7 @@
 	<artifactId>knowgauge-service-infra-vectorstore-pgvector</artifactId>
 	<packaging>jar</packaging>
 
-	<name>KnowGauge Service Infra Vector Store Adapter</name>
+	<name>KnowGauge Service Infra Vector Store Adapter (PgVector)</name>
 	<description>Layer containing external integration with PG Vector</description>
 
 	<dependencies>

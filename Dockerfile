@@ -7,15 +7,15 @@ WORKDIR /app
 COPY pom.xml .
 COPY knowgauge-service-core/pom.xml knowgauge-service-core/
 COPY knowgauge-service-rest-contract/pom.xml knowgauge-service-rest-contract/
-COPY knowgauge-service-client/pom.xml knowgauge-service-client/
+COPY knowgauge-service-rest-client/pom.xml knowgauge-service-rest-client/
 COPY knowgauge-service-rest-api/pom.xml knowgauge-service-rest-api/
-COPY knowgauge-service-infra/knowgauge-service-infra-embedding-openai/pom.xml knowgauge-service-infra/knowgauge-service-infra-embedding-openai/
-COPY knowgauge-service-infra/knowgauge-service-infra-testgeneration-openai/pom.xml knowgauge-service-infra/knowgauge-service-infra-testgeneration-openai/
-COPY knowgauge-service-infra/knowgauge-service-infra-repository-jpa/pom.xml knowgauge-service-infra/knowgauge-service-infra-repository-jpa/
+COPY knowgauge-service-infra/knowgauge-service-infra-embedding-langchain4j-openai/pom.xml knowgauge-service-infra/knowgauge-service-infra-embedding-langchain4j-openai/
+COPY knowgauge-service-infra/knowgauge-service-infra-testgeneration-langchain4j-openai/pom.xml knowgauge-service-infra/knowgauge-service-infra-testgeneration-langchain4j-openai/
+COPY knowgauge-service-infra/knowgauge-service-infra-repository-springdata-jpa/pom.xml knowgauge-service-infra/knowgauge-service-infra-repository-springdata-jpa/
 COPY knowgauge-service-infra/knowgauge-service-infra-storage-minio/pom.xml knowgauge-service-infra/knowgauge-service-infra-storage-minio/
 COPY knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector/pom.xml knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector/
-COPY knowgauge-service-infra/knowgauge-service-infra-documentparser-pdfbox/pom.xml knowgauge-service-infra/knowgauge-service-infra-documentparser-pdfbox/
-COPY knowgauge-service-infra/knowgauge-service-infra-chunking-langchain4j/pom.xml knowgauge-service-infra/knowgauge-service-infra-chunking-langchain4j/
+COPY knowgauge-service-infra/knowgauge-service-infra-documentparsing-pdfbox/pom.xml knowgauge-service-infra/knowgauge-service-infra-documentparsing-pdfbox/
+COPY knowgauge-service-infra/knowgauge-service-infra-documentsplitting-langchain4j/pom.xml knowgauge-service-infra/knowgauge-service-infra-documentsplitting-langchain4j/
 
 # go-offline is flaky; just warm cache by validating model
 RUN mvn -B -DskipTests -q validate
