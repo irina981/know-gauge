@@ -16,13 +16,16 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.knowgauge.contract.dto.TestDto;
 import com.knowgauge.contract.dto.TestInput;
+import com.knowgauge.contract.dto.TestQuestionDto;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.service.testgeneration.TestGenerationService;
 import com.knowgauge.restapi.mapper.TestMapper;
+import com.knowgauge.restapi.mapper.TestQuestionMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -39,10 +42,13 @@ public class TestGenerationController {
 
 	private final TestGenerationService testGenerationService;
 	private final TestMapper testMapper;
+	private final TestQuestionMapper testQuestionMapper;
 
-	public TestGenerationController(TestGenerationService testGenerationService, TestMapper testMapper) {
+	public TestGenerationController(TestGenerationService testGenerationService, TestMapper testMapper,
+			TestQuestionMapper testQuestionMapper) {
 		this.testGenerationService = testGenerationService;
 		this.testMapper = testMapper;
+		this.testQuestionMapper = testQuestionMapper;
 		
 	}
 
@@ -86,6 +92,36 @@ public class TestGenerationController {
 	public ResponseEntity<TestDto> getTestById(
 			@Parameter(description = "Test ID", example = "1") @PathVariable Long id) {
 		return testGenerationService.getById(id).map(testMapper::toDto).map(ResponseEntity::ok)
+				.orElseGet(() -> ResponseEntity.notFound().build());
+	}
+
+	@GetMapping("/{id}/questions")
+	@Operation(summary = "List questions by test id", description = "Returns generated questions for a specific test and current tenant.")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Questions returned", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = TestQuestionDto.class)), examples = {
+					@ExampleObject(name = "questions", value = """
+						[
+						  {
+						    "id": 9001,
+						    "testId": 5001,
+						    "questionIndex": 1,
+						    "questionText": "Which Spring Boot annotation marks the main application class?",
+						    "optionA": "@SpringBootApplication",
+						    "optionB": "@EnableAutoConfig",
+						    "optionC": "@BootApp",
+						    "optionD": "@SpringApp",
+						    "correctOption": "A",
+						    "explanation": "@SpringBootApplication combines @Configuration, @EnableAutoConfiguration, and @ComponentScan.",
+						    "sourceChunkIdsJson": [10101, 10102]
+						  }
+						]
+						""")
+			})),
+			@ApiResponse(responseCode = "404", description = "Test not found") })
+	public ResponseEntity<List<TestQuestionDto>> getTestQuestionsByTestId(
+			@Parameter(description = "Test ID", example = "1") @PathVariable Long id) {
+		return testGenerationService.getQuestionsByTestId(id)
+				.map(questions -> ResponseEntity.ok(questions.stream().map(testQuestionMapper::toDto).toList()))
 				.orElseGet(() -> ResponseEntity.notFound().build());
 	}
 

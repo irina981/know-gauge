@@ -12,6 +12,7 @@ import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
+import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
 import com.knowgauge.core.port.vectorstore.VectorStore;
@@ -32,6 +33,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final TestDraftValidator testDraftValidator;
 	private final TestGenerationTransactionalServiceImpl tx;
 	private final TestRepository testRepository;
+	private final TestQuestionRepository testQuestionRepository;
 	private final DocumentChunkRepository documentChunkRepository;
 	private final ExecutionContext executionContext;
 	private final TestGenerationDefaultsProperties defaults;
@@ -39,7 +41,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	public TestGenerationServiceImpl(VectorStore vectorStore, TestPromptBuilder promptBuilder,
 			LlmTestGenerationService llmTestGenerationService, TestQuestionValidator testQuestionValidator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
-			TestRepository testRepository, DocumentChunkRepository documentChunkRepository,
+			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
+			DocumentChunkRepository documentChunkRepository,
 			ExecutionContext executionContext, TestGenerationDefaultsProperties defaults) {
 		this.vectorStore = vectorStore;
 		this.promptBuilder = promptBuilder;
@@ -48,6 +51,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		this.testDraftValidator = testDraftValidator;
 		this.tx = tx;
 		this.testRepository = testRepository;
+		this.testQuestionRepository = testQuestionRepository;
 		this.documentChunkRepository = documentChunkRepository;
 		this.executionContext = executionContext;
 		this.defaults = defaults;
@@ -182,6 +186,31 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	public List<Test> getAllByStatus(TestStatus status) {
 		Long tenantId = executionContext.tenantId();
 		return testRepository.findByTenantIdAndStatus(tenantId, status);
+	}
+
+	@Override
+	public Optional<List<TestQuestion>> getQuestionsByTestId(Long testId) {
+		Long tenantId = executionContext.tenantId();
+		if (testRepository.findByTenantIdAndId(tenantId, testId).isEmpty()) {
+			return Optional.empty();
+		}
+
+		List<TestQuestion> questions = testQuestionRepository.findByTestId(testId).stream().sorted((left, right) -> {
+			Integer leftIndex = left.getQuestionIndex();
+			Integer rightIndex = right.getQuestionIndex();
+			if (leftIndex == null && rightIndex == null) {
+				return 0;
+			}
+			if (leftIndex == null) {
+				return 1;
+			}
+			if (rightIndex == null) {
+				return -1;
+			}
+			return Integer.compare(leftIndex, rightIndex);
+		}).toList();
+
+		return Optional.of(questions);
 	}
 
 	@Override
