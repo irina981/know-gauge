@@ -1,4 +1,4 @@
-package com.knowgauge.core.port.testgeneration;
+package com.knowgauge.core.service.testgeneration.schema;
 
 public interface TestQuestionSchemaProvider {
 

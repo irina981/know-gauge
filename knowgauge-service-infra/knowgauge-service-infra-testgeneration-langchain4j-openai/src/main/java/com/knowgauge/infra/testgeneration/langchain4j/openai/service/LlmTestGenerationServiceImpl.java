@@ -2,28 +2,26 @@ package com.knowgauge.infra.testgeneration.langchain4j.openai.service;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
-import com.knowgauge.core.port.testgeneration.TestQuestionSchemaProvider;
+import com.knowgauge.core.service.testgeneration.schema.TestQuestionSchemaProvider;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiChatModelProperties;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.ChatResponseMapper;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
@@ -33,6 +31,7 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 
 @Service

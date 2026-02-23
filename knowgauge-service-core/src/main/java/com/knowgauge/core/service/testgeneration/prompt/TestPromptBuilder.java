@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
-import com.knowgauge.core.port.testgeneration.TestQuestionSchemaProvider;
+import com.knowgauge.core.service.testgeneration.schema.TestQuestionSchemaProvider;
 
 @Component
 public class TestPromptBuilder {

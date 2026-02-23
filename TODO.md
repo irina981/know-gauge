@@ -21,12 +21,10 @@
 ### Observability
 - [ ] Add correlationId in logs (filter/interceptor)
 - [ ] Add structured log for storage ops: key, size, duration, result
-- [ ] Enable actuator endpoints: health/info/metrics
 
 ### DB / Schema quality
 - [ ] Add indexes for common queries (topicId, documentId, createdAt)
 - [ ] Add constraints (FKs, NOT NULL, unique where needed)
-- [ ] Standardize audit columns (createdBy, updatedBy, createdAt, updatedAt)
 - [ ] Configurable rate/temperature defaults and a usage dashboard or logs to estimate model costs.
 
 ### User Management
@@ -53,10 +51,15 @@
 - [ ] Chunking policy (size, overlap, “don’t split code blocks”)
 - [ ] Persist sections + chunks + chunk metadata
 
+### 1.1) RAG chunking quality upgrade (semantic vs recursive)
+- [ ] Evaluate current recursive splitter vs semantic-hybrid splitter on retrieval quality (Recall@k / nDCG@k / top-k relevance) and MCQ quality.
+- [ ] Design `SemanticMarkdownSplitter` rules: preserve fenced code blocks, split on headings, keep heading + first paragraph, preserve lists/tables.
+- [ ] Implement hybrid fallback for oversized segments (token/size-based split) with deterministic overlap.
+- [ ] Add unit tests for boundary integrity (code fences, headings, overlap correctness, non-Markdown safety).
+- [ ] Run A/B benchmark on representative technical docs; compare hallucination rate and question grounding.
+- [ ] Decide rollout: keep recursive as fallback behind config flag, remove LangChain4j splitter only if semantic-hybrid passes benchmarks.
+
 ### 2) Embeddings + Vector retrieval (pgvector)
-- [ ] Embedding generation adapter (LLM provider abstraction)
-- [ ] Store embeddings (pgvector) with metadata
-- [ ] Retrieval service: topic + descendants + filters
 - [ ] “Avoid repeats” policy + test_used_chunks tracking
 - [ ] Re-ranking (optional phase)
 
@@ -65,6 +68,9 @@
 - [ ] Question types (MCQ, multi-select, short answer)
 - [ ] Difficulty control + coverage control
 - [ ] Store tests + test sessions + answers + scoring
+- [ ] Add annotation-based resilience in `LlmTestGenerationServiceImpl` (similar to `OpenAiEmbeddingServiceImpl`): `@Retry`, `@CircuitBreaker`, `@Bulkhead` (+ timeout support if possible).
+- [ ] Add/adjust `resilience4j.properties` entries for test-generation calls (retry, circuit breaker, bulkhead, timeout parameters).
+- [ ] Map provider/transport errors in test generation to domain-specific exceptions (similar to embedding exception translation).
 
 ### 4) Async jobs / orchestration
 - [ ] Queue-based ingestion (outbox table or message broker later)
@@ -91,6 +97,4 @@
 - [ ] Integration tests: Postgres+pgvector migrations
 
 ## 🐳 DevOps / Local env
-- [ ] Docker compose: healthchecks, volumes, init scripts
-- [ ] Dev seed data script (topics + docs)
 - [ ] CI pipeline: build + tests

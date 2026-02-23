@@ -1,12 +1,10 @@
-package com.knowgauge.core.service.testgeneration;
+package com.knowgauge.core.service.testgeneration.schema;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import com.knowgauge.core.port.testgeneration.TestQuestionSchemaProvider;
 
 @Component
 public class ClasspathTestQuestionSchemaProvider implements TestQuestionSchemaProvider {
