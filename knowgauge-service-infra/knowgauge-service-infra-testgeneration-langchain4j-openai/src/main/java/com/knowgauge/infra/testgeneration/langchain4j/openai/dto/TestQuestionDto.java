@@ -20,7 +20,9 @@ public class TestQuestionDto {
 
     private Map<String, String> options; // keys: A,B,C,D
 
-    private String correct; // "A" | "B" | "C" | "D"
+    private List<String> correctOptions; // ["A", "C"]
+
+    private String correct; // backward compatibility for older schema/prompt outputs
 
     private String explanation;
 

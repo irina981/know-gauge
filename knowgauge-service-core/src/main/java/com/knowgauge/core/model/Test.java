@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.knowgauge.core.model.enums.Language;
+import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.model.enums.TestCoverageMode;
 import com.knowgauge.core.model.enums.TestDifficulty;
 import com.knowgauge.core.model.enums.TestStatus;
@@ -58,6 +59,8 @@ public class Test extends AuditableObject {
 	private TestCoverageMode coverageMode;
 
 	private Integer questionCount;
+
+	private AnswerCardinality answerCardinality;
 
 	private Language language;
 

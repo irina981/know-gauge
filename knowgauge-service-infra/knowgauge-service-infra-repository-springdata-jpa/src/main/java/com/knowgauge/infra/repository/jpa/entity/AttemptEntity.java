@@ -20,12 +20,14 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class AttemptEntity extends AuditableEntity {
+	@Column(name = "tenant_id", nullable = false)
+	private Long tenantId;
 
     @Column(name = "test_id", nullable = false)
     private Long testId;
 
-    @Column(name = "user_id")
-    private String userId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

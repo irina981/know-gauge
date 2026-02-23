@@ -17,10 +17,11 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class Attempt extends AuditableObject {
+	private Long tenantId;
 
 	private Long testId;
 
-	private String userId;
+	private Long userId;
 
 	private AttemptStatus status;
 

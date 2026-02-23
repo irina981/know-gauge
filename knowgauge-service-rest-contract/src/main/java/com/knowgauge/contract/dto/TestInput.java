@@ -13,6 +13,7 @@ public record TestInput(
 		@Schema(description = "Avoid repeating already-used questions", example = "true") Boolean avoidRepeats,
 		@Schema(description = "Coverage strategy", example = "BALANCED") String coverageMode,
 		@Schema(description = "Requested number of questions", example = "10") Integer questionCount,
+		@Schema(description = "Answer cardinality mode", example = "SINGLE_CORRECT") String answerCardinality,
 		@Schema(description = "Output language", example = "en") String language,
 		@Schema(description = "Model override for this test", example = "gpt-4o-mini") String generationModel,
 		@Schema(description = "Prompt template id", example = "mcq-default") String promptTemplateId,

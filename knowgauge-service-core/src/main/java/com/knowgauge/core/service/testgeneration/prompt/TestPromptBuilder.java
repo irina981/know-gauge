@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
+import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.service.testgeneration.schema.TestQuestionSchemaProvider;
 
 @Component
@@ -43,6 +44,7 @@ public class TestPromptBuilder {
 		vars.put("difficulty", safe(test.getDifficulty()));
 		vars.put("questionCount", test.getQuestionCount());
 		vars.put("language", safe(test.getLanguage()));
+		vars.put("minMulti", resolveMinMultipleCorrectQuestionsCount(test));
 
 		// --- The generating model (more below) ---
 		vars.put("model", safe(test.getGenerationModel()));
@@ -56,8 +58,15 @@ public class TestPromptBuilder {
 
 	private String resolveTemplateId(Test test) {
 		// Option A: store on Test as templateId; otherwise default.
-		String id = test.getPromptTemplateId();
-		return (id == null || id.isBlank()) ? defaultTemplateId : id.trim();
+		String templateId = test.getPromptTemplateId();
+		templateId = (templateId == null || templateId.isBlank()) ? defaultTemplateId : templateId.trim();
+
+		// Add suffix based on answer cardinality.
+		if (test.getAnswerCardinality() == AnswerCardinality.MULTIPLE_CORRECT) {
+			templateId = templateId + "-multiple-correct";
+		}
+
+		return templateId;
 	}
 
 	private String buildContextBlock(List<DocumentChunk> chunks) {
@@ -84,6 +93,14 @@ public class TestPromptBuilder {
 
 	private String safe(Object v) {
 		return v == null ? "" : String.valueOf(v);
+	}
+
+	private int resolveMinMultipleCorrectQuestionsCount(Test test) {
+		if (test == null || test.getAnswerCardinality() != AnswerCardinality.MULTIPLE_CORRECT) {
+			return 0;
+		}
+		// Ensure at least 20% of questions have multiple correct answers
+		return (int) Math.max(1, Math.ceil(test.getQuestionCount() / 5.0));
 	}
 
 }

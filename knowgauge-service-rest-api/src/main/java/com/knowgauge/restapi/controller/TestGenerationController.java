@@ -65,6 +65,7 @@ public class TestGenerationController {
 					  "documentIds": [201],
 					  "difficulty": "MEDIUM",
 					  "questionCount": 10,
+					  "answerCardinality": "SINGLE_CORRECT",
 					  "language": "EN",
 					  "generationParams": {
 					    "temperature": 0.2,
@@ -110,7 +111,7 @@ public class TestGenerationController {
 						    "optionB": "@EnableAutoConfig",
 						    "optionC": "@BootApp",
 						    "optionD": "@SpringApp",
-						    "correctOption": "A",
+						    "correctOptions": ["A"],
 						    "explanation": "@SpringBootApplication combines @Configuration, @EnableAutoConfiguration, and @ComponentScan.",
 						    "sourceChunkIdsJson": [10101, 10102]
 						  }

@@ -14,7 +14,7 @@ public record TestQuestionDto(
 		@Schema(description = "Option B") String optionB,
 		@Schema(description = "Option C") String optionC,
 		@Schema(description = "Option D") String optionD,
-		@Schema(description = "Correct option", example = "A") String correctOption,
+		@Schema(description = "Correct options", example = "[\"A\",\"C\"]") List<String> correctOptions,
 		@Schema(description = "Short explanation for the correct answer") String explanation,
 		@Schema(description = "Chunk ids used as grounding sources", example = "[10101, 10102]") List<Long> sourceChunkIdsJson) {
 }

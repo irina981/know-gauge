@@ -75,7 +75,7 @@ public class ChatResponseMapper {
 				q.setOptionD(dto.getOptions().get("D"));
 			}
 
-			q.setCorrectOption(parseAnswerOption(dto.getCorrect()));
+			q.setCorrectOptions(parseAnswerOptions(dto));
 			q.setExplanation(dto.getExplanation());
 
 			q.setSourceChunkIdsJson(parseChunkIds(dto.getSources()));
@@ -86,14 +86,24 @@ public class ChatResponseMapper {
 		return result;
 	}
 
-	private AnswerOption parseAnswerOption(String correct) {
-		if (correct == null || correct.isBlank()) {
+	private List<AnswerOption> parseAnswerOptions(TestQuestionDto dto) {
+		if (dto.getCorrectOptions() != null && !dto.getCorrectOptions().isEmpty()) {
+			return dto.getCorrectOptions().stream().map(this::parseAnswerOption).filter(Objects::nonNull).distinct()
+					.toList();
+		}
+
+		AnswerOption fallback = parseAnswerOption(dto.getCorrect());
+		return fallback == null ? Collections.emptyList() : List.of(fallback);
+	}
+
+	private AnswerOption parseAnswerOption(String option) {
+		if (option == null || option.isBlank()) {
 			return null;
 		}
 		try {
-			return AnswerOption.valueOf(correct.trim().toUpperCase());
+			return AnswerOption.valueOf(option.trim().toUpperCase());
 		} catch (Exception e) {
-			return null; // or throw if you prefer strictness
+			return null;
 		}
 	}
 

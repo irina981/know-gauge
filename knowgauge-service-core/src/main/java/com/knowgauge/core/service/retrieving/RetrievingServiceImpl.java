@@ -131,9 +131,10 @@ public class RetrievingServiceImpl implements RetrievingService {
 
 		// Shuffle to mix docs; prevents taking all candidates from the same doc early
 		// due to list ordering.
-		Collections.shuffle(candidates);
+		List<ChunkEmbedding> shuffledCandidates = new ArrayList<>(candidates);
+		Collections.shuffle(shuffledCandidates);
 
-		for (ChunkEmbedding e : candidates) {
+		for (ChunkEmbedding e : shuffledCandidates) {
 
 			if (result.size() >= limit) {
 				break;

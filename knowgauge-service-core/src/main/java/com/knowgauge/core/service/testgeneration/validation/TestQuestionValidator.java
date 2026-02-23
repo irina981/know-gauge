@@ -79,7 +79,7 @@ public class TestQuestionValidator {
             String key = dedupeKey(q);
             if (!seen.add(key)) continue;
 
-            shuffleOptionsAndRemapCorrectOption(q);
+            shuffleOptionsAndRemapCorrectOptions(q);
 
             q.setQuestionIndex(nextIndex++);
             out.add(q);
@@ -102,6 +102,10 @@ public class TestQuestionValidator {
         q.setOptionD(normalizeText(q.getOptionD()));
 
         q.setExplanation(normalizeText(q.getExplanation()));
+
+        if (q.getCorrectOptions() != null) {
+            q.setCorrectOptions(q.getCorrectOptions().stream().filter(Objects::nonNull).distinct().toList());
+        }
     }
 
     // ---------------- structure validation ----------------
@@ -118,9 +122,11 @@ public class TestQuestionValidator {
             if (isBlank(q.getOptionC()) || isBlank(q.getOptionD())) return false;
         }
 
-        if (q.getCorrectOption() == null) return false;
+        if (q.getCorrectOptions() == null || q.getCorrectOptions().isEmpty()) return false;
 
-        if (isBlank(optionText(q, q.getCorrectOption()))) return false;
+        for (AnswerOption correctOption : q.getCorrectOptions()) {
+            if (correctOption == null || isBlank(optionText(q, correctOption))) return false;
+        }
 
         if (requireExplanation && isBlank(q.getExplanation())) return false;
 
@@ -176,18 +182,25 @@ public class TestQuestionValidator {
         return normalized.size() != new HashSet<>(normalized).size();
     }
 
-    private void shuffleOptionsAndRemapCorrectOption(TestQuestion q) {
+    private void shuffleOptionsAndRemapCorrectOptions(TestQuestion q) {
 
         if (isBlank(q.getOptionA()) || isBlank(q.getOptionB()) || isBlank(q.getOptionC()) || isBlank(q.getOptionD())) {
             return;
         }
 
-        AnswerOption originalCorrectOption = q.getCorrectOption();
-        if (originalCorrectOption == null) {
+        List<AnswerOption> originalCorrectOptions = q.getCorrectOptions();
+        if (originalCorrectOptions == null || originalCorrectOptions.isEmpty()) {
             return;
         }
 
-        String originalCorrectText = optionText(q, originalCorrectOption);
+        Set<String> originalCorrectTexts = originalCorrectOptions.stream()
+                .map(option -> optionText(q, option))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (originalCorrectTexts.isEmpty()) {
+            return;
+        }
 
         List<String> shuffledOptions = new ArrayList<>(List.of(
                 q.getOptionA(),
@@ -202,20 +215,22 @@ public class TestQuestionValidator {
         q.setOptionC(shuffledOptions.get(2));
         q.setOptionD(shuffledOptions.get(3));
 
-        if (Objects.equals(q.getOptionA(), originalCorrectText)) {
-            q.setCorrectOption(AnswerOption.A);
-            return;
+        List<AnswerOption> remappedCorrectOptions = new ArrayList<>();
+
+        if (originalCorrectTexts.contains(q.getOptionA())) {
+            remappedCorrectOptions.add(AnswerOption.A);
         }
-        if (Objects.equals(q.getOptionB(), originalCorrectText)) {
-            q.setCorrectOption(AnswerOption.B);
-            return;
+        if (originalCorrectTexts.contains(q.getOptionB())) {
+            remappedCorrectOptions.add(AnswerOption.B);
         }
-        if (Objects.equals(q.getOptionC(), originalCorrectText)) {
-            q.setCorrectOption(AnswerOption.C);
-            return;
+        if (originalCorrectTexts.contains(q.getOptionC())) {
+            remappedCorrectOptions.add(AnswerOption.C);
+        }
+        if (originalCorrectTexts.contains(q.getOptionD())) {
+            remappedCorrectOptions.add(AnswerOption.D);
         }
 
-        q.setCorrectOption(AnswerOption.D);
+        q.setCorrectOptions(remappedCorrectOptions);
     }
 
     private String optionText(TestQuestion q, AnswerOption opt) {

@@ -3,6 +3,7 @@ package com.knowgauge.core.service.testgeneration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.model.enums.Language;
 import com.knowgauge.core.model.enums.TestCoverageMode;
 import com.knowgauge.core.model.enums.TestDifficulty;
@@ -15,6 +16,7 @@ public class TestGenerationDefaultsProperties {
 	private Boolean avoidRepeats;
 	private TestCoverageMode coverageMode;
 	private Integer questionCount;
+	private AnswerCardinality answerCardinality;
 	private Language language;
 	private String promptTemplateId;
 	private String generationModel;
@@ -51,6 +53,14 @@ public class TestGenerationDefaultsProperties {
 
 	public void setQuestionCount(Integer questionCount) {
 		this.questionCount = questionCount;
+	}
+
+	public AnswerCardinality getAnswerCardinality() {
+		return answerCardinality;
+	}
+
+	public void setAnswerCardinality(AnswerCardinality answerCardinality) {
+		this.answerCardinality = answerCardinality;
 	}
 
 	public Language getLanguage() {

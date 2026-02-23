@@ -15,7 +15,8 @@ If the context is insufficient, return INSUFFICIENT_CONTEXT.
 Rules:
 - Generate {{questionCount}} MCQs
 - Each question has exactly 4 options (A–D)
-- Exactly one option must be correct
+- At least {{minMulti}} questions must have multiple correct options.
+- Some questions may have 2–4 correct answers.
 - Distribute correct options across A-D (avoid patterns)
 - Provide a short explanation for the correct answer
 - Cite source chunk IDs used to derive the question

@@ -7,8 +7,12 @@ import org.hibernate.annotations.Type;
 import com.knowgauge.core.model.enums.AnswerOption;
 import com.vladmihalcea.hibernate.type.json.JsonType;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
@@ -50,9 +54,11 @@ public class TestQuestionEntity extends AuditableEntity {
 	@Column(name = "option_d", nullable = false)
 	private String optionD;
 
-	@Enumerated(EnumType.STRING)
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "test_question_correct_options", joinColumns = @JoinColumn(name = "question_id"))
 	@Column(name = "correct_option", nullable = false)
-	private AnswerOption correctOption;
+	@Enumerated(EnumType.STRING)
+	private List<AnswerOption> correctOptions;
 
 	@Column(columnDefinition = "TEXT")
 	private String explanation;

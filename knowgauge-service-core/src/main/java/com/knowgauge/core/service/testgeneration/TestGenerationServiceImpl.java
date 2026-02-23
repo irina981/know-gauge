@@ -156,6 +156,9 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		if (test.getQuestionCount() == null) {
 			test.setQuestionCount(defaults.getQuestionCount());
 		}
+		if (test.getAnswerCardinality() == null) {
+			test.setAnswerCardinality(defaults.getAnswerCardinality());
+		}
 		if (test.getLanguage() == null) {
 			test.setLanguage(defaults.getLanguage());
 		}

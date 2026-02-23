@@ -8,6 +8,7 @@ import java.util.Map;
 import org.hibernate.annotations.Type;
 
 import com.knowgauge.core.model.enums.Language;
+import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.model.enums.TestCoverageMode;
 import com.knowgauge.core.model.enums.TestDifficulty;
 import com.knowgauge.core.model.enums.TestStatus;
@@ -82,6 +83,10 @@ public class TestEntity extends AuditableEntity {
 
 	@Column(name = "question_count", nullable = false)
 	private Integer questionCount;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "answer_cardinality", nullable = false)
+	private AnswerCardinality answerCardinality;
 
 	// ============================================================
 	// Generation configuration

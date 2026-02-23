@@ -32,7 +32,7 @@ public class TestQuestion extends AuditableObject {
 
 	private String optionD;
 
-	private AnswerOption correctOption;
+	private List<AnswerOption> correctOptions;
 
 	private String explanation;
 
