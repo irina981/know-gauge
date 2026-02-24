@@ -60,7 +60,7 @@
 - [ ] Decide rollout: keep recursive as fallback behind config flag, remove LangChain4j splitter only if semantic-hybrid passes benchmarks.
 
 ### 2) Embeddings + Vector retrieval (pgvector)
-- [ ] “Avoid repeats” policy + test_used_chunks tracking
+- [ ] "Avoid repeats" policy: filter out chunks used in previous tests (query test_used_chunks for tests with status=GENERATED, exclude those chunk IDs from vector retrieval)
 - [ ] Re-ranking (optional phase)
 
 ### 3) Test generation module
@@ -68,9 +68,13 @@
 - [ ] Question types (MCQ, multi-select, short answer)
 - [ ] Difficulty control + coverage control
 - [ ] Store tests + test sessions + answers + scoring
-- [ ] Add annotation-based resilience in `LlmTestGenerationServiceImpl` (similar to `OpenAiEmbeddingServiceImpl`): `@Retry`, `@CircuitBreaker`, `@Bulkhead` (+ timeout support if possible).
+- [x] Map provider/transport errors in test generation to domain-specific exceptions (`LlmResponseParsingException` with typed reasons)
+- [x] Implement automatic retry logic for LLM token length limit errors (decrease batch size and retry)
+- [ ] Add annotation-based resilience in `LlmTestGenerationServiceImpl` (similar to `OpenAiEmbeddingServiceImpl`): `@Retry`, `@CircuitBreaker`, `@Bulkhead` for general errors (+ timeout support if possible).
 - [ ] Add/adjust `resilience4j.properties` entries for test-generation calls (retry, circuit breaker, bulkhead, timeout parameters).
-- [ ] Map provider/transport errors in test generation to domain-specific exceptions (similar to embedding exception translation).
+- [ ] Implement "avoid duplicates" logic: exclude chunks already used in previous GENERATED tests (query test_used_chunks for existing tests with status=GENERATED and filter out those chunk IDs from retrieval)
+- [ ] Implement FOCUSED mode test generation: use similarity search based on user query/topic description to retrieve most relevant chunks (instead of balanced retrieval across documents)
+- [ ] Implement SpringAI-based adapter for `LlmTestGenerationService` (alongside current LangChain4j implementation): investigate SpringAI capabilities including tool calling, structured output support, and response parsing vs current JSON parsing approach. Compare features, performance, and developer experience to evaluate potential migration from LangChain4j to SpringAI for all LLM adapters.
 
 ### 4) Async jobs / orchestration
 - [ ] Queue-based ingestion (outbox table or message broker later)
