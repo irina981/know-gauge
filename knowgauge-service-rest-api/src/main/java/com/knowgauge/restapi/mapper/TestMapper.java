@@ -8,7 +8,8 @@ import com.knowgauge.contract.dto.TestDto;
 import com.knowgauge.contract.dto.TestInput;
 import com.knowgauge.core.model.Test;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR, uses = { DocumentChunkMapper.class })
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR, uses = { DocumentChunkMapper.class,
+		EnumMappingHelper.class })
 public interface TestMapper {
 
 	/**
