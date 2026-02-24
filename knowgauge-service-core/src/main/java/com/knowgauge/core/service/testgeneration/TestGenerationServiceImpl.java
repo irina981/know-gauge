@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.context.ExecutionContext;
+import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
@@ -143,29 +144,60 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	private int generateTestQuestionBatch(int batchIndex, Long tenantId, Test test, List<DocumentChunk> chunks,
 			List<ChunkEmbedding> embeddings, int batchSize, int generatedCount) {
-		// 3) Build prompt for this batch
-		Test batchTest = createBatchTestCopy(test, batchSize);
-		String prompt = promptBuilder.buildPrompt(batchTest, chunks);
-		log.debug("    Test generation {} - Batch No. {} - Built prompt for batch of {} questions: {}", test.getId(),
-				batchIndex, batchSize, prompt);
+		int currentBatchSize = batchSize;
+		int maxRetries = batchSize - 1; // Maximum retries equals batch size minus 1 (down to 1 question)
+		int retryCount = 0;
 
-		// 4) Generate questions for this batch
-		List<TestQuestion> generatedTestQuestions = llmTestGenerationService.generate(prompt, batchTest);
-		log.info("    Test generation {} - Batch No. {} - Generated {} questions in batch.", test.getId(), batchIndex,
-				generatedTestQuestions.size());
+		while (retryCount <= maxRetries) {
+			try {
+				// 3) Build prompt for this batch
+				Test batchTest = createBatchTestCopy(test, currentBatchSize);
+				String prompt = promptBuilder.buildPrompt(batchTest, chunks);
+				log.debug("    Test generation {} - Batch No. {} - Built prompt for batch of {} questions: {}",
+						test.getId(), batchIndex, currentBatchSize, prompt);
 
-		// 5) Validate questions
-		List<TestQuestion> validatedTestQuestions = testQuestionValidator.validateAndNormalize(generatedTestQuestions,
-				test, embeddings, generatedCount);
-		log.info("    Test generation {} - Batch No. {} - Validated and normalized {} questions in batch.",
-				test.getId(), batchIndex, generatedTestQuestions.size());
+				// 4) Generate questions for this batch
+				List<TestQuestion> generatedTestQuestions = llmTestGenerationService.generate(prompt, batchTest);
+				log.info("    Test generation {} - Batch No. {} - Generated {} questions in batch.", test.getId(),
+						batchIndex, generatedTestQuestions.size());
 
-		// 6) Persist questions
-		tx.persistTestQuestions(tenantId, test.getId(), validatedTestQuestions, embeddings);
-		log.info("    Test generation {} - Batch No. {} - Persisted {} validated questions", test.getId(), batchIndex,
-				validatedTestQuestions.size());
-		
-		return validatedTestQuestions.size();
+				// 5) Validate questions
+				List<TestQuestion> validatedTestQuestions = testQuestionValidator.validateAndNormalize(
+						generatedTestQuestions, test, embeddings, generatedCount);
+				log.info("    Test generation {} - Batch No. {} - Validated and normalized {} questions in batch.",
+						test.getId(), batchIndex, generatedTestQuestions.size());
+
+				// 6) Persist questions
+				tx.persistTestQuestions(tenantId, test.getId(), validatedTestQuestions, embeddings);
+				log.info("    Test generation {} - Batch No. {} - Persisted {} validated questions", test.getId(),
+						batchIndex, validatedTestQuestions.size());
+
+				return validatedTestQuestions.size();
+
+			} catch (LlmResponseParsingException ex) {
+				if (ex.getReason() == LlmResponseParsingException.Reason.LENGTH) {
+					if (currentBatchSize > 1) {
+						retryCount++;
+						currentBatchSize--;
+						log.warn(
+								"    Test generation {} - Batch No. {} - LLM output exceeded max tokens, reducing batch size to {} and retrying (attempt {}/{})",
+								test.getId(), batchIndex, currentBatchSize, retryCount, maxRetries + 1);
+					} else {
+						log.error(
+								"    Test generation {} - Batch No. {} - LLM output exceeded max tokens even with batch size 1, cannot retry further",
+								test.getId(), batchIndex);
+						throw ex;
+					}
+				} else {
+					// For non-LENGTH reasons, rethrow immediately
+					throw ex;
+				}
+			}
+		}
+
+		// This should never be reached, but add for completeness
+		throw new IllegalStateException(
+				"Failed to generate batch " + batchIndex + " for test " + test.getId() + " after all retries");
 	}
 
 	private Test createBatchTestCopy(Test test, int batchSize) {

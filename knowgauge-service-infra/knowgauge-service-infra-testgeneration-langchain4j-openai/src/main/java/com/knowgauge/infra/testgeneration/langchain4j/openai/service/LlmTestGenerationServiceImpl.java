@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
@@ -76,12 +77,29 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		ChatRequest request = buildRequest(effectivePrompt, schemaJson, strictJson && supportsStructuredOutput);
 		ChatResponse response = chatModel.chat(request);
 
+		checkFinishReasonForErrors(response, test);
+
 		// Log usage and response metadata
 		if (response != null) {
 			logResponseMetadata(response, test);
 		}
 
 		return responseMapper.map(response, test);
+	}
+
+	private void checkFinishReasonForErrors(ChatResponse response, Test test) {
+		if (response != null && response.metadata() != null) {
+			Object finishReasonObj = response.metadata().finishReason();
+			if (finishReasonObj != null) {
+				String finishReason = finishReasonObj.toString().toLowerCase(Locale.ROOT);
+				if ("length".equals(finishReason)) {
+					throw new LlmResponseParsingException(
+							LlmResponseParsingException.Reason.LENGTH,
+							"LLM response generation stopped due to max output tokens limit (testId=" + test.getId()
+									+ ")");
+				}
+			}
+		}
 	}
 
 	private void logResponseMetadata(ChatResponse response, Test test) {

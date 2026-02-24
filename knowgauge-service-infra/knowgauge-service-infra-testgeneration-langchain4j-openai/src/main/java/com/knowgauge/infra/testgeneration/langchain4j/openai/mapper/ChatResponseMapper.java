@@ -8,16 +8,19 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.enums.AnswerOption;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.TestQuestionDto;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.TestQuestionResponseDto;
-import com.knowgauge.infra.testgeneration.langchain4j.openai.service.LlmTestGenerationServiceImpl;
 
 import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 @Component
 public class ChatResponseMapper {
@@ -48,9 +51,12 @@ public class ChatResponseMapper {
 
 			return toDomain(dto.getQuestions(), test);
 
-		} catch (Exception e) {
-
-			throw new IllegalStateException("Failed to parse LLM response. Raw response:\n" + raw, e);
+		} catch (JsonMappingException e) {
+			throw new LlmResponseParsingException(LlmResponseParsingException.Reason.MAPPING_ERROR,
+					"Failed to map LLM response for testId=" + test.getId() + ". Raw response:\n" + raw, e);
+		} catch (JsonProcessingException e) {
+			throw new LlmResponseParsingException(LlmResponseParsingException.Reason.PARSING_ERROR,
+					"Failed to parse LLM response for testId=" + test.getId() + ". Raw response:\n" + raw, e);
 		}
 	}
 
