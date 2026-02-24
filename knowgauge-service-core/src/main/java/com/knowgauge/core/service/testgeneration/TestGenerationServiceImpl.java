@@ -10,6 +10,7 @@ import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
+import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
@@ -77,6 +78,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 		// 1) Persist test and mark it GENERATING
 		Test test = tx.persistTest(tenantId, testDraft);
+		test.setMinMultipleCorrectQuestionsCount(
+				computeMinMultipleCorrectQuestionsCount(test.getQuestionCount(), test.getAnswerCardinality()));
 		log.info("    Test generation {} - Test persisted", test.getId());
 
 		try {
@@ -106,20 +109,19 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 			log.info("    Test generation {} - Used chunks [{}] persisted for test {}", test.getId(), chunkIds,
 					test.getId());
 
-			// 3) Build prompt
-			String prompt = promptBuilder.buildPrompt(test, chunks);
-			log.debug("    Test generation {} - Built prompt: {}", test.getId(), prompt);
+			// 3-6) Generate questions in batches
+			int batchCount = defaults.getQuestionGenerationBatchSize();
+			int totalQuestions = test.getQuestionCount();
+			int generatedCount = 0;
+			int batchIndex = 0;
 
-			// 4) Generate questions
-			List<TestQuestion> generatedTestQuestions = llmTestGenerationService.generate(prompt, test);
-			log.info("    Test generation {} - Generated {} questions.", test.getId(), generatedTestQuestions.size());
-
-			// 5) Validate questions
-			List<TestQuestion> validatedTestQuestions = testQuestionValidator
-					.validateAndNormalize(generatedTestQuestions, test, embeddings);
-
-			// 6) Persist questions
-			tx.persistTestQuestions(tenantId, test.getId(), validatedTestQuestions, embeddings);
+			while (generatedCount < totalQuestions) {
+				int batchSize = Math.min(batchCount, totalQuestions - generatedCount);
+				int currentBatchGeneratedCount = generateTestQuestionBatch(++batchIndex, tenantId, test, chunks, embeddings, batchSize, generatedCount);
+				generatedCount += currentBatchGeneratedCount;
+				log.info("    Test generation {} - Batch No. {} - Progress: {}/{} questions generated", test.getId(),
+						batchIndex, generatedCount, totalQuestions);
+			}
 
 			// 7) Mark test GENERATED
 			Test ready = tx.markTestGenerated(tenantId, test.getId());
@@ -137,6 +139,44 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 			throw new RuntimeException("Test generation failed for test " + test.getId(), ex);
 		}
+	}
+
+	private int generateTestQuestionBatch(int batchIndex, Long tenantId, Test test, List<DocumentChunk> chunks,
+			List<ChunkEmbedding> embeddings, int batchSize, int generatedCount) {
+		// 3) Build prompt for this batch
+		Test batchTest = createBatchTestCopy(test, batchSize);
+		String prompt = promptBuilder.buildPrompt(batchTest, chunks);
+		log.debug("    Test generation {} - Batch No. {} - Built prompt for batch of {} questions: {}", test.getId(),
+				batchIndex, batchSize, prompt);
+
+		// 4) Generate questions for this batch
+		List<TestQuestion> generatedTestQuestions = llmTestGenerationService.generate(prompt, batchTest);
+		log.info("    Test generation {} - Batch No. {} - Generated {} questions in batch.", test.getId(), batchIndex,
+				generatedTestQuestions.size());
+
+		// 5) Validate questions
+		List<TestQuestion> validatedTestQuestions = testQuestionValidator.validateAndNormalize(generatedTestQuestions,
+				test, embeddings, generatedCount);
+		log.info("    Test generation {} - Batch No. {} - Validated and normalized {} questions in batch.",
+				test.getId(), batchIndex, generatedTestQuestions.size());
+
+		// 6) Persist questions
+		tx.persistTestQuestions(tenantId, test.getId(), validatedTestQuestions, embeddings);
+		log.info("    Test generation {} - Batch No. {} - Persisted {} validated questions", test.getId(), batchIndex,
+				validatedTestQuestions.size());
+		
+		return validatedTestQuestions.size();
+	}
+
+	private Test createBatchTestCopy(Test test, int batchSize) {
+		Test batchTest = Test.builder().tenantId(test.getTenantId()).id(test.getId()).difficulty(test.getDifficulty())
+				.avoidRepeats(test.getAvoidRepeats()).coverageMode(test.getCoverageMode()).questionCount(batchSize)
+				.answerCardinality(test.getAnswerCardinality())
+				.minMultipleCorrectQuestionsCount(
+						computeMinMultipleCorrectQuestionsCount(batchSize, test.getAnswerCardinality()))
+				.language(test.getLanguage()).generationModel(test.getGenerationModel())
+				.promptTemplateId(test.getPromptTemplateId()).generationParams(test.getGenerationParams()).build();
+		return batchTest;
 	}
 
 	private int recommendedChunkLimit(Test test) {
@@ -159,6 +199,10 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		if (test.getAnswerCardinality() == null) {
 			test.setAnswerCardinality(defaults.getAnswerCardinality());
 		}
+		if (test.getMinMultipleCorrectQuestionsCount() == null) {
+			test.setMinMultipleCorrectQuestionsCount(
+					computeMinMultipleCorrectQuestionsCount(test.getQuestionCount(), test.getAnswerCardinality()));
+		}
 		if (test.getLanguage() == null) {
 			test.setLanguage(defaults.getLanguage());
 		}
@@ -168,6 +212,16 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		if (isBlank(test.getGenerationModel())) {
 			test.setGenerationModel(defaults.getGenerationModel());
 		}
+	}
+
+	private int computeMinMultipleCorrectQuestionsCount(Integer questionCount, AnswerCardinality answerCardinality) {
+		if (questionCount == null || questionCount <= 0 || answerCardinality != AnswerCardinality.MULTIPLE_CORRECT) {
+			return 0;
+		}
+		int percentage = defaults.getMinMultipleCorrectPercentage() != null
+				? defaults.getMinMultipleCorrectPercentage()
+				: 20;
+		return (int) Math.max(1, Math.ceil(questionCount * percentage / 100.0));
 	}
 
 	private boolean isBlank(String value) {

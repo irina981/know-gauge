@@ -60,6 +60,8 @@ public class Test extends AuditableObject {
 
 	private Integer questionCount;
 
+	private Integer minMultipleCorrectQuestionsCount;
+
 	private AnswerCardinality answerCardinality;
 
 	private Language language;

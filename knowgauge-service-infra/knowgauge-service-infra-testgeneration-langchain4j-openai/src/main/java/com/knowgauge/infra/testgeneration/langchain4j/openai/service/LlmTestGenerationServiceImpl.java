@@ -33,8 +33,10 @@ import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 
 	private final OpenAiChatModelProperties chatModelProperties;
@@ -74,7 +76,27 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		ChatRequest request = buildRequest(effectivePrompt, schemaJson, strictJson && supportsStructuredOutput);
 		ChatResponse response = chatModel.chat(request);
 
+		// Log usage and response metadata
+		if (response != null) {
+			logResponseMetadata(response, test);
+		}
+
 		return responseMapper.map(response, test);
+	}
+
+	private void logResponseMetadata(ChatResponse response, Test test) {
+		try {
+			if (response.metadata() != null) {
+				Object usage = response.tokenUsage();
+				Object finishReason = response.metadata().finishReason();
+
+				if (usage != null || finishReason != null) {
+					log.info("LLM Response (testId={}): usage={}, finishReason={}", test.getId(), usage, finishReason);
+				}
+			}
+		} catch (Exception e) {
+			log.warn("Failed to log LLM response metadata for testId={}", test.getId(), e);
+		}
 	}
 
 	private ChatRequest buildRequest(String effectivePrompt, String schemaJson, boolean useStructuredOutput) {

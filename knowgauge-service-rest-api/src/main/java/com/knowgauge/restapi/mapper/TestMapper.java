@@ -23,6 +23,7 @@ public interface TestMapper {
 	@Mapping(target = "generationFinishedAt", ignore = true)
 	@Mapping(target = "generationFailedAt", ignore = true)
 	@Mapping(target = "generationErrorMessage", ignore = true)
+	@Mapping(target = "minMultipleCorrectQuestionsCount", ignore = true)
 	@Mapping(target = "createdAt", ignore = true) // set by service/DB
 	@Mapping(target = "createdBy", ignore = true) // set by service/DB
 	@Mapping(target = "updatedAt", ignore = true) // set by service/DB

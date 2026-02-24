@@ -44,7 +44,7 @@ public class TestPromptBuilder {
 		vars.put("difficulty", safe(test.getDifficulty()));
 		vars.put("questionCount", test.getQuestionCount());
 		vars.put("language", safe(test.getLanguage()));
-		vars.put("minMulti", resolveMinMultipleCorrectQuestionsCount(test));
+		vars.put("minMulti", safe(test.getMinMultipleCorrectQuestionsCount()));
 
 		// --- The generating model (more below) ---
 		vars.put("model", safe(test.getGenerationModel()));
@@ -93,14 +93,6 @@ public class TestPromptBuilder {
 
 	private String safe(Object v) {
 		return v == null ? "" : String.valueOf(v);
-	}
-
-	private int resolveMinMultipleCorrectQuestionsCount(Test test) {
-		if (test == null || test.getAnswerCardinality() != AnswerCardinality.MULTIPLE_CORRECT) {
-			return 0;
-		}
-		// Ensure at least 20% of questions have multiple correct answers
-		return (int) Math.max(1, Math.ceil(test.getQuestionCount() / 5.0));
 	}
 
 }

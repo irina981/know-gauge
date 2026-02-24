@@ -14,9 +14,11 @@ import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.enums.AnswerOption;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.TestQuestionDto;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.TestQuestionResponseDto;
+import com.knowgauge.infra.testgeneration.langchain4j.openai.service.LlmTestGenerationServiceImpl;
 
 import dev.langchain4j.model.chat.response.ChatResponse;
-
+import lombok.extern.slf4j.Slf4j;
+@Slf4j
 @Component
 public class ChatResponseMapper {
 
@@ -34,6 +36,7 @@ public class ChatResponseMapper {
 		}
 
 		String json = extractJsonObject(raw);
+		log.info("JSON extracted from LLM response (testId={}): {}", test.getId(), json);
 
 		try {
 

@@ -22,6 +22,8 @@ public class TestGenerationDefaultsProperties {
 	private String generationModel;
 	private Integer chunksPerQuestion;
 	private Integer minChunksPerTest;
+	private Integer questionGenerationBatchSize;
+	private Integer minMultipleCorrectPercentage;
 
 	public TestDifficulty getDifficulty() {
 		return difficulty;
@@ -101,5 +103,21 @@ public class TestGenerationDefaultsProperties {
 
 	public void setMinChunksPerTest(Integer minChunksPerTest) {
 		this.minChunksPerTest = minChunksPerTest;
+	}
+
+	public Integer getQuestionGenerationBatchSize() {
+		return questionGenerationBatchSize;
+	}
+
+	public void setQuestionGenerationBatchSize(Integer questionGenerationBatchSize) {
+		this.questionGenerationBatchSize = questionGenerationBatchSize;
+	}
+
+	public Integer getMinMultipleCorrectPercentage() {
+		return minMultipleCorrectPercentage;
+	}
+
+	public void setMinMultipleCorrectPercentage(Integer minMultipleCorrectPercentage) {
+		this.minMultipleCorrectPercentage = minMultipleCorrectPercentage;
 	}
 }

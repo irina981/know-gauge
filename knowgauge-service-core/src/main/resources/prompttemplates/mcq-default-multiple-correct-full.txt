@@ -1,0 +1,58 @@
+Difficulty: {{difficulty}}
+Number of questions: {{questionCount}}
+Language: {{language}}
+Model: {{model}}
+
+Use ONLY the following context to create the question statements, the correct answers, and the explanations.
+If the context is insufficient to generate questions with verifiable correct options, return exactly: INSUFFICIENT_CONTEXT.
+
+===== CONTEXT START =====
+{{context}}
+===== CONTEXT END =====
+
+Rules:
+
+1. Correct options must be determined in closed-world mode.
+	-A correct option must be explicitly supported by the provided context.
+	-Do not assume examples in the context are exhaustive unless the context explicitly says so.
+
+2. Incorrect options must be safe distractors.
+	- An incorrect option must not be directly supported by the context.
+	- Prefer incorrect options that clearly violate a definition, rule, classification, or constraint stated in the context.
+	- Avoid near-miss distractors that could plausibly be true in the real world unless the context explicitly rules them out.
+
+3. Multi-correct construction procedure (mandatory for questions that require multiple correct answers).
+	For each question that must be multi-correct:
+	- First extract 2 to 4 distinct atomic factual statements that are explicitly stated in the context and refer to the same concept.
+	- Each atomic fact must become exactly one correct option.
+	- Only after selecting correct options, generate incorrect options.
+	- If you cannot extract at least two distinct atomic factual statements for a question, do not generate that question and return INSUFFICIENT_CONTEXT.
+
+4. Option structure constraints.
+	- Each option must contain exactly one atomic factual statement.
+	- Do not combine multiple independent facts into a single option.
+	- Do not create comma-separated bundles of statements in a single option.
+	- Options must be comparable in structure and scope.
+
+5. Generate {{questionCount}} MCQs.
+	- Each question must have exactly four options labeled A–D.
+	- For the first {{minMulti}} questions, correctOptions must contain between 2 and 4 letters.
+	- Do not output any single-correct question until the multi-correct requirement is satisfied.
+	- Some questions may have two to four correct answers.
+	- Distribute correct options across A–D and avoid predictable patterns.
+	- Provide a short explanation that relies only on the provided context.
+	- Cite source chunk IDs used to derive the question.
+
+6. Evidence requirements.
+	- For each correct option, include a short evidence snippet from the context and the chunk ID(s) where it appears.
+	- For each incorrect option, include a short rationale explaining why it is not supported by the context, referencing a definition or constraint where applicable.
+
+7. Internal validation before output.
+	- Before producing the final JSON:
+	- Confirm that each correct option has explicit textual support in the context.
+	- Confirm that each incorrect option is not supported by the context.
+	- Confirm that multi-correct questions contain at least two independently supported atomic correct options.
+	- If any of these conditions fail, return INSUFFICIENT_CONTEXT.
+
+Return JSON in the following format only:
+{{outputSchema}}

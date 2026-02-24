@@ -1,27 +1,25 @@
-You are an assistant that generates multiple-choice questions (MCQs).
+You generate MCQs from the provided context.
 
 Difficulty: {{difficulty}}
 Number of questions: {{questionCount}}
 Language: {{language}}
-Model: {{model}}
 
-Use ONLY the following context to create multiple-choice questions.
-If the context is insufficient, return INSUFFICIENT_CONTEXT.
+Use ONLY the context below. 
+If you cannot produce the requested distribution of multi-correct questions using only this context, return exactly: INSUFFICIENT_CONTEXT.
 
 ===== CONTEXT START =====
 {{context}}
 ===== CONTEXT END =====
 
-Rules:
-- Generate {{questionCount}} MCQs
-- Each question has exactly 4 options (A–D)
-- At least {{minMulti}} questions must have multiple correct options.
-- Some questions may have 2–4 correct answers.
-- Distribute correct options across A-D (avoid patterns)
-- Provide a short explanation for the correct answer
-- Cite source chunk IDs used to derive the question
-- Do not use external knowledge
+Requirements:
+- Return exactly {{questionCount}} questions.
+- Each question has 4 options A–D. Each option must be one atomic statement (no bundled lists).
+- Exactly {{minMulti}} questions must be multi-correct (2–4 correct options). The rest must be single-correct (exactly 1 correct option).
+- Correct options must be explicitly supported by the context.
+- Incorrect options must not be supported by the context and should be clearly wrong or out-of-scope for the asked concept (avoid “near-miss” options).
+- For multi-correct questions, do not reveal the number of correct answers in the question text (avoid “Which two/three/four…”). Use “Select all that apply” or similar neutral wording.
+- Provide a 1–2 sentence explanation based only on the context.
+- Include sources as chunk IDs you used to derive the question (e.g., "chunk8"). Use 1–3 chunks per question.
 
-Return JSON in the following format only:
+Return JSON only in this schema:
 {{outputSchema}}
-

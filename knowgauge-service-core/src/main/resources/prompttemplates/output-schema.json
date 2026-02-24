@@ -8,7 +8,7 @@
         "C": "",
         "D": ""
       },
-      "correctOptions": ["A"],
+      "correctOptions": ["A", "C"],
       "explanation": "",
       "sources": ["chunk12", "chunk45"]
     }
