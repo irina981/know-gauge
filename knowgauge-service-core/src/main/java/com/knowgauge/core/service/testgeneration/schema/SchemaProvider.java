@@ -1,6 +1,6 @@
 package com.knowgauge.core.service.testgeneration.schema;
 
-public interface TestQuestionSchemaProvider {
+public interface SchemaProvider {
 
 	String getOutputSchemaJson();
 }

@@ -12,7 +12,7 @@ public class ClasspathPromptTemplateLoader implements PromptTemplateLoader {
 	private final String basePath;
 
 	public ClasspathPromptTemplateLoader(
-			@Value("${kg.llm.testgen.prompt.templates.classpathBase}") String basePath) {
+			@Value("${kg.testgen.prompt.templates.classpathBase}") String basePath) {
 		this.basePath = basePath.endsWith("/") ? basePath : basePath + "/";
 	}
 

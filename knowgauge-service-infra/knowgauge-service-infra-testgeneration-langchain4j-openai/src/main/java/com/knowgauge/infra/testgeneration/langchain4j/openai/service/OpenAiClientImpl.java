@@ -1,24 +1,18 @@
 package com.knowgauge.infra.testgeneration.langchain4j.openai.service;
 
-import java.time.Duration;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
-import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
-import com.knowgauge.core.service.testgeneration.schema.TestQuestionSchemaProvider;
-import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiChatModelProperties;
-import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.ChatResponseMapper;
+import com.knowgauge.core.service.testgeneration.schema.SchemaProvider;
 
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -36,35 +30,26 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.extern.slf4j.Slf4j;
 
-@Service
 @Slf4j
-public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
-
-	private final OpenAiChatModelProperties chatModelProperties;
-	private final ChatResponseMapper responseMapper;
-	private final TestQuestionSchemaProvider schemaProvider;
-	private final List<String> structuredOutputModelPrefixes;
+public class OpenAiClientImpl implements OpenAiClient {
+	private final SchemaProvider schemaProvider;
 	private final ObjectMapper objectMapper;
 
-	public LlmTestGenerationServiceImpl(OpenAiChatModelProperties chatModelProperties,
-			ChatResponseMapper responseMapper, TestQuestionSchemaProvider schemaProvider,
+	protected final List<String> structuredOutputModelPrefixes;
+
+	public OpenAiClientImpl(SchemaProvider schemaProvider,
 			@Value("${kg.testgen.chat-model.openai.structured-output-model-prefixes:gpt-4.1,gpt-4o,o1,o3,o4}") List<String> structuredOutputModelPrefixes) {
-		this.chatModelProperties = chatModelProperties;
-		this.responseMapper = responseMapper;
-		this.schemaProvider = schemaProvider;
 		this.structuredOutputModelPrefixes = structuredOutputModelPrefixes;
 		this.objectMapper = new ObjectMapper();
+		this.schemaProvider = schemaProvider;
 	}
 
 	@Override
-	public List<TestQuestion> generate(String prompt, Test test) {
+	public ChatResponse callLlm(String prompt, Test test, List<TestQuestion> questions, OpenAiChatModel chatModel, String modelName) {
 		if (prompt == null || prompt.isBlank()) {
-			return Collections.emptyList();
+			return null;
 		}
 
-		OpenAiChatModel chatModel = buildChatModel(test);
-		
-		String modelName = resolveModelName(test);
 		boolean supportsStructuredOutput = supportsStructuredOutputResponseFormat(modelName);
 
 		String effectivePrompt = supportsStructuredOutput ? prompt : enforceJsonOnly(prompt);
@@ -76,7 +61,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 				throw new IllegalStateException("MCQ schema JSON must not be empty.");
 			}
 		}
-		
+
 		ChatRequest request = buildRequest(effectivePrompt, schemaJson);
 		ChatResponse response = chatModel.chat(request);
 
@@ -87,10 +72,10 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 			logResponseMetadata(response, test);
 		}
 
-		return responseMapper.map(response, test);
+		return response;
 	}
 
-	private void checkFinishReasonForErrors(ChatResponse response, Test test) {
+	protected void checkFinishReasonForErrors(ChatResponse response, Test test) {
 		if (response != null && response.metadata() != null) {
 			Object finishReasonObj = response.metadata().finishReason();
 			if (finishReasonObj != null) {
@@ -104,7 +89,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		}
 	}
 
-	private void logResponseMetadata(ChatResponse response, Test test) {
+	protected void logResponseMetadata(ChatResponse response, Test test) {
 		try {
 			if (response.metadata() != null) {
 				Object usage = response.tokenUsage();
@@ -119,7 +104,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		}
 	}
 
-	private ChatRequest buildRequest(String effectivePrompt, String schemaJson) {
+	protected ChatRequest buildRequest(String effectivePrompt, String schemaJson) {
 		ChatRequest.Builder builder = ChatRequest.builder().messages(List.of(UserMessage.from(effectivePrompt)));
 		if (schemaJson != null) {
 			JsonSchema responseJsonSchema = toResponseJsonSchema(schemaJson);
@@ -128,11 +113,11 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		return builder.build();
 	}
 
-	private String enforceJsonOnly(String basePrompt) {
+	protected String enforceJsonOnly(String basePrompt) {
 		return basePrompt + "\n\nReturn ONLY a valid JSON array. No markdown. No explanations.";
 	}
 
-	private JsonSchema toResponseJsonSchema(String schemaJson) {
+	protected JsonSchema toResponseJsonSchema(String schemaJson) {
 		try {
 			JsonNode rootNode = objectMapper.readTree(schemaJson);
 			return JsonSchema.builder().name("output_schema").rootElement(inferElement(rootNode)).build();
@@ -179,46 +164,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		return JsonStringSchema.builder().build();
 	}
 
-	private OpenAiChatModel buildChatModel(Test test) {
-		String model = resolveModelName(test);
-
-		Double temperature = resolveOptionalDoubleParam(test, "temperature");
-		if (temperature == null) {
-			temperature = chatModelProperties.getTemperature();
-		}
-
-		Integer maxOutputTokens = resolveOptionalIntParam(test, "maxOutputTokens");
-		if (maxOutputTokens == null) {
-			maxOutputTokens = chatModelProperties.getMaxOutputTokens();
-		}
-
-		boolean supportsStructuredOutput = supportsStructuredOutputResponseFormat(model);
-
-		OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder()
-				.apiKey(chatModelProperties.getApiKey()).modelName(model)
-				.strictJsonSchema(supportsStructuredOutput);
-
-		if (temperature != null) {
-			builder.temperature(temperature);
-		}
-
-		if (maxOutputTokens != null) {
-			builder.maxTokens(maxOutputTokens);
-		}
-
-		if (chatModelProperties.getTimeoutSeconds() != null) {
-			builder.timeout(Duration.ofSeconds(chatModelProperties.getTimeoutSeconds()));
-		}
-
-		return builder.build();
-	}
-
-	private String resolveModelName(Test test) {
-		return (test.getGenerationModel() != null && !test.getGenerationModel().isBlank()) ? test.getGenerationModel()
-				: chatModelProperties.getModel();
-	}
-
-	private boolean supportsStructuredOutputResponseFormat(String modelName) {
+	public boolean supportsStructuredOutputResponseFormat(String modelName) {
 		if (modelName == null) {
 			return false;
 		}
@@ -239,7 +185,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		return false;
 	}
 
-	private Double resolveOptionalDoubleParam(Test test, String key) {
+	protected Double resolveOptionalDoubleParam(Test test, String key) {
 		Map<String, Object> params = test.getGenerationParams();
 		if (params != null && params.get(key) != null) {
 			Object raw = params.get(key);
@@ -251,7 +197,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		return null;
 	}
 
-	private Integer resolveOptionalIntParam(Test test, String key) {
+	protected Integer resolveOptionalIntParam(Test test, String key) {
 		Map<String, Object> params = test.getGenerationParams();
 		if (params != null && params.get(key) != null) {
 			Object raw = params.get(key);

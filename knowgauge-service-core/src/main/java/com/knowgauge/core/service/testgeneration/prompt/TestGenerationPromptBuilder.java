@@ -6,23 +6,24 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.enums.AnswerCardinality;
-import com.knowgauge.core.service.testgeneration.schema.TestQuestionSchemaProvider;
+import com.knowgauge.core.service.testgeneration.schema.SchemaProvider;
 
 @Component
-public class TestPromptBuilder {
+public class TestGenerationPromptBuilder {
 	private final PromptTemplateLoader templateLoader;
 	private final PromptTemplateRenderer templateRenderer;
-	private final TestQuestionSchemaProvider schemaProvider;
+	private final SchemaProvider schemaProvider;
 	private final String defaultTemplateId;
 
-	public TestPromptBuilder(PromptTemplateLoader templateLoader, PromptTemplateRenderer templateRenderer,
-			TestQuestionSchemaProvider schemaProvider,
+	public TestGenerationPromptBuilder(PromptTemplateLoader templateLoader, PromptTemplateRenderer templateRenderer,
+			@Qualifier("testGenerationOutputSchemaProvider") SchemaProvider schemaProvider,
 			@Value("${kg.testgen.defaults.prompt-template-id}") String defaultTemplateId) {
 		super();
 		this.templateLoader = templateLoader;

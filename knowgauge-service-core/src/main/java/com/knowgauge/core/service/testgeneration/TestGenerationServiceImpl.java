@@ -21,7 +21,8 @@ import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.port.testgeneration.LlmIncorrectOptionsVerificationService;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
 import com.knowgauge.core.service.retrieving.RetrievingService;
-import com.knowgauge.core.service.testgeneration.prompt.TestPromptBuilder;
+import com.knowgauge.core.service.testgeneration.prompt.TestGenerationPromptBuilder;
+import com.knowgauge.core.service.testgeneration.prompt.VerificationPromptBuilder;
 import com.knowgauge.core.service.testgeneration.validation.PostLlmFinalValidator;
 import com.knowgauge.core.service.testgeneration.validation.PreLlmPreflightValidator;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
@@ -34,7 +35,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	private final RetrievingService retrievingService;
 
-	private final TestPromptBuilder promptBuilder;
+	private final TestGenerationPromptBuilder promptBuilder;
+	private final VerificationPromptBuilder verificationPromptBuilder;
 	private final LlmTestGenerationService llmTestGenerationService;
 	private final LlmIncorrectOptionsVerificationService llmIncorrectOptionsVerificationService;
 	private final PostLlmFinalValidator postLlmFinalValidator;
@@ -47,16 +49,17 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final ExecutionContext executionContext;
 	private final TestGenerationDefaultsProperties defaults;
 
-	public TestGenerationServiceImpl(RetrievingService retrievingService, TestPromptBuilder promptBuilder,
-			LlmTestGenerationService llmTestGenerationService,
+	public TestGenerationServiceImpl(RetrievingService retrievingService, TestGenerationPromptBuilder promptBuilder,
+			VerificationPromptBuilder verificationPromptBuilder, LlmTestGenerationService llmTestGenerationService,
 			LlmIncorrectOptionsVerificationService llmIncorrectOptionsVerificationService,
 			PreLlmPreflightValidator preLlmPreflightValidator, PostLlmFinalValidator postLlmFinalValidator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
-			TestGenerationDefaultsProperties defaults) {
+			TestGenerationDefaultsProperties defaults, VerificationPromptBuilder verificationPromptBuilder2) {
 		this.retrievingService = retrievingService;
 		this.promptBuilder = promptBuilder;
+		this.verificationPromptBuilder = verificationPromptBuilder2;
 		this.llmTestGenerationService = llmTestGenerationService;
 		this.llmIncorrectOptionsVerificationService = llmIncorrectOptionsVerificationService;
 		this.preLlmPreflightValidator = preLlmPreflightValidator;
@@ -126,7 +129,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	}
 
 	/**
-	 * Retrieves embeddings and loads corresponding document chunks for test generation.
+	 * Retrieves embeddings and loads corresponding document chunks for test
+	 * generation.
 	 *
 	 * @param tenantId    the tenant ID
 	 * @param test        the test being generated
@@ -134,16 +138,14 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	 * @param topicIds    the topic IDs for error messages
 	 * @return context containing chunks and embeddings
 	 */
-	private ChunksContext retrieveAndLoadChunks(Long tenantId, Test test, List<Long> documentIds,
-			List<Long> topicIds) {
+	private ChunksContext retrieveAndLoadChunks(Long tenantId, Test test, List<Long> documentIds, List<Long> topicIds) {
 		List<ChunkEmbedding> embeddings = retrievingService.retrieveTop(tenantId, documentIds,
 				recommendedChunkLimit(test), test.getCoverageMode(), Boolean.TRUE.equals(test.getAvoidRepeats()));
 		if (embeddings == null || embeddings.isEmpty()) {
 			throw new IllegalStateException("No relevant context chunks found (tenantId=" + tenantId + ", topicIds="
 					+ topicIds + ", documentIds=" + documentIds + ").");
 		}
-		log.info("    Test generation {} - Retrieved {} embeddings from vector store", test.getId(),
-				embeddings.size());
+		log.info("    Test generation {} - Retrieved {} embeddings from vector store", test.getId(), embeddings.size());
 
 		List<Long> chunkIds = embeddings.stream().map(ChunkEmbedding::getChunkId).toList();
 		log.info("    Test generation {} - Chunk IDs that will be used for test generation: [{}]", test.getId(),
@@ -204,7 +206,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	}
 
 	/**
-	 * Checks if zero-progress threshold has been exceeded and throws exception if so.
+	 * Checks if zero-progress threshold has been exceeded and throws exception if
+	 * so.
 	 */
 	private void checkZeroProgressThreshold(Test test, int batchIndex, int consecutiveZeroProgressBatches,
 			int maxConsecutiveZeroProgress, int generatedCount, int totalQuestions) {
@@ -213,10 +216,10 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 				test.getId(), batchIndex, consecutiveZeroProgressBatches, maxConsecutiveZeroProgress);
 
 		if (consecutiveZeroProgressBatches >= maxConsecutiveZeroProgress) {
-			throw new IllegalStateException("Test generation failed for test " + test.getId() + ": "
-					+ consecutiveZeroProgressBatches + " consecutive batches returned 0 valid questions. Generated "
-					+ generatedCount + "/" + totalQuestions
-					+ " questions. Check validation rules, LLM prompt, or context quality.");
+			throw new IllegalStateException(
+					"Test generation failed for test " + test.getId() + ": " + consecutiveZeroProgressBatches
+							+ " consecutive batches returned 0 valid questions. Generated " + generatedCount + "/"
+							+ totalQuestions + " questions. Check validation rules, LLM prompt, or context quality.");
 		}
 	}
 
@@ -224,8 +227,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	 * Returns the configured max consecutive zero-progress batches limit.
 	 */
 	private int getMaxConsecutiveZeroProgress() {
-		return defaults.getMaxConsecutiveZeroProgressBatches() != null
-				? defaults.getMaxConsecutiveZeroProgressBatches()
+		return defaults.getMaxConsecutiveZeroProgressBatches() != null ? defaults.getMaxConsecutiveZeroProgressBatches()
 				: 3;
 	}
 
@@ -255,8 +257,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 						batchIndex, generatedTestQuestions.size());
 
 				// 5-8) Process multi-correct questions if needed
-				List<TestQuestion> questionsForPostValidation = processMultiCorrectQuestions(generatedTestQuestions, test,
-						embeddings, generatedCount, batchIndex);
+				List<TestQuestion> questionsForPostValidation = processMultiCorrectQuestions(generatedTestQuestions,
+						test, embeddings, generatedCount, batchIndex);
 
 				// 9) Post-LLM validation (full)
 				List<TestQuestion> validatedTestQuestions = postLlmFinalValidator
@@ -299,8 +301,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	}
 
 	/**
-	 * Processes generated questions - for MULTIPLE_CORRECT tests, splits, validates,
-	 * verifies, and merges questions.
+	 * Processes generated questions - for MULTIPLE_CORRECT tests, splits,
+	 * validates, verifies, and merges questions.
 	 *
 	 * @param generatedQuestions the questions generated by LLM
 	 * @param test               the test being generated
@@ -315,7 +317,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 			return generatedQuestions;
 		}
 
-		// 5) Split questions: multi-correct for preflight validation, single-correct passthrough
+		// 5) Split questions: multi-correct for preflight validation, single-correct
+		// passthrough
 		List<TestQuestion> multiCorrectQuestions = generatedQuestions.stream()
 				.filter(q -> q != null && q.getCorrectOptions() != null && q.getCorrectOptions().size() > 1).toList();
 		List<TestQuestion> singleCorrectQuestions = generatedQuestions.stream()
@@ -323,21 +326,28 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		log.debug("    Test generation {} - Batch No. {} - Split questions: {} multi-correct, {} single-correct",
 				test.getId(), batchIndex, multiCorrectQuestions.size(), singleCorrectQuestions.size());
 
-		// 6) Pre-LLM validation (multi-correct only) to filter unsafe questions before verification
+		// 6) Pre-LLM validation (multi-correct only) to filter unsafe questions before
+		// verification
 		List<TestQuestion> preValidatedMultiCorrectQuestions = preLlmPreflightValidator
 				.validateAndNormalize(multiCorrectQuestions, test, embeddings, generatedCount);
 		log.info("    Test generation {} - Batch No. {} - Pre-validated {} multi-correct questions.", test.getId(),
 				batchIndex, preValidatedMultiCorrectQuestions.size());
 
+		// 6.5) Build prompt for pre-validated questions
+		String prompt = verificationPromptBuilder.buildPrompt(preValidatedMultiCorrectQuestions, test);
+		log.debug("    Test generation {} - Batch No. {} - Built verification prompt for batch of {} questions: {}",
+				test.getId(), batchIndex, preValidatedMultiCorrectQuestions.size(), prompt);
+
 		// 7) Verify and replace unsafe incorrect options for MULTIPLE_CORRECT questions
-		int replacedCount = llmIncorrectOptionsVerificationService.verifyAndReplaceUnsafeOptions(
-				preValidatedMultiCorrectQuestions, test);
+		int replacedCount = llmIncorrectOptionsVerificationService.verifyAndReplaceUnsafeOptions(prompt, test,
+				preValidatedMultiCorrectQuestions);
 		if (replacedCount > 0) {
 			log.info("    Test generation {} - Batch No. {} - Verified and replaced {} unsafe incorrect options.",
 					test.getId(), batchIndex, replacedCount);
 		}
 
-		// 8) Merge and shuffle pre-validated multi-correct and passthrough single-correct questions
+		// 8) Merge and shuffle pre-validated multi-correct and passthrough
+		// single-correct questions
 		List<TestQuestion> merged = mergeAndShuffleQuestions(preValidatedMultiCorrectQuestions, singleCorrectQuestions,
 				generatedCount);
 		log.debug("    Test generation {} - Batch No. {} - Merged and shuffled {} questions for post-validation",

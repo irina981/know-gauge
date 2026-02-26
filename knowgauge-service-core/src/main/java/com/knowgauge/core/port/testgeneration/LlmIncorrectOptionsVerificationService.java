@@ -19,6 +19,6 @@ public interface LlmIncorrectOptionsVerificationService {
 	 * @param test      the test containing configuration
 	 * @return number of options that were replaced
 	 */
-	int verifyAndReplaceUnsafeOptions(List<TestQuestion> questions, Test test);
+	int verifyAndReplaceUnsafeOptions(String prompt, Test test, List<TestQuestion> questions);
 
 }

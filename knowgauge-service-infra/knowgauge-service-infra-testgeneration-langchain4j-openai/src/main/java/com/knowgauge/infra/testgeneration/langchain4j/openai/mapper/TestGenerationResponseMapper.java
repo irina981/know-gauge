@@ -23,11 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class ChatResponseMapper {
+public class TestGenerationResponseMapper {
 
 	private final ObjectMapper objectMapper;
 
-	public ChatResponseMapper(ObjectMapper objectMapper) {
+	public TestGenerationResponseMapper(ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
 	}
 

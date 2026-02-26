@@ -1,0 +1,17 @@
+{
+  "results": [
+    {
+      "questionIndex": 1,
+      "questionText": "",
+      "evaluatedAnswers": [
+        {
+          "option": "A",
+          "originalAnswer": "",
+          "verdict": true,
+          "replacementAnswer": "",
+          "explanation": ""
+        }
+      ]
+    }
+  ]
+}

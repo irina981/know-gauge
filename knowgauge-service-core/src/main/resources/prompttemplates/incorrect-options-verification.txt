@@ -22,23 +22,7 @@ Replacement rules:
 - Similar length/style.
 
 Return JSON only:
-{
-  "results": [
-    {
-      "questionIndex": <number>,
-      "questionText": "<string>",
-      "evaluatedAnswers": [
-        {
-          "option": "<A|B|C|D>",
-          "originalAnswer": "<string>",
-          "verdict": "<true or false>",
-          "replacementAnswer": ""
-          "explanation": "<brief reason why original answer is true or false>"
-        }
-      ]
-    }
-  ]
-}
+{{outputSchema}}
 
 Input:
 {{input}}

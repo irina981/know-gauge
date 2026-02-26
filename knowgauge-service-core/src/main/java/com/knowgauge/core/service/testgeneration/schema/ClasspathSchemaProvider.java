@@ -3,17 +3,11 @@ package com.knowgauge.core.service.testgeneration.schema;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-@Component
-public class ClasspathTestQuestionSchemaProvider implements TestQuestionSchemaProvider {
+public class ClasspathSchemaProvider implements SchemaProvider {
 
 	private final String resourcePath;
 
-	public ClasspathTestQuestionSchemaProvider(
-			@Value("${kg.llm.testgen.prompt.templates.classpathBase}") String basePath,
-			@Value("${kg.llm.testgen.prompt.templates.output-schema-file:mcq-template.json}") String outputSchemaFile) {
+	public ClasspathSchemaProvider(String basePath, String outputSchemaFile) {
 		String normalizedBasePath = basePath.endsWith("/") ? basePath : basePath + "/";
 		this.resourcePath = normalizedBasePath + outputSchemaFile;
 	}

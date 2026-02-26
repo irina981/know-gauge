@@ -61,16 +61,15 @@ public class TestGenerationController {
 	@io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, description = "Test generation input", content = @Content(mediaType = "application/json", examples = {
 			@ExampleObject(name = "basic", value = """
 					{
-					  "topicIds": [101],
-					  "documentIds": [201],
+					  "topicIds": [],
+					  "documentIds": [1],
 					  "difficulty": "MEDIUM",
 					  "questionCount": 10,
 					  "answerCardinality": "SINGLE_CORRECT",
 					  "language": "EN",
 					  "generationParams": {
 					    "temperature": 0.2,
-					    "maxOutputTokens": 1200,
-					    "strictJson": true
+					    "maxOutputTokens": 1200
 					  }
 					}
 					""")
