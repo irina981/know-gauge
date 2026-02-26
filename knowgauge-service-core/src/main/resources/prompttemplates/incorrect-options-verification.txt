@@ -1,15 +1,44 @@
-You verify only distractors (incorrect options) for MCQs.
+You evaluate answers to test questions.
 
-Input: JSON with questions, options A–D, and correctOptions. Correct options must not be changed.
+Input per question:
+- questionIndex
+- questionText
+- answers (map option A-D -> answer)
 
-For each question, examine ONLY the options not listed in correctOptions.
-If an incorrect option could reasonably be true in the real world/domain, mark it as UNSAFE_DISTRACTOR and propose a replacement that is very likely false.
+For each answers given for the question, decide if it is TRUE or FALSE.
+
+Important:
+- Do NOT treat an answer as TRUE because it is related, plausible, confusing, or a common misconception.
+- If any part of the answer is incorrect, classify it as FALSE.
+- Only answers that are fully correct should be classified as TRUE.
+
+Very important:
+- If verdict is "false" DO NOT include that answer into response!
+- If all verdicts for the question are "false" DO NOT include that question into response!
 
 Replacement rules:
-- Keep it a single atomic statement.
-- Similar length/style to the other options.
-- Do not use “All of the above / None of the above”.
-- If unsure whether an incorrect option is true or false, treat it as UNSAFE_DISTRACTOR.
+- If the verdict is "true", provide example of clearly false answer.
+- Single atomic statement.
+- Similar length/style.
 
 Return JSON only:
-{ "results": [ { "questionIndex": <number>, "unsafeOptions": ["B"], "replacements": { "B": "<text>" }, "notes": "<short reason>" } ] }
+{
+  "results": [
+    {
+      "questionIndex": <number>,
+      "questionText": "<string>",
+      "evaluatedAnswers": [
+        {
+          "option": "<A|B|C|D>",
+          "originalAnswer": "<string>",
+          "verdict": "<true or false>",
+          "replacementAnswer": ""
+          "explanation": "<brief reason why original answer is true or false>"
+        }
+      ]
+    }
+  ]
+}
+
+Input:
+{{input}}

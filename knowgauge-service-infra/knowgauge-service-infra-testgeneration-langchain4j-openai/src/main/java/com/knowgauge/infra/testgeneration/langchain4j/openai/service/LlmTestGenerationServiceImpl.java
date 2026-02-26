@@ -47,8 +47,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 	private final ObjectMapper objectMapper;
 
 	public LlmTestGenerationServiceImpl(OpenAiChatModelProperties chatModelProperties,
-			ChatResponseMapper responseMapper,
-			TestQuestionSchemaProvider schemaProvider,
+			ChatResponseMapper responseMapper, TestQuestionSchemaProvider schemaProvider,
 			@Value("${kg.testgen.chat-model.openai.structured-output-model-prefixes:gpt-4.1,gpt-4o,o1,o3,o4}") List<String> structuredOutputModelPrefixes) {
 		this.chatModelProperties = chatModelProperties;
 		this.responseMapper = responseMapper;
@@ -64,17 +63,21 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		}
 
 		OpenAiChatModel chatModel = buildChatModel(test);
+		
 		String modelName = resolveModelName(test);
 		boolean supportsStructuredOutput = supportsStructuredOutputResponseFormat(modelName);
 
-		boolean strictJson = resolveStrictJsonOrDefault(test);
-		String effectivePrompt = strictJson ? enforceJsonOnly(prompt) : prompt;
-		String schemaJson = schemaProvider.getOutputSchemaJson();
-		if (schemaJson == null || schemaJson.isBlank()) {
-			throw new IllegalStateException("Output schema JSON must not be empty.");
+		String effectivePrompt = supportsStructuredOutput ? prompt : enforceJsonOnly(prompt);
+		String schemaJson = null;
+		if (supportsStructuredOutput) {
+			effectivePrompt = enforceJsonOnly(prompt);
+			schemaJson = schemaProvider.getOutputSchemaJson();
+			if (schemaJson == null || schemaJson.isBlank()) {
+				throw new IllegalStateException("MCQ schema JSON must not be empty.");
+			}
 		}
-
-		ChatRequest request = buildRequest(effectivePrompt, schemaJson, strictJson && supportsStructuredOutput);
+		
+		ChatRequest request = buildRequest(effectivePrompt, schemaJson);
 		ChatResponse response = chatModel.chat(request);
 
 		checkFinishReasonForErrors(response, test);
@@ -93,8 +96,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 			if (finishReasonObj != null) {
 				String finishReason = finishReasonObj.toString().toLowerCase(Locale.ROOT);
 				if ("length".equals(finishReason)) {
-					throw new LlmResponseParsingException(
-							LlmResponseParsingException.Reason.LENGTH,
+					throw new LlmResponseParsingException(LlmResponseParsingException.Reason.LENGTH,
 							"LLM response generation stopped due to max output tokens limit (testId=" + test.getId()
 									+ ")");
 				}
@@ -117,9 +119,9 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		}
 	}
 
-	private ChatRequest buildRequest(String effectivePrompt, String schemaJson, boolean useStructuredOutput) {
+	private ChatRequest buildRequest(String effectivePrompt, String schemaJson) {
 		ChatRequest.Builder builder = ChatRequest.builder().messages(List.of(UserMessage.from(effectivePrompt)));
-		if (useStructuredOutput) {
+		if (schemaJson != null) {
 			JsonSchema responseJsonSchema = toResponseJsonSchema(schemaJson);
 			builder.parameters(ChatRequestParameters.builder().responseFormat(responseJsonSchema).build());
 		}
@@ -133,12 +135,9 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 	private JsonSchema toResponseJsonSchema(String schemaJson) {
 		try {
 			JsonNode rootNode = objectMapper.readTree(schemaJson);
-			return JsonSchema.builder()
-					.name("output_schema")
-					.rootElement(inferElement(rootNode))
-					.build();
+			return JsonSchema.builder().name("output_schema").rootElement(inferElement(rootNode)).build();
 		} catch (Exception e) {
-			throw new IllegalStateException("Failed to parse output schema JSON for chat response format.", e);
+			throw new IllegalStateException("Failed to parse schema JSON for chat response format: " + schemaJson, e);
 		}
 	}
 
@@ -160,8 +159,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		}
 
 		if (node.isArray()) {
-			JsonSchemaElement itemElement = node.isEmpty()
-					? JsonStringSchema.builder().build()
+			JsonSchemaElement itemElement = node.isEmpty() ? JsonStringSchema.builder().build()
 					: inferElement(node.get(0));
 			return JsonArraySchema.builder().items(itemElement).build();
 		}
@@ -194,11 +192,11 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 			maxOutputTokens = chatModelProperties.getMaxOutputTokens();
 		}
 
-		Boolean strictJson = resolveStrictJsonOrDefault(test);
 		boolean supportsStructuredOutput = supportsStructuredOutputResponseFormat(model);
 
 		OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder()
-				.apiKey(chatModelProperties.getApiKey()).modelName(model).strictJsonSchema(strictJson && supportsStructuredOutput);
+				.apiKey(chatModelProperties.getApiKey()).modelName(model)
+				.strictJsonSchema(supportsStructuredOutput);
 
 		if (temperature != null) {
 			builder.temperature(temperature);
@@ -216,8 +214,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 	}
 
 	private String resolveModelName(Test test) {
-		return (test.getGenerationModel() != null && !test.getGenerationModel().isBlank())
-				? test.getGenerationModel()
+		return (test.getGenerationModel() != null && !test.getGenerationModel().isBlank()) ? test.getGenerationModel()
 				: chatModelProperties.getModel();
 	}
 
@@ -240,26 +237,6 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		}
 
 		return false;
-	}
-
-	private boolean resolveStrictJsonOrDefault(Test test) {
-		Boolean strictJson = resolveStrictJson(test);
-		if (strictJson != null) {
-			return strictJson;
-		}
-		return Boolean.TRUE.equals(chatModelProperties.getStrictJson());
-	}
-
-	private Boolean resolveStrictJson(Test test) {
-		Map<String, Object> params = test.getGenerationParams();
-		if (params != null && params.get("strictJson") != null) {
-			Object raw = params.get("strictJson");
-			if (raw instanceof Boolean value) {
-				return value;
-			}
-			return Boolean.parseBoolean(String.valueOf(raw));
-		}
-		return null;
 	}
 
 	private Double resolveOptionalDoubleParam(Test test, String key) {

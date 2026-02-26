@@ -24,6 +24,7 @@ public class TestGenerationDefaultsProperties {
 	private Integer minChunksPerTest;
 	private Integer questionGenerationBatchSize;
 	private Integer minMultipleCorrectPercentage;
+	private Integer maxConsecutiveZeroProgressBatches;
 
 	public TestDifficulty getDifficulty() {
 		return difficulty;
@@ -119,5 +120,13 @@ public class TestGenerationDefaultsProperties {
 
 	public void setMinMultipleCorrectPercentage(Integer minMultipleCorrectPercentage) {
 		this.minMultipleCorrectPercentage = minMultipleCorrectPercentage;
+	}
+
+	public Integer getMaxConsecutiveZeroProgressBatches() {
+		return maxConsecutiveZeroProgressBatches;
+	}
+
+	public void setMaxConsecutiveZeroProgressBatches(Integer maxConsecutiveZeroProgressBatches) {
+		this.maxConsecutiveZeroProgressBatches = maxConsecutiveZeroProgressBatches;
 	}
 }

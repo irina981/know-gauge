@@ -13,7 +13,7 @@ public class ClasspathTestQuestionSchemaProvider implements TestQuestionSchemaPr
 
 	public ClasspathTestQuestionSchemaProvider(
 			@Value("${kg.llm.testgen.prompt.templates.classpathBase}") String basePath,
-			@Value("${kg.llm.testgen.prompt.templates.output-schema-file:output-schema.json}") String outputSchemaFile) {
+			@Value("${kg.llm.testgen.prompt.templates.output-schema-file:mcq-template.json}") String outputSchemaFile) {
 		String normalizedBasePath = basePath.endsWith("/") ? basePath : basePath + "/";
 		this.resourcePath = normalizedBasePath + outputSchemaFile;
 	}

@@ -4,8 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties(prefix = "kg.testgen.chat-model.openai")
-public class OpenAiChatModelProperties {
+@ConfigurationProperties(prefix = "kg.testgen.verification.chat-model.openai")
+public class OpenAiVerificationModelProperties {
 
 	private String apiKey;
 	private String model;

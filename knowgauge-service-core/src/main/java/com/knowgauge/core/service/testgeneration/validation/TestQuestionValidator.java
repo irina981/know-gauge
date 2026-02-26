@@ -13,7 +13,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.model.ChunkEmbedding;
@@ -60,6 +59,11 @@ public class TestQuestionValidator {
 	private final boolean requireExplanation;
 	private final boolean requireGrounding;
 
+	public enum ValidationStrategy {
+		NORMALIZE_FIELDS, STRUCTURE, GROUNDING, BUNDLED_OPTIONS, COUNT_REVEALING, DEDUPE, SHUFFLE_AND_REMAP,
+		POST_SHUFFLE_SANITY, MULTI_CORRECT_QUOTA
+	}
+
 	public TestQuestionValidator() {
 		this(true, false, false);
 	}
@@ -70,17 +74,34 @@ public class TestQuestionValidator {
 		this.requireGrounding = requireGrounding;
 	}
 
-	/**
-	 * Validates and normalizes questions. I case of test with "multiple-correct"
-	 * answers cardinality, enforces multi-correct quota for this batch.
-	 *
-	 */
+	public static List<ValidationStrategy> preLlmStrategies() {
+		return List.of(ValidationStrategy.NORMALIZE_FIELDS, ValidationStrategy.STRUCTURE, ValidationStrategy.GROUNDING,
+				ValidationStrategy.BUNDLED_OPTIONS, ValidationStrategy.COUNT_REVEALING, ValidationStrategy.DEDUPE);
+	}
+
+	public static List<ValidationStrategy> postLlmStrategies() {
+		return List.of(ValidationStrategy.NORMALIZE_FIELDS, ValidationStrategy.STRUCTURE, ValidationStrategy.GROUNDING,
+				ValidationStrategy.BUNDLED_OPTIONS, ValidationStrategy.COUNT_REVEALING, ValidationStrategy.DEDUPE,
+				ValidationStrategy.SHUFFLE_AND_REMAP, ValidationStrategy.POST_SHUFFLE_SANITY,
+				ValidationStrategy.MULTI_CORRECT_QUOTA);
+	}
+
 	public List<TestQuestion> validateAndNormalize(List<TestQuestion> questions, Test test,
-			List<ChunkEmbedding> embeddings, int generatedCount) {
+			List<ChunkEmbedding> embeddings, int generatedCount, List<ValidationStrategy> strategies) {
 		if (test == null || questions == null || questions.isEmpty()) {
 			log.warn("No questions to validate (null/empty).");
 			return List.of();
 		}
+
+		EnumSet<ValidationStrategy> effectiveStrategies = resolveStrategies(strategies);
+		boolean doNormalize = effectiveStrategies.contains(ValidationStrategy.NORMALIZE_FIELDS);
+		boolean doStructure = effectiveStrategies.contains(ValidationStrategy.STRUCTURE);
+		boolean doGrounding = effectiveStrategies.contains(ValidationStrategy.GROUNDING);
+		boolean doBundled = effectiveStrategies.contains(ValidationStrategy.BUNDLED_OPTIONS);
+		boolean doCountReveal = effectiveStrategies.contains(ValidationStrategy.COUNT_REVEALING);
+		boolean doDedupe = effectiveStrategies.contains(ValidationStrategy.DEDUPE);
+		boolean doShuffle = effectiveStrategies.contains(ValidationStrategy.SHUFFLE_AND_REMAP);
+		boolean doPostShuffle = effectiveStrategies.contains(ValidationStrategy.POST_SHUFFLE_SANITY);
 
 		int limit = (test != null && test.getQuestionCount() != null && test.getQuestionCount() > 0)
 				? test.getQuestionCount()
@@ -96,60 +117,75 @@ public class TestQuestionValidator {
 		for (int i = 0; i < questions.size(); i++) {
 
 			TestQuestion q = questions.get(i);
-
 			if (q == null) {
 				log.warn("Rejected question at index {}: reason='question is null'", i);
 				continue;
 			}
 
-			normalizeFields(q);
+			if (doNormalize) {
+				normalizeFields(q);
+			}
 
 			String qPreview = preview(q.getQuestionText());
 
 			// structure
-			if (!isValidStructure(q, i)) {
-				// isValidStructure logs the reason
-				continue;
+			if (doStructure) {
+				if (!isValidStructure(q, i)) {
+					// isValidStructure logs the reason
+					continue;
+				}
 			}
 
 			// grounding
-			if (!validateGrounding(q, availableChunkIds, i)) {
-				log.warn("Rejected question at index {}: reason='grounding validation failed', question='{}'", i,
-						qPreview);
-				continue;
+			if (doGrounding) {
+				if (!validateGrounding(q, availableChunkIds, i)) {
+					log.warn("Rejected question at index {}: reason='grounding validation failed', question='{}'", i,
+							qPreview);
+					continue;
+				}
 			}
 
 			// mega/bundled options
-			String bundlingReason = bundledReason(q);
-			if (bundlingReason != null) {
-				log.warn("Rejected question at index {}: reason='{}', question='{}'", i, bundlingReason, qPreview);
-				continue;
+			if (doBundled) {
+				String bundlingReason = bundledReason(q);
+				if (bundlingReason != null) {
+					log.warn("Rejected question at index {}: reason='{}', question='{}'", i, bundlingReason, qPreview);
+					continue;
+				}
 			}
 
 			// count-revealing wording for multi-correct
-			if (isCountRevealingAndMultiCorrect(q)) {
-				log.warn(
-						"Rejected question at index {}: reason='count-revealing wording in multi-correct question', question='{}'",
-						i, qPreview);
-				continue;
+			if (doCountReveal) {
+				if (isCountRevealingAndMultiCorrect(q)) {
+					log.warn(
+							"Rejected question at index {}: reason='count-revealing wording in multi-correct question', question='{}'",
+							i, qPreview);
+					continue;
+				}
 			}
 
 			// dedupe (order-independent options)
-			String key = dedupeKeyOrderIndependent(q);
-			if (!seen.add(key)) {
-				log.warn("Rejected question at index {}: reason='duplicate question in batch', question='{}'", i,
-						qPreview);
-				continue;
+			if (doDedupe) {
+				String key = dedupeKeyOrderIndependent(q);
+				if (!seen.add(key)) {
+					log.warn("Rejected question at index {}: reason='duplicate question in batch', question='{}'", i,
+							qPreview);
+					continue;
+				}
 			}
 
 			// shuffle + remap correct options
-			shuffleOptionsAndRemapCorrectOptions(q);
-			normalizeCorrectOptions(q);
+			if (doShuffle) {
+				shuffleOptionsAndRemapCorrectOptions(q);
+				normalizeCorrectOptions(q);
+			}
 
 			// post-shuffle sanity check
-			if (!postShuffleSanity(q, i)) {
-				// postShuffleSanity logs the reason
-				continue;
+			if (doPostShuffle) {
+				if (!postShuffleSanity(q, i)) {
+					// postShuffleSanity logs the reason
+					continue;
+				}
 			}
 
 			q.setQuestionIndex(nextIndex++);
@@ -161,7 +197,8 @@ public class TestQuestionValidator {
 		}
 
 		// Enforce multi-correct quota (optional)
-		if (AnswerCardinality.MULTIPLE_CORRECT.equals(test.getAnswerCardinality())) {
+		if (effectiveStrategies.contains(ValidationStrategy.MULTI_CORRECT_QUOTA)
+				&& AnswerCardinality.MULTIPLE_CORRECT.equals(test.getAnswerCardinality())) {
 			Integer minMultipleCorrectQuestionsCount = test.getMinMultipleCorrectQuestionsCount();
 			if (!enforceMultiCorrectQuota(out, minMultipleCorrectQuestionsCount)) {
 				log.warn(
@@ -172,6 +209,16 @@ public class TestQuestionValidator {
 		}
 
 		return out;
+	}
+
+	private EnumSet<ValidationStrategy> resolveStrategies(List<ValidationStrategy> strategies) {
+		EnumSet<ValidationStrategy> effective = EnumSet.noneOf(ValidationStrategy.class);
+		if (strategies == null || strategies.isEmpty()) {
+			effective.addAll(postLlmStrategies());
+			return effective;
+		}
+		effective.addAll(strategies);
+		return effective;
 	}
 
 	// ---------------- normalization ----------------
@@ -369,48 +416,23 @@ public class TestQuestionValidator {
 	// ---------------- multi-correct quota enforcement ----------------
 
 	/**
-	 * Enforces EXACTLY requiredMultiCorrect multi-correct questions (2–4 correct
-	 * options). If not enough multi-correct exist, return false. If more exist, we
-	 * keep the first requiredMultiCorrect (preserving existing order), and fill the
-	 * rest with single-correct questions.
+	 * Enforces AT LEAST requiredMultiCorrect multi-correct questions (2–4 correct
+	 * options). If not enough multi-correct exist, return false.
 	 */
-	private boolean enforceMultiCorrectQuota(List<TestQuestion> out, int requiredMultiCorrect) {
+	private boolean enforceMultiCorrectQuota(List<TestQuestion> questions, int requiredMultiCorrect) {
 
 		if (requiredMultiCorrect < 0)
 			return true;
-		if (out.isEmpty())
+		if (questions.isEmpty())
 			return requiredMultiCorrect == 0;
 
-		List<TestQuestion> multi = out.stream()
+		List<TestQuestion> multi = questions.stream()
 				.filter(q -> q.getCorrectOptions() != null && q.getCorrectOptions().size() >= 2).toList();
 
 		if (multi.size() < requiredMultiCorrect) {
 			log.warn("Multi-correct quota not met: required={}, found={}", requiredMultiCorrect, multi.size());
 			return false;
 		}
-
-		List<TestQuestion> single = out.stream()
-				.filter(q -> q.getCorrectOptions() != null && q.getCorrectOptions().size() == 1).toList();
-
-		// Keep count stable (= current out size)
-		int total = out.size();
-
-		List<TestQuestion> filtered = new ArrayList<>();
-		filtered.addAll(multi.subList(0, requiredMultiCorrect));
-
-		int remaining = total - filtered.size();
-		if (remaining > 0) {
-			filtered.addAll(single.subList(0, Math.min(remaining, single.size())));
-		}
-
-		// Re-index sequentially based on first index (if any)
-		int baseIndex = filtered.get(0).getQuestionIndex();
-		for (int i = 0; i < filtered.size(); i++) {
-			filtered.get(i).setQuestionIndex(baseIndex + i);
-		}
-
-		out.clear();
-		out.addAll(filtered);
 
 		return true;
 	}

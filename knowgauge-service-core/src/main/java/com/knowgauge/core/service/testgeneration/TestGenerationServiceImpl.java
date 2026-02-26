@@ -1,5 +1,7 @@
 package com.knowgauge.core.service.testgeneration;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,11 +18,13 @@ import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
+import com.knowgauge.core.port.testgeneration.LlmIncorrectOptionsVerificationService;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
 import com.knowgauge.core.service.retrieving.RetrievingService;
 import com.knowgauge.core.service.testgeneration.prompt.TestPromptBuilder;
+import com.knowgauge.core.service.testgeneration.validation.PostLlmFinalValidator;
+import com.knowgauge.core.service.testgeneration.validation.PreLlmPreflightValidator;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
-import com.knowgauge.core.service.testgeneration.validation.TestQuestionValidator;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,7 +36,9 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	private final TestPromptBuilder promptBuilder;
 	private final LlmTestGenerationService llmTestGenerationService;
-	private final TestQuestionValidator testQuestionValidator;
+	private final LlmIncorrectOptionsVerificationService llmIncorrectOptionsVerificationService;
+	private final PostLlmFinalValidator postLlmFinalValidator;
+	private final PreLlmPreflightValidator preLlmPreflightValidator;
 	private final TestDraftValidator testDraftValidator;
 	private final TestGenerationTransactionalServiceImpl tx;
 	private final TestRepository testRepository;
@@ -42,7 +48,9 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final TestGenerationDefaultsProperties defaults;
 
 	public TestGenerationServiceImpl(RetrievingService retrievingService, TestPromptBuilder promptBuilder,
-			LlmTestGenerationService llmTestGenerationService, TestQuestionValidator testQuestionValidator,
+			LlmTestGenerationService llmTestGenerationService,
+			LlmIncorrectOptionsVerificationService llmIncorrectOptionsVerificationService,
+			PreLlmPreflightValidator preLlmPreflightValidator, PostLlmFinalValidator postLlmFinalValidator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
@@ -50,7 +58,9 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		this.retrievingService = retrievingService;
 		this.promptBuilder = promptBuilder;
 		this.llmTestGenerationService = llmTestGenerationService;
-		this.testQuestionValidator = testQuestionValidator;
+		this.llmIncorrectOptionsVerificationService = llmIncorrectOptionsVerificationService;
+		this.preLlmPreflightValidator = preLlmPreflightValidator;
+		this.postLlmFinalValidator = postLlmFinalValidator;
 		this.testDraftValidator = testDraftValidator;
 		this.tx = tx;
 		this.testRepository = testRepository;
@@ -85,46 +95,19 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 		try {
 
-			// 2) Select embeddings based on topis IDs, document IDs, chunk limit, coverage
-			// mode and avoiding repeats
-			List<ChunkEmbedding> embeddings = retrievingService.retrieveTop(tenantId, documentIds,
-					recommendedChunkLimit(test), test.getCoverageMode(), Boolean.TRUE.equals(test.getAvoidRepeats()));
-			if (embeddings == null || embeddings.isEmpty()) {
-				throw new IllegalStateException("No relevant context chunks found (tenantId=" + tenantId + ", topicIds="
-						+ topicIds + ", documentIds=" + documentIds + ").");
-			}
-			log.info("    Test generation {} - Retrieved {} embeddings from vector store", test.getId(),
-					embeddings.size());
+			// 2) Retrieve and load chunks
+			ChunksContext chunksContext = retrieveAndLoadChunks(tenantId, test, documentIds, topicIds);
 
-			List<Long> chunkIds = embeddings.stream().map(ChunkEmbedding::getChunkId).toList();
-			log.info("    Test generation {} - Chunk IDs that will be used for test generation: [{}]", test.getId(),
-					chunkIds);
+			// 3-9) Generate and validate questions in batches
+			List<TestQuestion> allValidatedQuestions = generateAllTestQuestionBatches(tenantId, test,
+					chunksContext.chunks(), chunksContext.embeddings());
 
-			List<DocumentChunk> chunks = documentChunkRepository.findByTenantIdAndIdIn(tenantId, chunkIds);
-			if (chunks == null || chunks.isEmpty()) {
-				throw new IllegalStateException("No chunks could be loaded for retrieved embeddings (tenantId="
-						+ tenantId + ", chunkIds=" + chunkIds.size() + ").");
-			}
+			// 10) Persist all validated questions at once
+			tx.persistTestQuestions(tenantId, test.getId(), allValidatedQuestions, chunksContext.embeddings());
+			log.info("    Test generation {} - Persisted {} validated questions", test.getId(),
+					allValidatedQuestions.size());
 
-			tx.setUsedChunks(tenantId, test.getId(), chunkIds);
-			log.info("    Test generation {} - Used chunks [{}] persisted for test {}", test.getId(), chunkIds,
-					test.getId());
-
-			// 3-6) Generate questions in batches
-			int batchCount = defaults.getQuestionGenerationBatchSize();
-			int totalQuestions = test.getQuestionCount();
-			int generatedCount = 0;
-			int batchIndex = 0;
-
-			while (generatedCount < totalQuestions) {
-				int batchSize = Math.min(batchCount, totalQuestions - generatedCount);
-				int currentBatchGeneratedCount = generateTestQuestionBatch(++batchIndex, tenantId, test, chunks, embeddings, batchSize, generatedCount);
-				generatedCount += currentBatchGeneratedCount;
-				log.info("    Test generation {} - Batch No. {} - Progress: {}/{} questions generated", test.getId(),
-						batchIndex, generatedCount, totalQuestions);
-			}
-
-			// 7) Mark test GENERATED
+			// 11) Mark test GENERATED
 			Test ready = tx.markTestGenerated(tenantId, test.getId());
 			log.info("    Test generation {} - Test marked GENERATED.", test.getId());
 
@@ -142,8 +125,118 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		}
 	}
 
-	private int generateTestQuestionBatch(int batchIndex, Long tenantId, Test test, List<DocumentChunk> chunks,
-			List<ChunkEmbedding> embeddings, int batchSize, int generatedCount) {
+	/**
+	 * Retrieves embeddings and loads corresponding document chunks for test generation.
+	 *
+	 * @param tenantId    the tenant ID
+	 * @param test        the test being generated
+	 * @param documentIds the document IDs to retrieve from
+	 * @param topicIds    the topic IDs for error messages
+	 * @return context containing chunks and embeddings
+	 */
+	private ChunksContext retrieveAndLoadChunks(Long tenantId, Test test, List<Long> documentIds,
+			List<Long> topicIds) {
+		List<ChunkEmbedding> embeddings = retrievingService.retrieveTop(tenantId, documentIds,
+				recommendedChunkLimit(test), test.getCoverageMode(), Boolean.TRUE.equals(test.getAvoidRepeats()));
+		if (embeddings == null || embeddings.isEmpty()) {
+			throw new IllegalStateException("No relevant context chunks found (tenantId=" + tenantId + ", topicIds="
+					+ topicIds + ", documentIds=" + documentIds + ").");
+		}
+		log.info("    Test generation {} - Retrieved {} embeddings from vector store", test.getId(),
+				embeddings.size());
+
+		List<Long> chunkIds = embeddings.stream().map(ChunkEmbedding::getChunkId).toList();
+		log.info("    Test generation {} - Chunk IDs that will be used for test generation: [{}]", test.getId(),
+				chunkIds);
+
+		List<DocumentChunk> chunks = documentChunkRepository.findByTenantIdAndIdIn(tenantId, chunkIds);
+		if (chunks == null || chunks.isEmpty()) {
+			throw new IllegalStateException("No chunks could be loaded for retrieved embeddings (tenantId=" + tenantId
+					+ ", chunkIds=" + chunkIds.size() + ").");
+		}
+
+		tx.setUsedChunks(tenantId, test.getId(), chunkIds);
+		log.info("    Test generation {} - Used chunks [{}] persisted for test {}", test.getId(), chunkIds,
+				test.getId());
+
+		return new ChunksContext(chunks, embeddings);
+	}
+
+	/**
+	 * Generates all question batches for the test with zero-progress tracking.
+	 *
+	 * @param tenantId   the tenant ID
+	 * @param test       the test being generated
+	 * @param chunks     the document chunks for context
+	 * @param embeddings the chunk embeddings
+	 * @return list of all validated questions
+	 */
+	private List<TestQuestion> generateAllTestQuestionBatches(Long tenantId, Test test, List<DocumentChunk> chunks,
+			List<ChunkEmbedding> embeddings) {
+		int batchCount = defaults.getQuestionGenerationBatchSize();
+		int totalQuestions = test.getQuestionCount();
+		int generatedCount = 0;
+		int batchIndex = 0;
+		List<TestQuestion> allValidatedQuestions = new ArrayList<>();
+		int consecutiveZeroProgressBatches = 0;
+		int maxConsecutiveZeroProgress = getMaxConsecutiveZeroProgress();
+
+		while (generatedCount < totalQuestions) {
+			int batchSize = Math.min(batchCount, totalQuestions - generatedCount);
+			List<TestQuestion> batchQuestions = generateTestQuestionBatch(++batchIndex, tenantId, test, chunks,
+					embeddings, batchSize, generatedCount);
+
+			if (batchQuestions.isEmpty()) {
+				consecutiveZeroProgressBatches++;
+				checkZeroProgressThreshold(test, batchIndex, consecutiveZeroProgressBatches, maxConsecutiveZeroProgress,
+						generatedCount, totalQuestions);
+			} else {
+				consecutiveZeroProgressBatches = 0; // Reset on success
+			}
+
+			allValidatedQuestions.addAll(batchQuestions);
+			generatedCount += batchQuestions.size();
+			log.info("    Test generation {} - Batch No. {} - Progress: {}/{} questions generated", test.getId(),
+					batchIndex, generatedCount, totalQuestions);
+		}
+
+		return allValidatedQuestions;
+	}
+
+	/**
+	 * Checks if zero-progress threshold has been exceeded and throws exception if so.
+	 */
+	private void checkZeroProgressThreshold(Test test, int batchIndex, int consecutiveZeroProgressBatches,
+			int maxConsecutiveZeroProgress, int generatedCount, int totalQuestions) {
+		log.warn(
+				"    Test generation {} - Batch No. {} returned 0 valid questions. Consecutive zero-progress batches: {}/{}",
+				test.getId(), batchIndex, consecutiveZeroProgressBatches, maxConsecutiveZeroProgress);
+
+		if (consecutiveZeroProgressBatches >= maxConsecutiveZeroProgress) {
+			throw new IllegalStateException("Test generation failed for test " + test.getId() + ": "
+					+ consecutiveZeroProgressBatches + " consecutive batches returned 0 valid questions. Generated "
+					+ generatedCount + "/" + totalQuestions
+					+ " questions. Check validation rules, LLM prompt, or context quality.");
+		}
+	}
+
+	/**
+	 * Returns the configured max consecutive zero-progress batches limit.
+	 */
+	private int getMaxConsecutiveZeroProgress() {
+		return defaults.getMaxConsecutiveZeroProgressBatches() != null
+				? defaults.getMaxConsecutiveZeroProgressBatches()
+				: 3;
+	}
+
+	/**
+	 * Record to encapsulate chunks and embeddings context.
+	 */
+	private record ChunksContext(List<DocumentChunk> chunks, List<ChunkEmbedding> embeddings) {
+	}
+
+	private List<TestQuestion> generateTestQuestionBatch(int batchIndex, Long tenantId, Test test,
+			List<DocumentChunk> chunks, List<ChunkEmbedding> embeddings, int batchSize, int generatedCount) {
 		int currentBatchSize = batchSize;
 		int maxRetries = batchSize - 1; // Maximum retries equals batch size minus 1 (down to 1 question)
 		int retryCount = 0;
@@ -161,18 +254,23 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 				log.info("    Test generation {} - Batch No. {} - Generated {} questions in batch.", test.getId(),
 						batchIndex, generatedTestQuestions.size());
 
-				// 5) Validate questions
-				List<TestQuestion> validatedTestQuestions = testQuestionValidator.validateAndNormalize(
-						generatedTestQuestions, test, embeddings, generatedCount);
-				log.info("    Test generation {} - Batch No. {} - Validated and normalized {} questions in batch.",
-						test.getId(), batchIndex, generatedTestQuestions.size());
+				// 5-8) Process multi-correct questions if needed
+				List<TestQuestion> questionsForPostValidation = processMultiCorrectQuestions(generatedTestQuestions, test,
+						embeddings, generatedCount, batchIndex);
 
-				// 6) Persist questions
-				tx.persistTestQuestions(tenantId, test.getId(), validatedTestQuestions, embeddings);
-				log.info("    Test generation {} - Batch No. {} - Persisted {} validated questions", test.getId(),
-						batchIndex, validatedTestQuestions.size());
+				// 9) Post-LLM validation (full)
+				List<TestQuestion> validatedTestQuestions = postLlmFinalValidator
+						.validateAndNormalize(questionsForPostValidation, test, embeddings, generatedCount);
+				log.info("    Test generation {} - Batch No. {} - Post-validated and normalized {} questions in batch.",
+						test.getId(), batchIndex, validatedTestQuestions.size());
 
-				return validatedTestQuestions.size();
+				if (validatedTestQuestions.isEmpty()) {
+					log.warn(
+							"    Test generation {} - Batch No. {} - Validation returned 0 questions (generated: {}, pre-validated: {}, post-validated: 0). All questions were filtered out by validation rules.",
+							test.getId(), batchIndex, generatedTestQuestions.size(), questionsForPostValidation.size());
+				}
+
+				return validatedTestQuestions;
 
 			} catch (LlmResponseParsingException ex) {
 				if (ex.getReason() == LlmResponseParsingException.Reason.LENGTH) {
@@ -198,6 +296,82 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		// This should never be reached, but add for completeness
 		throw new IllegalStateException(
 				"Failed to generate batch " + batchIndex + " for test " + test.getId() + " after all retries");
+	}
+
+	/**
+	 * Processes generated questions - for MULTIPLE_CORRECT tests, splits, validates,
+	 * verifies, and merges questions.
+	 *
+	 * @param generatedQuestions the questions generated by LLM
+	 * @param test               the test being generated
+	 * @param embeddings         the chunk embeddings
+	 * @param generatedCount     the count of questions generated so far
+	 * @param batchIndex         the current batch index for logging
+	 * @return questions ready for post-validation
+	 */
+	private List<TestQuestion> processMultiCorrectQuestions(List<TestQuestion> generatedQuestions, Test test,
+			List<ChunkEmbedding> embeddings, int generatedCount, int batchIndex) {
+		if (test.getAnswerCardinality() != AnswerCardinality.MULTIPLE_CORRECT) {
+			return generatedQuestions;
+		}
+
+		// 5) Split questions: multi-correct for preflight validation, single-correct passthrough
+		List<TestQuestion> multiCorrectQuestions = generatedQuestions.stream()
+				.filter(q -> q != null && q.getCorrectOptions() != null && q.getCorrectOptions().size() > 1).toList();
+		List<TestQuestion> singleCorrectQuestions = generatedQuestions.stream()
+				.filter(q -> q == null || q.getCorrectOptions() == null || q.getCorrectOptions().size() <= 1).toList();
+		log.debug("    Test generation {} - Batch No. {} - Split questions: {} multi-correct, {} single-correct",
+				test.getId(), batchIndex, multiCorrectQuestions.size(), singleCorrectQuestions.size());
+
+		// 6) Pre-LLM validation (multi-correct only) to filter unsafe questions before verification
+		List<TestQuestion> preValidatedMultiCorrectQuestions = preLlmPreflightValidator
+				.validateAndNormalize(multiCorrectQuestions, test, embeddings, generatedCount);
+		log.info("    Test generation {} - Batch No. {} - Pre-validated {} multi-correct questions.", test.getId(),
+				batchIndex, preValidatedMultiCorrectQuestions.size());
+
+		// 7) Verify and replace unsafe incorrect options for MULTIPLE_CORRECT questions
+		int replacedCount = llmIncorrectOptionsVerificationService.verifyAndReplaceUnsafeOptions(
+				preValidatedMultiCorrectQuestions, test);
+		if (replacedCount > 0) {
+			log.info("    Test generation {} - Batch No. {} - Verified and replaced {} unsafe incorrect options.",
+					test.getId(), batchIndex, replacedCount);
+		}
+
+		// 8) Merge and shuffle pre-validated multi-correct and passthrough single-correct questions
+		List<TestQuestion> merged = mergeAndShuffleQuestions(preValidatedMultiCorrectQuestions, singleCorrectQuestions,
+				generatedCount);
+		log.debug("    Test generation {} - Batch No. {} - Merged and shuffled {} questions for post-validation",
+				test.getId(), batchIndex, merged.size());
+
+		return merged;
+	}
+
+	/**
+	 * Merges multi-correct and single-correct questions, shuffles them for random
+	 * distribution, and reassigns question indexes sequentially.
+	 *
+	 * @param multiCorrectQuestions  the pre-validated multi-correct questions
+	 * @param singleCorrectQuestions the passthrough single-correct questions
+	 * @param startIndex             the starting index for question numbering
+	 * @return merged and shuffled list with corrected question indexes
+	 */
+	private List<TestQuestion> mergeAndShuffleQuestions(List<TestQuestion> multiCorrectQuestions,
+			List<TestQuestion> singleCorrectQuestions, int startIndex) {
+		List<TestQuestion> merged = new ArrayList<>();
+		merged.addAll(multiCorrectQuestions);
+		merged.addAll(singleCorrectQuestions);
+
+		// Shuffle to ensure random distribution of multi-correct and single-correct
+		// questions
+		Collections.shuffle(merged);
+
+		// Reassign question indexes sequentially after shuffling
+		int nextIndex = startIndex;
+		for (TestQuestion question : merged) {
+			question.setQuestionIndex(nextIndex++);
+		}
+
+		return merged;
 	}
 
 	private Test createBatchTestCopy(Test test, int batchSize) {
@@ -250,8 +424,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		if (questionCount == null || questionCount <= 0 || answerCardinality != AnswerCardinality.MULTIPLE_CORRECT) {
 			return 0;
 		}
-		int percentage = defaults.getMinMultipleCorrectPercentage() != null
-				? defaults.getMinMultipleCorrectPercentage()
+		int percentage = defaults.getMinMultipleCorrectPercentage() != null ? defaults.getMinMultipleCorrectPercentage()
 				: 20;
 		return (int) Math.max(1, Math.ceil(questionCount * percentage / 100.0));
 	}

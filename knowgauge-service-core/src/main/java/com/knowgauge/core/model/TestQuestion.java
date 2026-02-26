@@ -1,10 +1,12 @@
 package com.knowgauge.core.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.knowgauge.core.model.enums.AnswerOption;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -32,7 +34,8 @@ public class TestQuestion extends AuditableObject {
 
 	private String optionD;
 
-	private List<AnswerOption> correctOptions;
+	@Builder.Default
+	private List<AnswerOption> correctOptions = new ArrayList<AnswerOption>();
 
 	private String explanation;
 
