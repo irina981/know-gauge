@@ -31,7 +31,13 @@ knowgauge-service/
 ├── knowgauge-service-rest-contract/                    # API contracts and DTOs
 ├── knowgauge-service-rest-client/                      # Client library for consuming services
 ├── knowgauge-service-rest-api/                         # REST API layer (executable application)
-│   └── src/main/resources/static/                      # Static web content (landing page, logo)
+│   └── src/main/resources/
+│       ├── static/                                     # Static web content (landing page, logo)
+│       ├── resilience4j.properties                     # Resilience4j retry/circuit-breaker config
+│       └── db/
+│           ├── migration/                              # Main DB Flyway migrations
+│           ├── pgvector-migration/                     # Vector DB Flyway migrations
+│           └── dev-migration/                          # Development seed data (repeatable)
 └── knowgauge-service-infra/                            # Infrastructure layer
   ├── knowgauge-service-infra-repository-springdata-jpa/         # Spring Data JPA repository adapter
   ├── knowgauge-service-infra-vectorstore-pgvector/              # PGVector vector store adapter
@@ -126,8 +132,10 @@ docker-compose up
 ```
 
 This will start:
-- PostgreSQL database with pgvector extension
-- KnowGauge service
+- PostgreSQL database (main, port 5432) with pgvector extension
+- PostgreSQL database (vector store, port 5433) with pgvector extension
+- MinIO object storage (API port 9000, console port 9001)
+- KnowGauge service (port 8080, remote debug port 5005)
 
 The application will be available at: http://localhost:8080
 
@@ -156,18 +164,23 @@ java -jar knowgauge-service-rest-api/target/knowgauge-service-rest-api-1.0.0-SNA
 
 The application uses PostgreSQL with pgvector extension and Flyway migrations. The database schema includes:
 
-**Migration V1 (Initial Schema):**
+**Main DB Migration V1** (`db/migration/V1__create_initial_schema.sql`):
 - **topics**: Hierarchical topic structure (supports unlimited depth via parent_id)
 - **documents**: Uploaded documents with metadata and status tracking
 - **document_sections**: Optional document structure for better chunking
 - **document_chunks**: Logical text chunks for grounding
 - **tests**: Generated MCQ tests with reproducibility tracking
 - **test_questions**: Individual questions with multiple-choice answers
+- **test_question_correct_options**: Correct answer mappings per question (supports multiple correct answers)
+- **test_used_chunks**: Tracks which document chunks were used in each test
+- **test_covered_topics**: Topics covered by each generated test
+- **test_covered_documents**: Documents covered by each generated test
 - **attempts**: User test attempts and scoring
-- **attempt_answers**: User answers to questions
+- **attempt_answers**: User answers to questions (correct flag per question)
+- **attempt_answer_chosen_options**: User's chosen answer options (A/B/C/D) per answer
 - **generation_runs**: Audit trail for RAG generation runs
 
-**Migration V2 (pgvector and Embeddings):**
+**Vector DB Migration V1** (`db/pgvector-migration/V1__pgvector_and_embeddings.sql`, applies to the dedicated vector database):
 - **chunk_embeddings**: Vector embeddings storage with pgvector
 - IVFFlat index for similarity search (cosine distance)
 - Indexes on chunk_id and embedding_model for efficient queries
@@ -208,9 +221,11 @@ rest-contract → (independent)
 - Flyway (database migrations)
 - PostgreSQL with pgvector extension
 - Lombok (boilerplate reduction)
+- MapStruct (bean mapping)
+- Resilience4j (retry, circuit breaker, bulkhead)
 - Maven
 - Docker & Docker Compose
 - MinIO (object storage)
 - LLM integration (RAG-based question generation)
-- LangChain4j (OpenAI integration for embeddings and test generation)
+- LangChain4j 1.1.0 (OpenAI integration for embeddings and test generation)
 
