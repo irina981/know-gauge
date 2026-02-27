@@ -223,17 +223,31 @@ rest-contract → (independent)
 
 ## Technology Stack
 
+### Core
 - Java 21
 - Spring Boot 3.2.1
-- Spring Data JPA
-- Flyway (database migrations)
-- PostgreSQL with pgvector extension
-- Lombok 1.18.30 (boilerplate reduction)
-- MapStruct 1.5.5 (DTO mapping)
 - Maven
-- Docker & Docker Compose
-- MinIO (object storage)
-- OpenAPI 3.0 / Swagger UI (API documentation)
+
+### AI & RAG
 - LLM integration (RAG-based question generation)
 - LangChain4j (OpenAI integration for embeddings and test generation)
+- PostgreSQL with pgvector extension
+
+### Persistence
+- Spring Data JPA
+- Flyway (database migrations)
+- PostgreSQL
+
+### Storage
+- MinIO (object storage)
+
+### API & Documentation
+- OpenAPI 3.0 / Swagger UI
+
+### Infrastructure
+- Docker & Docker Compose
+
+### Developer Tooling
+- Lombok 1.18.30 (boilerplate reduction)
+- MapStruct 1.5.5 (DTO mapping)
 
