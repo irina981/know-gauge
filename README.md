@@ -4,7 +4,7 @@
 
 # KnowGauge
 
-KnowGauge is a RAG-based Spring Boot platform for generating intelligent knowledge assessments from documents organized by hierarchical topics.
+KnowGauge is a RAG-powered Spring Boot platform for generating intelligent MCQ assessments from uploaded documents, organized by hierarchical topics.
 
 ## Key Features
 
@@ -12,11 +12,11 @@ KnowGauge is a RAG-based Spring Boot platform for generating intelligent knowled
 - 🧠 **RAG-Powered Generation**: Generate MCQ tests using Retrieval-Augmented Generation
 - 🎯 **Semantic Search**: pgvector-powered similarity search for relevant content retrieval
 - 🔢 **Vector Store**: Dedicated PostgreSQL database with pgvector extension for efficient embedding storage and retrieval
-- 📊 **Comprehensive Domain Model**: Complete entity model covering topics, documents, tests, attempts, and embeddings
+- 📊 **Rich Domain Model**: Complete entity model covering topics, documents, tests, attempts, and embeddings
 - 🔄 **Reproducibility**: Full audit trail for generation runs and test attempts
-- 🎨 **Landing Page**: Static web interface with logo and branding
 - 📦 **Object Storage**: MinIO integration for document storage
 - 🌳 **Hierarchical Topics**: Unlimited depth topic trees for knowledge organization
+- 🎨 **Landing Page**: Static web interface with logo and branding
 
 ## Project Structure
 
