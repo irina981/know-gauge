@@ -1,9 +1,9 @@
 package com.knowgauge.core.model;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.EnumSet;
 
-import com.knowgauge.core.model.enums.AnswerOption;
+import com.knowgauge.core.model.enums.OptionLetter;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,7 +25,10 @@ public class AttemptAnswer extends AuditableObject {
 
 	private Long questionId;
 
-	private List<AnswerOption> chosenOptions;
+	/** Exact question version shown to the user (see ADR001). */
+	private Long questionVersionId;
+
+	private EnumSet<OptionLetter> chosenOptions;
 
 	private Boolean correct;
 

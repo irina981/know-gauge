@@ -16,8 +16,8 @@ import lombok.experimental.SuperBuilder;
 public abstract class AuditableObject extends PersistedObject {
 
 	protected Instant createdAt;
-	protected String createdBy;
+	protected Long createdBy;
 
 	protected Instant updatedAt;
-	protected String updatedBy;
+	protected Long updatedBy;
 }

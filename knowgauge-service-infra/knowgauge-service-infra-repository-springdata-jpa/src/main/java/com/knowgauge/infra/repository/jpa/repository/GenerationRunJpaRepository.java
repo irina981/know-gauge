@@ -1,7 +1,8 @@
 package com.knowgauge.infra.repository.jpa.repository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,5 +11,7 @@ import com.knowgauge.infra.repository.jpa.entity.GenerationRunEntity;
 @Repository
 public interface GenerationRunJpaRepository extends JpaRepository<GenerationRunEntity, Long> {
 
-	Page<GenerationRunEntity> findByTestId(Long testId, Pageable pageable);
+	Optional<GenerationRunEntity> findByTenantIdAndId(Long tenantId, Long id);
+
+	List<GenerationRunEntity> findByTenantIdAndTestIdOrderByIdAsc(Long tenantId, Long testId);
 }

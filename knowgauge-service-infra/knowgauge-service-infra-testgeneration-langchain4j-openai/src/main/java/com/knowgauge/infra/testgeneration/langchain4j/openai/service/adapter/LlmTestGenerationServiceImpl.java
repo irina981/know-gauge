@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
+import com.knowgauge.core.port.testgeneration.LlmGenerationResult;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
+import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.LlmCallMetadataMapper;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiChatModelProperties;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.TestGenerationResponseMapper;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.service.OpenAiClient;
@@ -34,9 +36,11 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 	}
 
 	@Override
-	public List<TestQuestion> generate(String prompt, Test test) {
-		ChatResponse response = openAiClient.callLlm(prompt, test, buildChatModel(test), resolveModelName(test));
-		return responseMapper.map(response, test);
+	public LlmGenerationResult generate(String prompt, Test test) {
+		String model = resolveModelName(test);
+		ChatResponse response = openAiClient.callLlm(prompt, test, buildChatModel(test), model);
+		List<TestQuestion> questions = responseMapper.map(response, test);
+		return new LlmGenerationResult(questions, LlmCallMetadataMapper.from(response, model));
 	}
 
 	protected OpenAiChatModel buildChatModel(Test test) {

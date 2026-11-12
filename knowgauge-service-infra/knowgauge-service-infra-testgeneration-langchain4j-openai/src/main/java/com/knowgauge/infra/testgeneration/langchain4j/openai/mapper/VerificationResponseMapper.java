@@ -10,7 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
-import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.AnswerVerificationDto;
+import com.knowgauge.core.model.TestQuestionOption;
+import com.knowgauge.core.model.enums.OptionLetter;
+import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.OptionVerificationDto;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.QuestionVerificationResultDto;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.VerificationResponseDto;
 
@@ -27,7 +29,7 @@ public class VerificationResponseMapper {
 		this.objectMapper = objectMapper;
 	}
 
-	public int mapAndApplyReplacements(ChatResponse response, List<TestQuestion> questions, Test test) {
+	public int mapAndApplyVerificationResult(ChatResponse response, List<TestQuestion> questions, Test test) {
 
 		String raw = extractRawText(response);
 		if (raw == null || raw.isBlank()) {
@@ -47,7 +49,7 @@ public class VerificationResponseMapper {
 				return 0;
 			}
 
-			return applyReplacements(questions, dto.getResults(), test);
+			return applyVerificationResult(questions, dto.getResults(), test);
 
 		} catch (JsonMappingException e) {
 			throw new LlmResponseParsingException(LlmResponseParsingException.Reason.MAPPING_ERROR,
@@ -58,10 +60,10 @@ public class VerificationResponseMapper {
 		}
 	}
 
-	private int applyReplacements(List<TestQuestion> questions, List<QuestionVerificationResultDto> results,
+	private int applyVerificationResult(List<TestQuestion> questions, List<QuestionVerificationResultDto> results,
 			Test test) {
 
-		int replacedCount = 0;
+		int flaggedCount = 0;
 
 		for (QuestionVerificationResultDto result : results) {
 			Integer questionIndex = result.getQuestionIndex();
@@ -73,72 +75,39 @@ public class VerificationResponseMapper {
 
 			TestQuestion question = questions.get(questionIndex);
 
-			if (result.getEvaluatedAnswers() != null) {
-				for (AnswerVerificationDto evaluatedAnswer : result.getEvaluatedAnswers()) {
-					if (evaluatedAnswer == null || evaluatedAnswer.getVerdict() == null
-							|| evaluatedAnswer.getOption() == null) {
+			if (result.getEvaluatedOptions() != null) {
+				for (OptionVerificationDto evaluatedOption : result.getEvaluatedOptions()) {
+					if (evaluatedOption == null || evaluatedOption.getVerdict() == null
+							|| evaluatedOption.getLetter() == null) {
 						log.warn("Test {} - Invalid evaluated answer in questionIndex = {} in verification response.",
 								test.getId(), questionIndex);
 						continue;
 					}
 
-					String optionKey = evaluatedAnswer.getOption();
-					
-					// Answer is verified as incorrect option -> skipping it
-					if (evaluatedAnswer.getVerdict() == Boolean.FALSE) {
-						log.warn(
-								"Test {} - Incorrect option {} - {} for questionIndex = {} found in verification response, ignorring it.",
-								test.getId(), evaluatedAnswer.getOption(), evaluatedAnswer.getOriginalAnswer(),
-								questionIndex);
+					OptionLetter optionLetter = evaluatedOption.getLetter();
+					TestQuestionOption option = question.getOption(optionLetter);
+					if (option == null) {
+						log.warn("Test {} - Verification referenced missing option {} in questionIndex = {}.",
+								test.getId(), optionLetter, questionIndex);
 						continue;
 					}
 
-					// Answer is verified as correct option (invalid distractor) -> replace it with provided valid distractor
- 					String oldText = getOptionText(question, optionKey);
-					String newText = evaluatedAnswer.getReplacementAnswer();
-					boolean replaced = replaceOption(question, optionKey, newText);
-
-					if (replaced) {
-						replacedCount++;
-						log.info("Test {} - Replaced unsafe option {} in question {}: '{}' -> '{}' (reason: {})",
-								test.getId(), optionKey, questionIndex, oldText, newText,
-								evaluatedAnswer.getExplanation() != null ? evaluatedAnswer.getExplanation() : "N/A");
+					// A distractor the verifier judges TRUE is flagged for review. The answer key
+					// is never changed by verification (ADR001).
+					if (Boolean.TRUE.equals(evaluatedOption.getVerdict()) && !option.isCorrect()
+							&& !option.isFlagged()) {
+						option.flag(evaluatedOption.getReplacementText(), evaluatedOption.getExplanation());
+						log.info("Test {} - Flagged option {} - {} in question: '{}' (reason: {})", test.getId(),
+								optionLetter, option.getText(), questionIndex,
+								evaluatedOption.getExplanation() != null ? evaluatedOption.getExplanation() : "N/A");
+						flaggedCount++;
 					}
+
 				}
 			}
 		}
 
-		return replacedCount;
-	}
-
-	private boolean replaceOption(TestQuestion question, String optionKey, String newText) {
-		switch (optionKey.toUpperCase()) {
-		case "A":
-			question.setOptionA(newText);
-			return true;
-		case "B":
-			question.setOptionB(newText);
-			return true;
-		case "C":
-			question.setOptionC(newText);
-			return true;
-		case "D":
-			question.setOptionD(newText);
-			return true;
-		default:
-			log.warn("Unknown option key: {}", optionKey);
-			return false;
-		}
-	}
-
-	private String getOptionText(TestQuestion question, String optionKey) {
-		return switch (optionKey.toUpperCase()) {
-		case "A" -> question.getOptionA();
-		case "B" -> question.getOptionB();
-		case "C" -> question.getOptionC();
-		case "D" -> question.getOptionD();
-		default -> "?";
-		};
+		return flaggedCount;
 	}
 
 	private String extractRawText(ChatResponse response) {

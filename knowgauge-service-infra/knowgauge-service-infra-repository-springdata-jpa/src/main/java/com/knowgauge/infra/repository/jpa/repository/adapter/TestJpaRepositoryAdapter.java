@@ -78,4 +78,19 @@ public class TestJpaRepositoryAdapter implements TestRepository {
 	public int markFailed(Long tenantId, Long testId, String errorMessage, Instant failedAt) {
 		return jpaRepository.markFailed(tenantId, testId, errorMessage, failedAt);
 	}
+
+	@Override
+	public int updateStatus(Long tenantId, Long testId, TestStatus status) {
+		return jpaRepository.updateStatus(tenantId, testId, status);
+	}
+
+	@Override
+	public List<Long> findUsedChunkIds(Long tenantId, Long testId) {
+		return jpaRepository.findUsedChunkIds(tenantId, testId);
+	}
+
+	@Override
+	public int markRequiresReview(Long tenantId, Long testId, Instant finishedAt) {
+		return jpaRepository.markRequiresReview(tenantId, testId, finishedAt);
+	}
 }

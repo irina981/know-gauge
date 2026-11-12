@@ -14,9 +14,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
-import com.knowgauge.core.model.enums.AnswerOption;
+import com.knowgauge.core.model.TestQuestionOption;
+import com.knowgauge.core.model.enums.OptionLetter;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.TestQuestionDto;
-import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.TestQuestionResponseDto;
+import com.knowgauge.infra.testgeneration.langchain4j.openai.dto.TestResponseDto;
 
 import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,7 @@ public class TestGenerationResponseMapper {
 
 		try {
 
-			TestQuestionResponseDto dto = objectMapper.readValue(json, TestQuestionResponseDto.class);
+			TestResponseDto dto = objectMapper.readValue(json, TestResponseDto.class);
 
 			if (dto == null || dto.getQuestions() == null || dto.getQuestions().isEmpty()) {
 				return Collections.emptyList();
@@ -78,16 +79,21 @@ public class TestGenerationResponseMapper {
 			q.setQuestionText(dto.getQuestion());
 
 			if (dto.getOptions() != null) {
-				q.setOptionA(dto.getOptions().get("A"));
-				q.setOptionB(dto.getOptions().get("B"));
-				q.setOptionC(dto.getOptions().get("C"));
-				q.setOptionD(dto.getOptions().get("D"));
+				List<OptionLetter> correctOptions = parseAnswerOptions(dto);
+
+				for (OptionLetter letter : OptionLetter.values()) {
+					String optionText = dto.getOptions().get(letter.name());
+					if (optionText != null) {
+						TestQuestionOption option = TestQuestionOption.builder().letter(letter).text(optionText)
+								.correct(correctOptions.contains(letter)).build();
+						q.addOption(option);
+					}
+				}
 			}
 
-			q.setCorrectOptions(parseAnswerOptions(dto));
 			q.setExplanation(dto.getExplanation());
 
-			q.setSourceChunkIdsJson(parseChunkIds(dto.getSources()));
+			q.setSourceChunkIds(parseChunkIds(dto.getSources()));
 
 			result.add(q);
 		}
@@ -95,22 +101,21 @@ public class TestGenerationResponseMapper {
 		return result;
 	}
 
-	private List<AnswerOption> parseAnswerOptions(TestQuestionDto dto) {
+	private List<OptionLetter> parseAnswerOptions(TestQuestionDto dto) {
 		if (dto.getCorrectOptions() != null && !dto.getCorrectOptions().isEmpty()) {
 			return dto.getCorrectOptions().stream().map(this::parseAnswerOption).filter(Objects::nonNull).distinct()
 					.toList();
 		}
 
-		AnswerOption fallback = parseAnswerOption(dto.getCorrect());
-		return fallback == null ? Collections.emptyList() : List.of(fallback);
+		return Collections.emptyList();
 	}
 
-	private AnswerOption parseAnswerOption(String option) {
+	private OptionLetter parseAnswerOption(String option) {
 		if (option == null || option.isBlank()) {
 			return null;
 		}
 		try {
-			return AnswerOption.valueOf(option.trim().toUpperCase());
+			return OptionLetter.valueOf(option.trim().toUpperCase());
 		} catch (Exception e) {
 			return null;
 		}

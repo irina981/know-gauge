@@ -33,6 +33,29 @@ public class TestGenerationPromptBuilder {
 	}
 
 	public String buildPrompt(Test test, List<DocumentChunk> chunks) {
+		return buildPrompt(test, chunks, List.of());
+	}
+
+	/**
+	 * Builds the generation prompt. When {@code avoidQuestionTexts} is non-empty
+	 * (regeneration), an instruction listing existing questions to avoid is
+	 * appended.
+	 */
+	public String buildPrompt(Test test, List<DocumentChunk> chunks, List<String> avoidQuestionTexts) {
+		String prompt = renderBasePrompt(test, chunks);
+		if (avoidQuestionTexts == null || avoidQuestionTexts.isEmpty()) {
+			return prompt;
+		}
+		String avoidList = avoidQuestionTexts.stream().filter(t -> t != null && !t.isBlank())
+				.map(t -> "- " + t.trim()).collect(Collectors.joining("\n"));
+		if (avoidList.isEmpty()) {
+			return prompt;
+		}
+		return prompt + "\n\nThe test already contains the questions below. Do NOT repeat or paraphrase any of them;"
+				+ " ask about a different fact from the context:\n" + avoidList;
+	}
+
+	private String renderBasePrompt(Test test, List<DocumentChunk> chunks) {
 		Objects.requireNonNull(test, "Test must not be null.");
 		Objects.requireNonNull(chunks, "Chunks must not be null.");
 
@@ -57,7 +80,11 @@ public class TestGenerationPromptBuilder {
 		return templateRenderer.render(template, vars);
 	}
 
-	private String resolveTemplateId(Test test) {
+	/**
+	 * @return the template id actually used for the test (including the
+	 *         cardinality suffix)
+	 */
+	public String resolveTemplateId(Test test) {
 		// Option A: store on Test as templateId; otherwise default.
 		String templateId = test.getPromptTemplateId();
 		templateId = (templateId == null || templateId.isBlank()) ? defaultTemplateId : templateId.trim();
@@ -82,7 +109,7 @@ public class TestGenerationPromptBuilder {
 		// The goal: “source + text”
 		String source = "";
 		if (e.getTopicId() != null)
-			source += "topicId=" + e.getDocumentId() + " ";
+			source += "topicId=" + e.getTopicId() + " ";
 		if (e.getDocumentId() != null)
 			source += "docId=" + e.getDocumentId() + " ";
 		if (e.getId() != null)

@@ -1,10 +1,10 @@
 package com.knowgauge.core.service.testgeneration.validation;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 
@@ -18,8 +18,8 @@ public class PreLlmPreflightValidator {
 	}
 
 	public List<TestQuestion> validateAndNormalize(List<TestQuestion> questions, Test test,
-			List<ChunkEmbedding> embeddings, int generatedCount) {
-		return validator.validateAndNormalize(questions, test, embeddings, generatedCount,
+			Collection<Long> availableChunkIds, int startIndex) {
+		return validator.validateAndNormalize(questions, test, availableChunkIds, startIndex,
 				TestQuestionValidator.preLlmStrategies());
 	}
 }

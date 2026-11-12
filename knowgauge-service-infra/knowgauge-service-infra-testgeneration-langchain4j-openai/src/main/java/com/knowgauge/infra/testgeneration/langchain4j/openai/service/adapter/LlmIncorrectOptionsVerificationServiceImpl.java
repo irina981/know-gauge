@@ -11,6 +11,8 @@ import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.port.testgeneration.LlmIncorrectOptionsVerificationService;
+import com.knowgauge.core.port.testgeneration.LlmVerificationResult;
+import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.LlmCallMetadataMapper;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiChatModelProperties;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiVerificationModelProperties;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.VerificationResponseMapper;
@@ -46,27 +48,26 @@ public class LlmIncorrectOptionsVerificationServiceImpl implements LlmIncorrectO
 		this.fallbackProperties.setTimeoutSeconds(chatModelProperties.getTimeoutSeconds());
 	}
 
-	public int verifyAndReplaceUnsafeOptions(String prompt, Test test, List<TestQuestion> questions) {
+	public LlmVerificationResult verify(String prompt, Test test, List<TestQuestion> questions) {
 		if (prompt == null || prompt.isBlank()) {
-			log.warn("Test {} - Prompt is empty, verification cannot be done.");
-			return 0;
-		}
-
-		// Only verify for MULTIPLE_CORRECT cardinality
-		if (test.getAnswerCardinality() != AnswerCardinality.MULTIPLE_CORRECT) {
-			return 0;
+			log.warn("Test {} - Prompt is empty, verification cannot be done.", test.getId());
+			return new LlmVerificationResult(0, null, "Verification prompt is empty");
 		}
 
 		if (questions == null || questions.isEmpty()) {
-			return 0;
+			return new LlmVerificationResult(0, null, null);
 		}
 
+		String model = resolveModelName(test);
+		ChatResponse response = null;
 		try {
-			ChatResponse response = openAiClient.callLlm(prompt, test, buildChatModel(test), resolveModelName(test));
-			return responseMapper.mapAndApplyReplacements(response, questions, test);
+			response = openAiClient.callLlm(prompt, test, buildChatModel(test), model);
+			int flagged = responseMapper.mapAndApplyVerificationResult(response, questions, test);
+			return new LlmVerificationResult(flagged, LlmCallMetadataMapper.from(response, model), null);
 		} catch (Exception e) {
 			log.error("Failed to verify incorrect options for test {}: {}", test.getId(), e.getMessage(), e);
-			return 0;
+			return new LlmVerificationResult(0, response != null ? LlmCallMetadataMapper.from(response, model) : null,
+					e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
 		}
 	}
 

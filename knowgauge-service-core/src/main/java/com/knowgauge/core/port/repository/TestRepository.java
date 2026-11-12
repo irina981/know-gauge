@@ -23,4 +23,17 @@ public interface TestRepository {
 	int markGenerated(Long tenantId, Long testId, Instant finishedAt);
 
 	int markFailed(Long tenantId, Long testId, String errorMessage, Instant failedAt);
+	
+	int markRequiresReview(Long tenantId, Long testId, Instant finishedAt);
+
+	/**
+	 * Sets the status without touching generation timestamps (review
+	 * transitions).
+	 */
+	int updateStatus(Long tenantId, Long testId, TestStatus status);
+
+	/**
+	 * @return ids of the chunks retrieved for the test's generation
+	 */
+	List<Long> findUsedChunkIds(Long tenantId, Long testId);
 }

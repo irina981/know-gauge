@@ -1,16 +1,17 @@
 package com.knowgauge.core.port.repository;
 
+import java.util.List;
 import java.util.Optional;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import com.knowgauge.core.model.GenerationRun;
 
 public interface GenerationRunRepository {
 	GenerationRun save(GenerationRun run);
 
-	Optional<GenerationRun> findById(Long id);
+	Optional<GenerationRun> findByTenantIdAndId(Long tenantId, Long id);
 
-	Page<GenerationRun> findByTestId(Long testId, Pageable pageable);
+	/**
+	 * @return runs of the test in chronological order
+	 */
+	List<GenerationRun> findByTenantIdAndTestId(Long tenantId, Long testId);
 }

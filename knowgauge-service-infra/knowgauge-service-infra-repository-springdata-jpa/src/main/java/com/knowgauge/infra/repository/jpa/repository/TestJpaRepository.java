@@ -37,6 +37,17 @@ public interface TestJpaRepository extends JpaRepository<TestEntity, Long> {
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""
 			    update TestEntity t
+			       set t.status = com.knowgauge.core.model.enums.TestStatus.REQUIRES_REVIEW,
+			       t.generationFinishedAt = :finishedAt
+			     where t.tenantId = :tenantId
+			       and t.id = :testId
+			""")
+	int markRequiresReview(@Param("tenantId") Long tenantId, @Param("testId") Long testId,
+			@Param("finishedAt") Instant finishedAt);
+
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("""
+			    update TestEntity t
 			       set t.status = com.knowgauge.core.model.enums.TestStatus.FAILED,
 			           t.generationErrorMessage = :errorMessage,
 			           t.generationFailedAt = :failedAt
@@ -45,5 +56,25 @@ public interface TestJpaRepository extends JpaRepository<TestEntity, Long> {
 			""")
 	int markFailed(@Param("tenantId") Long tenantId, @Param("testId") Long testId,
 			@Param("errorMessage") String errorMessage, @Param("failedAt") Instant failedAt);
+
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("""
+			    update TestEntity t
+			       set t.status = :status
+			     where t.tenantId = :tenantId
+			       and t.id = :testId
+			""")
+	int updateStatus(@Param("tenantId") Long tenantId, @Param("testId") Long testId,
+			@Param("status") TestStatus status);
+
+	@Query(value = """
+			select tuc.chunk_id
+			  from test_used_chunks tuc
+			  join tests t on t.id = tuc.test_id
+			 where t.tenant_id = :tenantId
+			   and t.id = :testId
+			 order by tuc.chunk_id
+			""", nativeQuery = true)
+	List<Long> findUsedChunkIds(@Param("tenantId") Long tenantId, @Param("testId") Long testId);
 
 }

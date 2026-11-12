@@ -2,6 +2,8 @@ package com.knowgauge.infra.testgeneration.langchain4j.openai.dto;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,5 +17,6 @@ import lombok.Setter;
 @Builder
 public class VerificationResponseDto {
 
+	@JsonProperty("results")
 	private List<QuestionVerificationResultDto> results;
 }

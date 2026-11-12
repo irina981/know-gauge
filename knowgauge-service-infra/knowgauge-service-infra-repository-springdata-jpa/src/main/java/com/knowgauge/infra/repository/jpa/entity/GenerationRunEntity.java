@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.hibernate.annotations.Type;
 
+import com.knowgauge.core.model.enums.GenerationRunPurpose;
 import com.knowgauge.core.model.enums.GenerationRunStatus;
 import com.vladmihalcea.hibernate.type.json.JsonType;
 
@@ -27,14 +28,27 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class GenerationRunEntity extends AuditableEntity {
 
+	@Column(name = "tenant_id", nullable = false)
+	private Long tenantId;
+
 	@Column(name = "test_id", nullable = false)
 	private Long testId;
 
-	@Column(nullable = false)
+	@Column(name = "question_id")
+	private Long questionId;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 30)
+	private GenerationRunPurpose purpose;
+
+	@Column(name = "batch_index")
+	private Integer batchIndex;
+
+	@Column(length = 100)
 	private String model;
 
-	@Column(name = "prompt_template_version", nullable = false)
-	private String promptTemplateVersion;
+	@Column(name = "prompt_template_id", length = 100)
+	private String promptTemplateId;
 
 	@Column(name = "retrieved_chunk_ids_json", columnDefinition = "jsonb")
 	@Type(JsonType.class)
@@ -42,6 +56,15 @@ public class GenerationRunEntity extends AuditableEntity {
 
 	@Column(name = "raw_response", columnDefinition = "TEXT")
 	private String rawResponse;
+
+	@Column(name = "input_tokens")
+	private Integer inputTokens;
+
+	@Column(name = "output_tokens")
+	private Integer outputTokens;
+
+	@Column(name = "finish_reason", length = 50)
+	private String finishReason;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)

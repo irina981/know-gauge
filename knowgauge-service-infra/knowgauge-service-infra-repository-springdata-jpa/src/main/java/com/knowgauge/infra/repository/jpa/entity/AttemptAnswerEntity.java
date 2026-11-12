@@ -2,7 +2,7 @@ package com.knowgauge.infra.repository.jpa.entity;
 
 import java.util.List;
 
-import com.knowgauge.core.model.enums.AnswerOption;
+import com.knowgauge.core.model.enums.OptionLetter;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -36,11 +36,14 @@ public class AttemptAnswerEntity extends AuditableEntity {
     @Column(name = "question_id", nullable = false)
     private Long questionId;
 
+    @Column(name = "question_version_id", nullable = false)
+    private Long questionVersionId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "attempt_answer_chosen_options", joinColumns = @JoinColumn(name = "attempt_answer_id"))
     @Column(name = "chosen_option", nullable = false)
     @Enumerated(EnumType.STRING)
-    private List<AnswerOption> chosenOptions;
+    private List<OptionLetter> chosenOptions;
 
     @Column(nullable = false)
     private Boolean correct;

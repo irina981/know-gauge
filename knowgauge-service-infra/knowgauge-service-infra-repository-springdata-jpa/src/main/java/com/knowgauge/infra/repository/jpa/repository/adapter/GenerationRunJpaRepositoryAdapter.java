@@ -1,9 +1,8 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
+import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.GenerationRun;
@@ -29,12 +28,13 @@ public class GenerationRunJpaRepositoryAdapter implements GenerationRunRepositor
 	}
 
 	@Override
-	public Optional<GenerationRun> findById(Long id) {
-		return jpaRepository.findById(id).map(mapper::toDomain);
+	public Optional<GenerationRun> findByTenantIdAndId(Long tenantId, Long id) {
+		return jpaRepository.findByTenantIdAndId(tenantId, id).map(mapper::toDomain);
 	}
 
 	@Override
-	public Page<GenerationRun> findByTestId(Long testId, Pageable pageable) {
-		return jpaRepository.findByTestId(testId, pageable).map(mapper::toDomain);
+	public List<GenerationRun> findByTenantIdAndTestId(Long tenantId, Long testId) {
+		return jpaRepository.findByTenantIdAndTestIdOrderByIdAsc(tenantId, testId).stream().map(mapper::toDomain)
+				.toList();
 	}
 }

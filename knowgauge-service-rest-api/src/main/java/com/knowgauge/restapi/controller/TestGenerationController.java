@@ -96,7 +96,7 @@ public class TestGenerationController {
 	}
 
 	@GetMapping("/{id}/questions")
-	@Operation(summary = "List questions by test id", description = "Returns generated questions for a specific test and current tenant.")
+	@Operation(summary = "List questions by test id", description = "Returns the questions of a test (current version of each) for the current tenant. Questions with status NEEDS_REVIEW have flagged options with suggested fixes.")
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "200", description = "Questions returned", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = TestQuestionDto.class)), examples = {
 					@ExampleObject(name = "questions", value = """
@@ -104,15 +104,22 @@ public class TestGenerationController {
 						  {
 						    "id": 9001,
 						    "testId": 5001,
-						    "questionIndex": 1,
+						    "questionIndex": 0,
+						    "status": "NEEDS_REVIEW",
+						    "currentVersionId": 12001,
+						    "versionNo": 1,
+						    "origin": "GENERATED",
 						    "questionText": "Which Spring Boot annotation marks the main application class?",
-						    "optionA": "@SpringBootApplication",
-						    "optionB": "@EnableAutoConfig",
-						    "optionC": "@BootApp",
-						    "optionD": "@SpringApp",
+						    "options": {
+						      "A": { "letter": "A", "text": "@SpringBootApplication", "correct": true, "flagged": false, "suggestedText": null, "flagReason": null },
+						      "B": { "letter": "B", "text": "@EnableAutoConfiguration", "correct": false, "flagged": true, "suggestedText": "@EnableScheduling", "flagReason": "Also implied by @SpringBootApplication on the main class" },
+						      "C": { "letter": "C", "text": "@BootApp", "correct": false, "flagged": false, "suggestedText": null, "flagReason": null },
+						      "D": { "letter": "D", "text": "@SpringApp", "correct": false, "flagged": false, "suggestedText": null, "flagReason": null }
+						    },
 						    "correctOptions": ["A"],
+						    "flaggedOptions": ["B"],
 						    "explanation": "@SpringBootApplication combines @Configuration, @EnableAutoConfiguration, and @ComponentScan.",
-						    "sourceChunkIdsJson": [10101, 10102]
+						    "sourceChunkIds": [10101, 10102]
 						  }
 						]
 						""")

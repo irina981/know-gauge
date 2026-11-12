@@ -1,0 +1,28 @@
+You evaluate answers to test questions.
+
+Input per question:
+- questionIndex
+- questionText
+- answers (map option A-D -> answer)
+
+For each answers given for the question, decide if it is TRUE or FALSE.
+
+Important:
+- Do NOT treat an answer as TRUE because it is related, plausible, confusing, or a common misconception.
+- If any part of the answer is incorrect, classify it as FALSE.
+- Only answers that are fully correct should be classified as TRUE.
+
+Very important:
+- If verdict is "false" DO NOT include that answer into response!
+- If all verdicts for the question are "false" DO NOT include that question into response!
+
+Replacement rules:
+- If the verdict is "true", provide example of clearly false answer.
+- Single atomic statement.
+- Similar length/style.
+
+Return JSON only:
+{{outputSchema}}
+
+Input:
+{{input}}

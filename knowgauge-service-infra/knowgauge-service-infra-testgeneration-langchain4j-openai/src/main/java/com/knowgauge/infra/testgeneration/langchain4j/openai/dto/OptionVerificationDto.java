@@ -1,5 +1,8 @@
 package com.knowgauge.infra.testgeneration.langchain4j.openai.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.knowgauge.core.model.enums.OptionLetter;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,12 +14,21 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AnswerVerificationDto {
+public class OptionVerificationDto {
 
-	private String option; // "A" | "B" | "C" | "D"
-	private String originalAnswer;
+	@JsonProperty("option")
+	private OptionLetter letter; // "A" | "B" | "C" | "D"
+	
+	@JsonProperty("originalAnswer")
+	private String originalText;
+	
+	@JsonProperty("verdict")
 	private Boolean verdict;
-	private String replacementAnswer;
+	
+	@JsonProperty("replacementAnswer")
+	private String replacementText;
+	
+	@JsonProperty("explanation")
 	private String explanation;
 
 }

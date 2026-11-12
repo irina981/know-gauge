@@ -1,18 +1,9 @@
 package com.knowgauge.infra.repository.jpa.entity;
 
-import java.util.List;
+import com.knowgauge.core.model.enums.QuestionStatus;
 
-import org.hibernate.annotations.Type;
-
-import com.knowgauge.core.model.enums.AnswerOption;
-import com.vladmihalcea.hibernate.type.json.JsonType;
-
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
@@ -22,6 +13,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * Question slot. Content lives in {@link TestQuestionVersionEntity} (ADR001).
+ */
 @Entity
 @Table(name = "test_questions")
 @Getter
@@ -30,6 +24,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class TestQuestionEntity extends AuditableEntity {
+
 	@Column(name = "tenant_id", nullable = false)
 	private Long tenantId;
 
@@ -39,31 +34,10 @@ public class TestQuestionEntity extends AuditableEntity {
 	@Column(name = "question_index", nullable = false)
 	private Integer questionIndex;
 
-	@Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
-	private String questionText;
-
-	@Column(name = "option_a", nullable = false)
-	private String optionA;
-
-	@Column(name = "option_b", nullable = false)
-	private String optionB;
-
-	@Column(name = "option_c", nullable = false)
-	private String optionC;
-
-	@Column(name = "option_d", nullable = false)
-	private String optionD;
-
-	@ElementCollection(fetch = FetchType.EAGER)
-	@CollectionTable(name = "test_question_correct_options", joinColumns = @JoinColumn(name = "question_id"))
-	@Column(name = "correct_option", nullable = false)
 	@Enumerated(EnumType.STRING)
-	private List<AnswerOption> correctOptions;
+	@Column(name = "status", nullable = false, length = 20)
+	private QuestionStatus status;
 
-	@Column(columnDefinition = "TEXT")
-	private String explanation;
-
-	@Column(name = "source_chunk_ids_json", columnDefinition = "jsonb")
-	@Type(JsonType.class)
-	private List<Long> sourceChunkIdsJson;
+	@Column(name = "current_version_id")
+	private Long currentVersionId;
 }

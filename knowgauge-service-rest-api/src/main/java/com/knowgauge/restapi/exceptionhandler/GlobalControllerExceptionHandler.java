@@ -27,6 +27,10 @@ import com.knowgauge.core.exception.EmbeddingRateLimitedException;
 import com.knowgauge.core.exception.EmbeddingUnavailableException;
 import com.knowgauge.core.exception.EmbeddingUnexpectedException;
 import com.knowgauge.core.exception.LlmResponseParsingException;
+import com.knowgauge.core.exception.QuestionValidationException;
+import com.knowgauge.core.exception.RegenerationFailedException;
+import com.knowgauge.core.exception.ResourceNotFoundException;
+import com.knowgauge.core.exception.ReviewConflictException;
 import com.knowgauge.core.exception.StorageAuthException;
 import com.knowgauge.core.exception.StorageBadRequestException;
 import com.knowgauge.core.exception.StorageNotFoundException;
@@ -263,6 +267,37 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 		}
 		HttpErrorInfo responseBody = createHttpErrorInfo(status, request, ex);
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), status, request);
+	}
+
+	// Review exceptions (ADR001)
+	@ExceptionHandler(ResourceNotFoundException.class)
+	public ResponseEntity<Object> handleResourceNotFoundException(WebRequest request, ResourceNotFoundException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.NOT_FOUND, request, ex);
+		log.warn("Resource not found: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
+	}
+
+	@ExceptionHandler(ReviewConflictException.class)
+	public ResponseEntity<Object> handleReviewConflictException(WebRequest request, ReviewConflictException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.CONFLICT, request, ex);
+		log.warn("Review conflict: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.CONFLICT, request);
+	}
+
+	@ExceptionHandler(QuestionValidationException.class)
+	public ResponseEntity<Object> handleQuestionValidationException(WebRequest request,
+			QuestionValidationException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.BAD_REQUEST, request, ex);
+		log.warn("Question validation failed: {}", ex.getReasons());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+	}
+
+	@ExceptionHandler(RegenerationFailedException.class)
+	public ResponseEntity<Object> handleRegenerationFailedException(WebRequest request,
+			RegenerationFailedException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.BAD_GATEWAY, request, ex);
+		log.warn("Regeneration failed: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.BAD_GATEWAY, request);
 	}
 
 	// Document duplicate exceptions

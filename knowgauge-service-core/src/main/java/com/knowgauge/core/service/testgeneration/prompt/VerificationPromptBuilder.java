@@ -16,8 +16,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
-import com.knowgauge.core.model.enums.AnswerCardinality;
-import com.knowgauge.core.model.enums.AnswerOption;
+import com.knowgauge.core.model.TestQuestionOption;
+import com.knowgauge.core.model.enums.OptionLetter;
 import com.knowgauge.core.service.testgeneration.schema.SchemaProvider;
 
 @Component
@@ -37,6 +37,10 @@ public class VerificationPromptBuilder {
 		this.schemaProvider = schemaProvider;
 		this.defaultTemplateId = defaultTemplateId;
 		this.objectMapper = new ObjectMapper();
+	}
+
+	public String getTemplateId() {
+		return defaultTemplateId;
 	}
 
 	public String buildPrompt(List<TestQuestion> questions, Test test) {
@@ -72,10 +76,6 @@ public class VerificationPromptBuilder {
 		public Map<String, String> answers;
 	}
 
-	private String safe(Object v) {
-		return v == null ? "" : String.valueOf(v);
-	}
-
 	private List<QuestionInput> buildInputQuestions(List<TestQuestion> questions) {
 		List<QuestionInput> inputQuestions = new ArrayList<>();
 
@@ -85,10 +85,11 @@ public class VerificationPromptBuilder {
 			input.questionIndex = i;
 			input.questionText = q.getQuestionText();
 			input.answers = new HashMap<>();
-			List<AnswerOption> correctOptions = q.getCorrectOptions();
-			for (AnswerOption option : AnswerOption.values()) {
-				if (!correctOptions.contains(option)) {
-					input.answers.put(option.toString(), getOptionText(q, option));
+			// Only distractors (options not in the answer key) are verified
+			for (OptionLetter letter : OptionLetter.values()) {
+				TestQuestionOption option = q.getOption(letter);
+				if (option != null && !option.isCorrect()) {
+					input.answers.put(letter.toString(), option.getText());
 				}
 			}
 
@@ -96,15 +97,6 @@ public class VerificationPromptBuilder {
 		}
 
 		return inputQuestions;
-	}
-
-	private String getOptionText(TestQuestion q, AnswerOption option) {
-		return switch (option) {
-		case A -> q.getOptionA();
-		case B -> q.getOptionB();
-		case C -> q.getOptionC();
-		case D -> q.getOptionD();
-		};
 	}
 
 }

@@ -12,10 +12,6 @@ Important:
 - If any part of the answer is incorrect, classify it as FALSE.
 - Only answers that are fully correct should be classified as TRUE.
 
-Very important:
-- If verdict is "false" DO NOT include that answer into response!
-- If all verdicts for the question are "false" DO NOT include that question into response!
-
 Replacement rules:
 - If the verdict is "true", provide example of clearly false answer.
 - Single atomic statement.

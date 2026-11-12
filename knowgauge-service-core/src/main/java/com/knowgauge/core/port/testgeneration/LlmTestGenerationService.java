@@ -1,11 +1,17 @@
 package com.knowgauge.core.port.testgeneration;
 
-import java.util.List;
-
 import com.knowgauge.core.model.Test;
-import com.knowgauge.core.model.TestQuestion;
 
 public interface LlmTestGenerationService {
-	List<TestQuestion> generate(String prompt, Test test);
 
+	/**
+	 * Generates draft questions (options and answer key, no flags).
+	 *
+	 * @throws com.knowgauge.core.exception.LlmResponseParsingException when the
+	 *                                                                   response
+	 *                                                                   is cut off
+	 *                                                                   or cannot
+	 *                                                                   be parsed
+	 */
+	LlmGenerationResult generate(String prompt, Test test);
 }

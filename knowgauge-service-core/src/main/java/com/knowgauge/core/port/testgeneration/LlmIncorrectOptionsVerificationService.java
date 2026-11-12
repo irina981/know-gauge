@@ -6,19 +6,21 @@ import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 
 /**
- * Port for LLM-based verification and replacement of unsafe incorrect options
- * in multiple-correct test questions.
+ * Port for LLM-based verification of incorrect options (distractors).
+ *
+ * <p>
+ * The verifier only <em>flags</em> distractors it judges to be true, attaching a
+ * clearly false suggested replacement and a reason. It never changes the answer
+ * key (see ADR001). Verification is best effort: failures are reported in the
+ * result, never thrown.
  */
 public interface LlmIncorrectOptionsVerificationService {
 
 	/**
-	 * Verifies and replaces unsafe incorrect options (distractors) in test questions.
-	 * Only processes questions when the test uses MULTIPLE_CORRECT answer cardinality.
-	 *
-	 * @param questions the test questions to verify
-	 * @param test      the test containing configuration
-	 * @return number of options that were replaced
+	 * @param prompt    rendered verification prompt. Question indexes in it are
+	 *                  positions in {@code questions}
+	 * @param test      test configuration (model overrides in generation params)
+	 * @param questions draft questions, flagged in place
 	 */
-	int verifyAndReplaceUnsafeOptions(String prompt, Test test, List<TestQuestion> questions);
-
+	LlmVerificationResult verify(String prompt, Test test, List<TestQuestion> questions);
 }
