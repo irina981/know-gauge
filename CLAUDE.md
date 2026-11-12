@@ -13,8 +13,8 @@ before changing ingestion, retrieval, test generation or persistence wiring.
 
 ## Tech stack
 
-Java 21 · Spring Boot 3.2.1 · Maven multi-module (no wrapper; use a local `mvn`) · LangChain4j 1.1.0 (OpenAI)
-· PostgreSQL 15 + pgvector · Flyway · MinIO · Resilience4j 2.2 · MapStruct 1.5.5 · Lombok 1.18.30 · springdoc.
+Java 21 · Spring Boot 3.5.16 · Maven multi-module (no wrapper; use a local `mvn`) · LangChain4j 1.1.0 (OpenAI)
+· PostgreSQL 15 + pgvector · Flyway · MinIO · Resilience4j 2.2 · MapStruct 1.5.5 · Lombok 1.18.46 · springdoc.
 
 ## Build & run
 
@@ -33,9 +33,10 @@ Compose files and `.env.example` live in [`local-development/`](local-developmen
   `local-development/.env.example`).
 - Swagger UI: http://localhost:8080/swagger-ui.html · health: `/actuator/health`.
 - Unit tests exist for the core (`knowgauge-service-core/src/test/java`: question model, validator, review
-  services). Run them with `mvn -pl knowgauge-service-core test`. On JDK 23+, add
-  `"-DargLine=-Dnet.bytebuddy.experimental=true"`, because the Mockito/Byte Buddy bundled with Spring Boot 3.2
-  supports only up to Java 22. There are no integration tests yet.
+  services). Run them with `mvn -pl knowgauge-service-core test`. They also run on newer local JDKs (tested
+  on 23). There are no integration tests yet.
+- Versions not managed by Spring Boot are pinned by hand and must follow Boot upgrades: `hibernate.version` in the
+  root `pom.xml` (for `hibernate-vector`), `hypersistence-utils-hibernate-63`, springdoc and `swagger-annotations`.
 - Dev shell is Windows (PowerShell or Git Bash).
 
 ## Module map

@@ -230,7 +230,7 @@ rest-contract → (independent)
 
 ### Core
 - Java 21
-- Spring Boot 3.2.1
+- Spring Boot 3.5.16
 - Maven
 
 ### AI & RAG
@@ -253,6 +253,6 @@ rest-contract → (independent)
 - Docker & Docker Compose
 
 ### Developer Tooling
-- Lombok 1.18.30 (boilerplate reduction)
+- Lombok 1.18.46 (boilerplate reduction)
 - MapStruct 1.5.5 (DTO mapping)
 

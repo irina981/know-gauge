@@ -542,9 +542,9 @@ CREATE EXTENSION vector;
 
 ## Tech Stack
 
-- Spring Boot 3.2.1
+- Spring Boot 3.5.16
 - Spring Data JPA
 - PostgreSQL with pgvector
 - Flyway for migrations
-- Lombok 1.18.30 for boilerplate reduction
+- Lombok 1.18.46 for boilerplate reduction
 - MapStruct 1.5.5 for DTO mapping

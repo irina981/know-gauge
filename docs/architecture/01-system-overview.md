@@ -20,7 +20,7 @@ Planned but not implemented yet: test attempts and scoring, users and tenants, a
 ```mermaid
 flowchart TB
     User([User / API client])
-    KG[KnowGauge Service<br/>Spring Boot 3.2, Java 21]
+    KG[KnowGauge Service<br/>Spring Boot 3.5, Java 21]
     OpenAI[[OpenAI<br/>text-embedding-3-small<br/>gpt-4.1 chat]]
     PG[(knowgauge<br/>PostgreSQL 15)]
     PGV[(knowgauge_vectors<br/>PostgreSQL 15 + pgvector)]
@@ -64,18 +64,18 @@ backing services to report healthy before it starts. See [09](09-configuration-a
 | Concern | Technology |
 |---|---|
 | Language / runtime | Java 21 (Temurin) |
-| Framework | Spring Boot 3.2.1 (Web MVC, Data JPA, Actuator, Validation) |
+| Framework | Spring Boot 3.5.16 (Web MVC, Data JPA, Actuator, Validation) |
 | Build | Maven multi-module reactor (no wrapper committed) |
 | LLM / embeddings | LangChain4j 1.1.0 (`OpenAiChatModel`, `OpenAiEmbeddingModel`, recursive splitter) |
 | PDF parsing | Apache PDFBox 3 (`Loader`, `PDFTextStripper`) |
-| Relational persistence | Hibernate 6 / Spring Data JPA, PostgreSQL 15, `hypersistence` `JsonType` for JSONB |
+| Relational persistence | Hibernate 6.6 / Spring Data JPA, PostgreSQL 15, Hypersistence Utils (`hypersistence-utils-hibernate-63`) `JsonType` for JSONB |
 | Vector store | pgvector (`vector(1536)`, IVFFlat cosine index), Hibernate `SqlTypes.VECTOR` |
-| Schema migrations | Flyway, with two independent Flyway instances (one per database) |
+| Schema migrations | Flyway 11 (with `flyway-database-postgresql`), two independent Flyway instances (one per database) |
 | Object storage | MinIO Java SDK (OkHttp client with explicit timeouts) |
 | Resilience | Resilience4j 2.2 (Retry, CircuitBreaker, Bulkhead annotations) |
 | Mapping | MapStruct 1.5.5 (entity↔domain, domain↔DTO) |
-| Boilerplate | Lombok 1.18.30 (`@SuperBuilder`, `@Getter/@Setter`, `@Slf4j`) |
-| API docs | springdoc-openapi (Swagger UI at `/swagger-ui.html`) |
+| Boilerplate | Lombok 1.18.46 (`@SuperBuilder`, `@Getter/@Setter`, `@Slf4j`) |
+| API docs | springdoc-openapi 2.8 (Swagger UI at `/swagger-ui.html`) |
 | Packaging | Multi-stage Dockerfile (maven:3.9-temurin-21 → temurin:21-jre-alpine) |
 
 ## Quality attributes & design drivers
