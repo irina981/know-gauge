@@ -189,7 +189,7 @@ The application uses PostgreSQL with pgvector extension (main DB) and a separate
 - **attempts**: User test attempts with scoring (status: STARTED, SUBMITTED, SCORED)
 - **attempt_answers**: Individual user answers to questions (linked to the exact question version answered)
 - **attempt_answer_chosen_options**: Multi-select answer choices per question
-- **generation_runs**: One row per LLM call (generation, regeneration, verification) with model, tokens and raw response
+- **generation_runs**: One row per LLM call (generation, regeneration, verification) with model, prompt as sent, request params, tokens and raw response
 
 Review of flagged questions (accept fix / regenerate / manual replace) and the history trail are described in
 [ADR001](docs/adr/ADR001-review-process.md).

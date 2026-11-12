@@ -65,7 +65,7 @@ erDiagram
 | Test | `Test` | Holds the generation config, scope (topic and document IDs), used chunks, status and lifecycle timestamps |
 | Question | `TestQuestion` | A stable **slot** (position, status, pointer to its current version). Content lives in immutable `TestQuestionVersion`s (see [below](#questions-versions-and-review-adr001)) |
 | History | `TestEvent` | Append-only trail of a test: generation, flags, review actions, status changes, with actor and time |
-| Audit | `GenerationRun` | One row per LLM call (generation, regeneration, verification) with model, prompt template, chunks, tokens and raw response |
+| Audit | `GenerationRun` | One row per LLM call (generation, regeneration, verification) with model, prompt template, chunks, prompt as sent, request params, tokens and raw response |
 | Attempt | `Attempt` / `AttemptAnswer` | Model, tables and repository ports exist. No service or endpoint uses them yet. Answers reference the exact question version |
 | Identity | `User`, `Tenant` | Model only (`Tenant` is package-private). No tables |
 

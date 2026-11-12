@@ -1,6 +1,7 @@
 package com.knowgauge.infra.testgeneration.langchain4j.openai.service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
@@ -17,5 +18,15 @@ public interface OpenAiClient {
 	}
 	
 	boolean supportsStructuredOutputResponseFormat(String modelName);
+
+	/** The prompt text {@link #callLlm} actually sends for {@code prompt}. */
+	String effectivePrompt(String prompt);
+
+	/**
+	 * Response-format settings {@link #callLlm} uses for this model: the format
+	 * and, for structured output, the output template the JSON schema is built
+	 * from. For the generation run record.
+	 */
+	Map<String, Object> responseFormatParams(String modelName);
 
 }

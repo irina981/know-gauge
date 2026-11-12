@@ -1,6 +1,7 @@
 package com.knowgauge.infra.testgeneration.langchain4j.openai.service.adapter;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -59,9 +60,10 @@ public class OllamaIncorrectOptionsVerificationServiceImpl implements LlmIncorre
 		}
 
 		String model = resolveModelName(test);
+		String effectivePrompt = prompt + JSON_ONLY_SUFFIX;
+		Map<String, Object> requestParams = requestParams(test);
 		ChatResponse response = null;
 		try {
-			String effectivePrompt = prompt + JSON_ONLY_SUFFIX;
 			log.info("Ollama verification prompt (testId={}, model={}, questions={}):\n{}", test.getId(), model,
 					questions.size(), effectivePrompt);
 			ChatRequest request = ChatRequest.builder().messages(List.of(UserMessage.from(effectivePrompt))).build();
@@ -73,14 +75,28 @@ public class OllamaIncorrectOptionsVerificationServiceImpl implements LlmIncorre
 				log.info("Ollama verification response (testId={}): usage={}", test.getId(), response.tokenUsage());
 			}
 			int flagged = responseMapper.mapAndApplyVerificationResult(response, questions, test);
-			return new LlmVerificationResult(flagged, LlmCallMetadataMapper.from(response, model), null);
+			return new LlmVerificationResult(flagged,
+					LlmCallMetadataMapper.from(response, model, effectivePrompt, requestParams), null);
 		} catch (Exception e) {
 			log.error("Failed to verify incorrect options with Ollama model {} for test {}: {}", model, test.getId(),
 					e.getMessage(), e);
-			return new LlmVerificationResult(0, response != null ? LlmCallMetadataMapper.from(response, model) : null,
+			return new LlmVerificationResult(0,
+					LlmCallMetadataMapper.fromFailure(e, response, model, effectivePrompt, requestParams),
 					"Ollama verification failed (" + properties.getBaseUrl() + "): "
 							+ (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
 		}
+	}
+
+	/** Settings recorded with the verification run. Mirrors {@link #buildChatModel}. */
+	private Map<String, Object> requestParams(Test test) {
+		Map<String, Object> params = new LinkedHashMap<>();
+		params.put("provider", "ollama");
+		params.put("temperature", resolveDouble(test, "verificationTemperature", properties.getTemperature()));
+		params.put("maxOutputTokens",
+				resolveInteger(test, "verificationMaxOutputTokens", properties.getMaxOutputTokens()));
+		params.put("contextLength", properties.getContextLength());
+		params.put("responseFormat", "JSON");
+		return params;
 	}
 
 	private OllamaChatModel buildChatModel(Test test, String model) {

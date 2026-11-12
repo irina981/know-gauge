@@ -1,6 +1,7 @@
 package com.knowgauge.infra.testgeneration.langchain4j.openai.service.adapter;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -61,20 +62,35 @@ public class LlmIncorrectOptionsVerificationServiceImpl implements LlmIncorrectO
 		}
 
 		String model = resolveModelName(test);
+		String sentPrompt = null;
+		Map<String, Object> requestParams = null;
 		ChatResponse response = null;
 		try {
+			sentPrompt = openAiClient.effectivePrompt(prompt);
+			requestParams = requestParams(test, model);
 			log.info("Verification prompt (testId={}, model={}, questions={}):\n{}", test.getId(), model,
 					questions.size(), prompt);
 			response = openAiClient.callLlm(prompt, test, buildChatModel(test), model);
 			log.info("Verification response (testId={}, model={}):\n{}", test.getId(), model,
 					response != null && response.aiMessage() != null ? response.aiMessage().text() : null);
 			int flagged = responseMapper.mapAndApplyVerificationResult(response, questions, test);
-			return new LlmVerificationResult(flagged, LlmCallMetadataMapper.from(response, model), null);
+			return new LlmVerificationResult(flagged,
+					LlmCallMetadataMapper.from(response, model, sentPrompt, requestParams), null);
 		} catch (Exception e) {
 			log.error("Failed to verify incorrect options for test {}: {}", test.getId(), e.getMessage(), e);
-			return new LlmVerificationResult(0, response != null ? LlmCallMetadataMapper.from(response, model) : null,
+			return new LlmVerificationResult(0,
+					LlmCallMetadataMapper.fromFailure(e, response, model, sentPrompt, requestParams),
 					e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
 		}
+	}
+
+	/** Settings recorded with the verification run. Mirrors {@link #buildChatModel}. */
+	private Map<String, Object> requestParams(Test test, String model) {
+		Map<String, Object> params = new LinkedHashMap<>();
+		params.put("temperature", resolveTemperature(test));
+		params.put("maxOutputTokens", resolveMaxOutputTokens(test));
+		params.putAll(openAiClient.responseFormatParams(model));
+		return params;
 	}
 
 	protected OpenAiChatModel buildChatModel(Test test) {

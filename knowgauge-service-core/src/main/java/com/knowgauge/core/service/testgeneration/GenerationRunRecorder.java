@@ -27,8 +27,13 @@ public class GenerationRunRecorder {
 		this.repository = repository;
 	}
 
+	/**
+	 * What core knows about the call. {@code prompt} is the prompt core built; the
+	 * adapter's {@link LlmCallMetadata#prompt()} (what was actually sent) wins
+	 * when present.
+	 */
 	public record RunContext(Test test, Long questionId, GenerationRunPurpose purpose, Integer batchIndex,
-			String promptTemplateId, List<Long> chunkIds) {
+			String promptTemplateId, List<Long> chunkIds, String prompt) {
 	}
 
 	public GenerationRun success(RunContext ctx, LlmCallMetadata call) {
@@ -45,6 +50,8 @@ public class GenerationRunRecorder {
 				.questionId(ctx.questionId()).purpose(ctx.purpose()).batchIndex(ctx.batchIndex())
 				.model(call != null && call.model() != null ? call.model() : test.getGenerationModel())
 				.promptTemplateId(ctx.promptTemplateId()).retrievedChunkIds(ctx.chunkIds())
+				.prompt(call != null && call.prompt() != null ? call.prompt() : ctx.prompt())
+				.requestParams(call != null ? call.requestParams() : null)
 				.rawResponse(call != null ? call.rawResponse() : null)
 				.inputTokens(call != null ? call.inputTokens() : null)
 				.outputTokens(call != null ? call.outputTokens() : null)

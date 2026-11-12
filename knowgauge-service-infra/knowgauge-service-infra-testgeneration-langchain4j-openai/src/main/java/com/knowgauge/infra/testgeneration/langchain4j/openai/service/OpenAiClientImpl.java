@@ -1,6 +1,7 @@
 package com.knowgauge.infra.testgeneration.langchain4j.openai.service;
 
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -13,6 +14,7 @@ import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.service.testgeneration.schema.SchemaProvider;
+import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.LlmCallMetadataMapper;
 
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -50,22 +52,12 @@ public class OpenAiClientImpl implements OpenAiClient {
 			return null;
 		}
 
-		boolean supportsStructuredOutput = supportsStructuredOutputResponseFormat(modelName);
+		String schemaJson = supportsStructuredOutputResponseFormat(modelName) ? requireSchemaJson() : null;
 
-		String effectivePrompt = supportsStructuredOutput ? prompt : enforceJsonOnly(prompt);
-		String schemaJson = null;
-		if (supportsStructuredOutput) {
-			effectivePrompt = enforceJsonOnly(prompt);
-			schemaJson = schemaProvider.getOutputSchemaJson();
-			if (schemaJson == null || schemaJson.isBlank()) {
-				throw new IllegalStateException("MCQ schema JSON must not be empty.");
-			}
-		}
-
-		ChatRequest request = buildRequest(effectivePrompt, schemaJson);
+		ChatRequest request = buildRequest(effectivePrompt(prompt), schemaJson);
 		ChatResponse response = chatModel.chat(request);
 
-		checkFinishReasonForErrors(response, test);
+		checkFinishReasonForErrors(response, test, modelName);
 
 		// Log usage and response metadata
 		if (response != null) {
@@ -75,15 +67,46 @@ public class OpenAiClientImpl implements OpenAiClient {
 		return response;
 	}
 
-	protected void checkFinishReasonForErrors(ChatResponse response, Test test) {
+	@Override
+	public String effectivePrompt(String prompt) {
+		return enforceJsonOnly(prompt);
+	}
+
+	@Override
+	public Map<String, Object> responseFormatParams(String modelName) {
+		Map<String, Object> params = new LinkedHashMap<>();
+		if (!supportsStructuredOutputResponseFormat(modelName)) {
+			params.put("responseFormat", "TEXT");
+			return params;
+		}
+		params.put("responseFormat", "JSON_SCHEMA");
+		String schemaJson = requireSchemaJson();
+		try {
+			params.put("outputTemplate", objectMapper.readValue(schemaJson, Object.class));
+		} catch (Exception e) {
+			params.put("outputTemplate", schemaJson);
+		}
+		return params;
+	}
+
+	private String requireSchemaJson() {
+		String schemaJson = schemaProvider.getOutputSchemaJson();
+		if (schemaJson == null || schemaJson.isBlank()) {
+			throw new IllegalStateException("MCQ schema JSON must not be empty.");
+		}
+		return schemaJson;
+	}
+
+	protected void checkFinishReasonForErrors(ChatResponse response, Test test, String modelName) {
 		if (response != null && response.metadata() != null) {
 			Object finishReasonObj = response.metadata().finishReason();
 			if (finishReasonObj != null) {
 				String finishReason = finishReasonObj.toString().toLowerCase(Locale.ROOT);
 				if ("length".equals(finishReason)) {
+					// Keep the cut-off response so the failed run can be recorded with it
 					throw new LlmResponseParsingException(LlmResponseParsingException.Reason.LENGTH,
 							"LLM response generation stopped due to max output tokens limit (testId=" + test.getId()
-									+ ")");
+									+ ")").withCall(LlmCallMetadataMapper.from(response, modelName));
 				}
 			}
 		}

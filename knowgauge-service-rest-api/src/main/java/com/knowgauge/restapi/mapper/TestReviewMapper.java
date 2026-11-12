@@ -44,7 +44,8 @@ public class TestReviewMapper {
 	public GenerationRunDto toDto(GenerationRun r) {
 		return new GenerationRunDto(r.getId(), r.getTestId(), r.getQuestionId(),
 				r.getPurpose() != null ? r.getPurpose().name() : null, r.getBatchIndex(), r.getModel(),
-				r.getPromptTemplateId(), r.getRetrievedChunkIds(), r.getRawResponse(), r.getInputTokens(),
+				r.getPromptTemplateId(), r.getRetrievedChunkIds(), r.getPrompt(), r.getRequestParams(),
+				r.getRawResponse(), r.getInputTokens(),
 				r.getOutputTokens(), r.getFinishReason(), r.getStatus() != null ? r.getStatus().name() : null,
 				r.getErrorMessage(), r.getCreatedAt());
 	}

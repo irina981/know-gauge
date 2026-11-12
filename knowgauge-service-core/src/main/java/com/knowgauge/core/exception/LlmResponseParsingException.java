@@ -1,5 +1,7 @@
 package com.knowgauge.core.exception;
 
+import com.knowgauge.core.port.testgeneration.LlmCallMetadata;
+
 /**
  * Exception thrown when LLM response cannot be parsed or when response
  * generation was terminated due to constraints (e.g., max tokens).
@@ -47,7 +49,20 @@ public class LlmResponseParsingException extends RuntimeException {
 		this.reason = reason;
 	}
 
+	/** What was sent (and returned, if anything), so the failed call can be recorded. */
+	private transient LlmCallMetadata call;
+
 	public Reason getReason() {
 		return reason;
+	}
+
+	public LlmCallMetadata getCall() {
+		return call;
+	}
+
+	/** Attaches (or replaces) the call metadata. */
+	public LlmResponseParsingException withCall(LlmCallMetadata call) {
+		this.call = call;
+		return this;
 	}
 }

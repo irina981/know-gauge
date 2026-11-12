@@ -1,12 +1,14 @@
 package com.knowgauge.infra.testgeneration.langchain4j.openai.service.adapter;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.port.testgeneration.LlmGenerationResult;
@@ -38,23 +40,44 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 	@Override
 	public LlmGenerationResult generate(String prompt, Test test) {
 		String model = resolveModelName(test);
-		ChatResponse response = openAiClient.callLlm(prompt, test, buildChatModel(test), model);
-		List<TestQuestion> questions = responseMapper.map(response, test);
-		return new LlmGenerationResult(questions, LlmCallMetadataMapper.from(response, model));
+		String sentPrompt = openAiClient.effectivePrompt(prompt);
+		Map<String, Object> requestParams = requestParams(test, model);
+		ChatResponse response = null;
+		try {
+			response = openAiClient.callLlm(prompt, test, buildChatModel(test), model);
+			List<TestQuestion> questions = responseMapper.map(response, test);
+			return new LlmGenerationResult(questions,
+					LlmCallMetadataMapper.from(response, model, sentPrompt, requestParams));
+		} catch (LlmResponseParsingException e) {
+			throw e.withCall(LlmCallMetadataMapper.fromFailure(e, response, model, sentPrompt, requestParams));
+		}
+	}
+
+	/** Settings recorded with the generation run. Mirrors {@link #buildChatModel}. */
+	private Map<String, Object> requestParams(Test test, String model) {
+		Map<String, Object> params = new LinkedHashMap<>();
+		params.put("temperature", resolveTemperature(test));
+		params.put("maxOutputTokens", resolveMaxOutputTokens(test));
+		params.put("strictJsonSchema", openAiClient.supportsStructuredOutputResponseFormat(model));
+		params.putAll(openAiClient.responseFormatParams(model));
+		return params;
+	}
+
+	private Double resolveTemperature(Test test) {
+		Double temperature = resolveOptionalDoubleParam(test, "temperature");
+		return temperature != null ? temperature : chatModelProperties.getTemperature();
+	}
+
+	private Integer resolveMaxOutputTokens(Test test) {
+		Integer maxOutputTokens = resolveOptionalIntParam(test, "maxOutputTokens");
+		return maxOutputTokens != null ? maxOutputTokens : chatModelProperties.getMaxOutputTokens();
 	}
 
 	protected OpenAiChatModel buildChatModel(Test test) {
 		String model = resolveModelName(test);
 
-		Double temperature = resolveOptionalDoubleParam(test, "temperature");
-		if (temperature == null) {
-			temperature = chatModelProperties.getTemperature();
-		}
-
-		Integer maxOutputTokens = resolveOptionalIntParam(test, "maxOutputTokens");
-		if (maxOutputTokens == null) {
-			maxOutputTokens = chatModelProperties.getMaxOutputTokens();
-		}
+		Double temperature = resolveTemperature(test);
+		Integer maxOutputTokens = resolveMaxOutputTokens(test);
 
 		boolean supportsStructuredOutput = openAiClient.supportsStructuredOutputResponseFormat(model);
 

@@ -99,9 +99,9 @@ public class QuestionBatchGenerator {
 			attempt++;
 			Test batchTest = createBatchTestCopy(test, currentSize, req.minMultipleCorrectOverride());
 			String templateId = promptBuilder.resolveTemplateId(batchTest);
-			RunContext genCtx = new RunContext(test, req.questionId(), req.purpose(), req.batchIndex(), templateId,
-					req.chunkIds());
 			String prompt = promptBuilder.buildPrompt(batchTest, req.chunks(), req.avoidQuestionTexts());
+			RunContext genCtx = new RunContext(test, req.questionId(), req.purpose(), req.batchIndex(), templateId,
+					req.chunkIds(), prompt);
 			log.debug("    Test generation {} - Batch No. {} - Prompt for {} questions: {}", test.getId(),
 					req.batchIndex(), currentSize, prompt);
 
@@ -109,7 +109,7 @@ public class QuestionBatchGenerator {
 			try {
 				generation = llmTestGenerationService.generate(prompt, batchTest);
 			} catch (LlmResponseParsingException ex) {
-				runRecorder.failure(genCtx, null, ex.getReason() + ": " + ex.getMessage());
+				runRecorder.failure(genCtx, ex.getCall(), ex.getReason() + ": " + ex.getMessage());
 				if (ex.getReason() == LlmResponseParsingException.Reason.LENGTH && currentSize > 1) {
 					currentSize--;
 					log.warn(
@@ -153,15 +153,16 @@ public class QuestionBatchGenerator {
 		if (questions.isEmpty()) {
 			return;
 		}
-		RunContext ctx = new RunContext(req.test(), req.questionId(), GenerationRunPurpose.VERIFICATION,
-				req.batchIndex(), verificationPromptBuilder.getTemplateId(), req.chunkIds());
+		String prompt = null;
 		LlmVerificationResult result;
 		try {
-			String prompt = verificationPromptBuilder.buildPrompt(questions, batchTest, req.chunks());
+			prompt = verificationPromptBuilder.buildPrompt(questions, batchTest, req.chunks());
 			result = verificationService.verify(prompt, batchTest, questions);
 		} catch (RuntimeException ex) {
 			result = new LlmVerificationResult(0, null, ex.getMessage());
 		}
+		RunContext ctx = new RunContext(req.test(), req.questionId(), GenerationRunPurpose.VERIFICATION,
+				req.batchIndex(), verificationPromptBuilder.getTemplateId(), req.chunkIds(), prompt);
 
 		GenerationRun run = result.succeeded() ? runRecorder.success(ctx, result.call())
 				: runRecorder.failure(ctx, result.call(), result.errorMessage());

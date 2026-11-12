@@ -342,6 +342,8 @@ One row per LLM call made for a test: initial generation batches, regeneration o
 - `model` (String) - AI model used (e.g., gpt-4.1)
 - `promptTemplateId` (String) - Prompt template used
 - `retrievedChunkIds` (JSONB, optional) - Chunk IDs used as context
+- `prompt` (String, optional) - Full prompt text sent to the model, including the adapter's JSON-only suffix
+- `requestParams` (JSONB, optional) - Request settings: temperature, max output tokens, response format, output template
 - `rawResponse` (String, optional) - Raw model output
 - `inputTokens`, `outputTokens` (Integer, optional) - Token usage
 - `finishReason` (String, optional) - Provider finish reason

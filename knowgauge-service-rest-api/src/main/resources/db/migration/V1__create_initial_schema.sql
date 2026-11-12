@@ -219,6 +219,8 @@ CREATE TABLE generation_runs (
     model VARCHAR(100),
     prompt_template_id VARCHAR(100),
     retrieved_chunk_ids_json JSONB,
+    prompt TEXT,
+    request_params_json JSONB,
     raw_response TEXT,
     input_tokens INTEGER,
     output_tokens INTEGER,

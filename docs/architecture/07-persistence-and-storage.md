@@ -68,7 +68,7 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 | `test_question_versions` | FK question (cascade), parent version (set null), generation and verification run (set null). `UNIQUE(question_id, version_no)`, origin CHECK | **Insert-only** content snapshots. `created_by` NULL = system |
 | `test_question_version_options` | FK version (cascade), `UNIQUE(version_id, option_letter)`, letter CHECK | `text`, `correct`, `flagged`, `suggested_text`, `flag_reason`. Insert-only |
 | `test_events` | FK test and question (cascade), event-type CHECK | **Append-only** history: actor, from/to version, comment, `payload_json JSONB` |
-| `generation_runs` | FK test and question (cascade), purpose/status CHECKs | One row per LLM call: model, prompt template, chunks, raw response, tokens, finish reason |
+| `generation_runs` | FK test and question (cascade), purpose/status CHECKs | One row per LLM call: model, prompt template, chunks, prompt as sent, request params, raw response, tokens, finish reason |
 | `test_used_chunks` / `test_covered_topics` / `test_covered_documents` | Composite PKs, cascade FKs | `@ManyToMany` join tables on `TestEntity` |
 | `attempts`, `attempt_answers`, `attempt_answer_chosen_options` | Cascades, CHECKs. `attempt_answers.question_version_id` FK → versions | Not used by any service yet |
 

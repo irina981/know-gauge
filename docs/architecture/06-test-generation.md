@@ -5,8 +5,9 @@ orchestrator is **not** transactional. It persists state through `TestGeneration
 per-batch work (prompt → LLM → validate → verify → validate) lives in `QuestionBatchGenerator`, which is shared
 with single-question **regeneration** during review ([ADR001](../adr/ADR001-review-process.md)).
 
-Every LLM call is written to `generation_runs` by `GenerationRunRecorder`: model, prompt template, chunks, raw
-response, tokens, finish reason and status. Every state change is written to `test_events` by
+Every LLM call is written to `generation_runs` by `GenerationRunRecorder`: model, prompt template, chunks, the
+full prompt as sent, the request settings, raw response, tokens, finish reason and status. The stored prompt and
+settings let you see exactly what was sent even after templates change or chunks are re-ingested. Every state change is written to `test_events` by
 `TestHistoryRecorder`, in the same transaction as the change.
 
 ## End-to-end flow
@@ -173,8 +174,13 @@ flowchart LR
   `kg.testgen.chat-model.openai.structured-output-model-prefixes` (`gpt-4.1,gpt-4o,o1,o3,o4`). Then
   `strictJsonSchema(true)` is set and the `responseFormat` is attached. In every case the prompt gets the suffix
   "Return ONLY a valid JSON …".
-- Token usage and finish reason are logged per call and returned as `LlmCallMetadata` (model, raw response,
-  tokens, finish reason) in `LlmGenerationResult` / `LlmVerificationResult`, so the core can record the run.
+- Token usage and finish reason are logged per call and returned as `LlmCallMetadata` in `LlmGenerationResult` /
+  `LlmVerificationResult`, so the core can record the run. It carries the request side (the prompt with the
+  adapter's JSON-only suffix, and `requestParams`: temperature, max output tokens, response format, the output
+  template behind the JSON schema) and the response side (model, raw response, tokens, finish reason). When
+  generation fails with `LlmResponseParsingException`, the adapter attaches the metadata to the exception
+  (`getCall()`), so a failed run, including a response cut off at max tokens, is recorded with it. When no
+  metadata is available, the recorder falls back to the prompt core built.
 - **Response mapping**: take the text from the first `{` to the last `}`, then deserialize with Jackson. Failures
   become `LlmResponseParsingException(PARSING_ERROR | MAPPING_ERROR)`. Generation DTOs become draft
   `TestQuestion`s whose options carry `text` and `correct` (the answer key). `sources` such as `"chunk12"` become

@@ -49,7 +49,7 @@ at (`currentVersionId` from the question DTO). It returns the question with its 
 | POST | `/unpublish` | `PublishTestInput {comment?}` (body optional) | `200 TestDto` with the status before publishing (`GENERATED` or `REVIEWED`). `409` if the test is not published or attempts exist for it |
 | GET | `/questions/{questionId}/versions` | – | `200 List<TestQuestionVersionDto>`, oldest first |
 | GET | `/events` | `questionId` (optional) | `200 List<TestEventDto>`, the history trail, oldest first |
-| GET | `/generation-runs` | – | `200 List<GenerationRunDto>`: every LLM call with raw response and tokens |
+| GET | `/generation-runs` | – | `200 List<GenerationRunDto>`: every LLM call with prompt, request params, raw response and tokens |
 
 Review actions are allowed while the test is `GENERATED`, `REQUIRES_REVIEW` or `REVIEWED`. A `PUBLISHED` test is
 frozen: every review action returns 409 until it is unpublished (possible only while it has no attempts).

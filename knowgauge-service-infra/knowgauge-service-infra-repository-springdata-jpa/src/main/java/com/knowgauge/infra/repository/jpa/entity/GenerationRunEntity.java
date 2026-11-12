@@ -1,6 +1,7 @@
 package com.knowgauge.infra.repository.jpa.entity;
 
 import java.util.List;
+import java.util.Map;
 
 import org.hibernate.annotations.Type;
 
@@ -53,6 +54,13 @@ public class GenerationRunEntity extends AuditableEntity {
 	@Column(name = "retrieved_chunk_ids_json", columnDefinition = "jsonb")
 	@Type(JsonType.class)
 	private List<Long> retrievedChunkIds;
+
+	@Column(columnDefinition = "TEXT")
+	private String prompt;
+
+	@Column(name = "request_params_json", columnDefinition = "jsonb")
+	@Type(JsonType.class)
+	private Map<String, Object> requestParams;
 
 	@Column(name = "raw_response", columnDefinition = "TEXT")
 	private String rawResponse;
