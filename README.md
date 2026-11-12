@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/6775b4e9-0870-4bda-bebf-df967c2298dc" alt="KnowGauge Logo" width="200"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="knowgauge-service-rest-api/src/main/resources/static/logo-dark.svg">
+    <img src="knowgauge-service-rest-api/src/main/resources/static/logo.svg" alt="KnowGauge" width="320">
+  </picture>
 </p>
 
 # KnowGauge
