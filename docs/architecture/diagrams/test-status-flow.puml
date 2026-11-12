@@ -1,50 +1,83 @@
 @startuml test-status-flow
-title Test status flow (TestStatus)
+title Test status flow (TestStatus), step by step
 
-hide empty description
-skinparam state {
-  BackgroundColor<<frozen>> #DDEBF7
-  BorderColor<<frozen>> #2F5597
-  BackgroundColor<<terminal>> #F8D7DA
-}
+autonumber "<b>0."
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam MinClassWidth 130
+skinparam ParticipantPadding 10
+skinparam NoteTextAlignment center
+skinparam BoxPadding 10
 
-state CREATED : test persisted,\ngeneration running
-state GENERATED : no question needs review
-state REQUIRES_REVIEW : ≥ 1 question NEEDS_REVIEW
-state REVIEWED : every flagged question resolved\nby a review action
-state FAILED <<terminal>> : generation threw
-state PUBLISHED <<frozen>> : content frozen,\nonly status that accepts attempts
+actor "Author" as author
+participant "CREATED" as created
+participant "FAILED" as failed #F8D7DA
+participant "GENERATED" as generated
+participant "REQUIRES_REVIEW" as requiresReview
+participant "REVIEWED" as reviewed
+participant "PUBLISHED" as published #DDEBF7
 
-[*] --> CREATED : POST /api/tests\n(persistTest)
+== 1. Generation ==
 
-CREATED --> GENERATED : generation done,\nno flags
-CREATED --> REQUIRES_REVIEW : generation done,\n≥ 1 option flagged
-CREATED --> FAILED : exception
-FAILED --> [*]
+author -> created : POST /api/tests
 
-REQUIRES_REVIEW --> REVIEWED : last flagged question resolved\n(accept fix / regenerate / manual replace)
-GENERATED --> REQUIRES_REVIEW : regenerated question\ncomes back flagged
-REVIEWED --> REQUIRES_REVIEW : regenerated question\ncomes back flagged
+alt no option flagged
+  created -> generated : generation done
+else ≥ 1 option flagged
+  created -> requiresReview : generation done
+else exception
+  created -> failed : generation threw
+  hnote over failed : end
+end
 
-GENERATED --> PUBLISHED : POST /publish
-REVIEWED --> PUBLISHED : POST /publish
+== 2. Review (allowed in GENERATED, REQUIRES_REVIEW, REVIEWED) ==
 
-PUBLISHED --> GENERATED : POST /unpublish\n[no attempts, was GENERATED]
-PUBLISHED --> REVIEWED : POST /unpublish\n[no attempts, was REVIEWED]
+loop until no question needs review
+  author -> requiresReview : review action
+  alt a question still needs review
+    requiresReview -> requiresReview : stays
+  else last flagged question resolved
+    requiresReview -> reviewed : resolved
+  end
+end
 
-note right of PUBLISHED
-  Review actions return 409.
-  Publish and every review action lock the
-  test row (SELECT … FOR UPDATE) and check
-  the status under the lock.
-  Unpublish restores previousStatus from the
-  latest TEST_PUBLISHED event (fallback REVIEWED).
+alt regenerated question comes back flagged
+  generated -> requiresReview : flagged
+  reviewed -> requiresReview : flagged
+end
+
+note across
+  Every review action locks the test row (SELECT … FOR UPDATE) and checks the status under the lock.
 end note
 
-note bottom of REQUIRES_REVIEW
-  Review actions are allowed in
-  GENERATED, REQUIRES_REVIEW and REVIEWED.
-  Publish is not allowed here (409).
+== 3. Publish: POST /api/tests/{testId}/publish ==
+
+alt status is GENERATED
+  generated -> published : publish
+else status is REVIEWED
+  reviewed -> published : publish
+else status is REQUIRES_REVIEW (or other)
+  author -> requiresReview : publish
+  requiresReview --> author : 409 Conflict
+end
+
+note across
+  PUBLISHED: content frozen, accepts attempts, review actions return 409.
+end note
+
+== 4. Unpublish: POST /api/tests/{testId}/unpublish ==
+
+alt no attempts, was GENERATED
+  published -> generated : unpublish
+else no attempts, was REVIEWED
+  published -> reviewed : unpublish
+else attempts exist
+  published --> author : 409 Conflict
+end
+
+note across
+  Unpublish restores previousStatus from the latest TEST_PUBLISHED event (fallback REVIEWED),
+  so review is possible again (step 2).
 end note
 
 @enduml
