@@ -1,6 +1,8 @@
 # ADR003 - Grounded, Reason-First Distractor Verification
 * Date: Nov 12, 2026
-* Status: [ACCEPTED]
+* Status: [ACCEPTED] (the prompt and output template were reverted to their earlier text by
+  [ADR006](ADR006-restore-original-verification-prompt.md); the sources and answer key in the input, the OpenAI
+  default and the output caps stay)
 * Author: Irina Mijatovic (drafted with Claude Code)
 
 ## Decision
@@ -23,7 +25,8 @@ The distractor verifier now sees what the generator saw and must reason before i
 - Development (now the `local` profile) verifies with OpenAI `gpt-4.1` again; Ollama is an opt-in compose profile. The adapter stays available with
   `kg.testgen.verification.provider=ollama`.
 
-This replaces the `incorrect-options-verification-only-flagged` default from ADR001. That template stays available.
+This replaces the `incorrect-options-verification-only-flagged` default from ADR001. That template stays available
+(deleted later by [ADR006](ADR006-restore-original-verification-prompt.md)).
 
 ## Context
 

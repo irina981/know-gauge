@@ -115,26 +115,24 @@ Templates are plain text files in `knowgauge-service-core/src/main/resources/pro
 | `mcq-default.txt` | `promptTemplateId = mcq-default` and `SINGLE_CORRECT` |
 | `mcq-default-multiple-correct.txt` | `MULTIPLE_CORRECT`: the builder appends the suffix `-multiple-correct` |
 | `mcq-default-multiple-correct-full.txt` | Not selected automatically. A longer variant with evidence requirements, reachable as `promptTemplateId=mcq-default-multiple-correct-full` only for `SINGLE_CORRECT` (otherwise the suffix is appended again) |
-| `incorrect-options-verification.txt` | **Default** verification prompt (`kg.testgen.verification.defaults.prompt-template-id`). Returns a verdict for every distractor, explanation first; the mapper flags only the true ones ([ADR003](../adr/ADR003-grounded-reason-first-verification.md)) |
-| `incorrect-options-verification-only-flagged.txt` | Alternative that returns only distractors judged true. Shorter, but models tend to return an empty result without checking |
-
+| `incorrect-options-verification.txt` | **Default** verification prompt (`kg.testgen.verification.defaults.prompt-template-id`). Decides for each answer given for the question whether it is TRUE or FALSE and returns only the TRUE ones, each with a clearly false replacement ([ADR006](../adr/ADR006-restore-original-verification-prompt.md)) |
 Generation variables: `difficulty`, `questionCount`, `language`, `minMulti`, `model`, `context`, `outputSchema`.
 For regeneration, the builder appends the existing question texts of the test with an instruction not to repeat
 them.
 
-The generator answers **only from the sources**. The verifier judges distractors with the **sources and its own
-knowledge**: facts specific to the sources (numbers, extensions, internal rules) are decided by the sources, and
-general knowledge can also make a distractor correct. `VerificationPromptBuilder` puts the input JSON in `{{input}}`:
+The generator answers **only from the sources**. `VerificationPromptBuilder` puts the input JSON in `{{input}}`:
 `sources` (each chunk the questions cite, once, as `{chunkId, text}`) and `questions`
-(`{questionIndex, questionText, sourceChunkIds, correctAnswers, answers}`). `correctAnswers` is the answer key, given
-as context only; `answers` holds the distractors to judge.
+(`{questionIndex, questionText, sourceChunkIds, correctAnswers, answers}`). `correctAnswers` is the answer key;
+`answers` holds the distractors to judge. The restored verification prompt
+([ADR006](../adr/ADR006-restore-original-verification-prompt.md)) describes only `questionIndex`, `questionText`
+and `answers`; the model still receives the sources and the answer key, without instructions on how to use them.
 The `context` block joins the chunks with `\n\n---\n\n`. Each chunk gets a header
 `[SOURCE: topicId=… docId=… chunkId=…]` so the model can cite chunk IDs.
 
 **Output schemas** are example JSON documents, not JSON Schema:
 
 - `mcq-output-template.json` → `{questions:[{question, options{A..D}, correctOptions[], explanation, sources[]}]}`
-- `verification-output-template.json` → `{results:[{questionIndex, evaluatedAnswers[{option, explanation, verdict, replacementAnswer}]}]}` (explanation before verdict so the model reasons first; no echoed question or answer text)
+- `verification-output-template.json` → `{results:[{questionIndex, questionText, evaluatedAnswers[{option, originalAnswer, verdict, replacementAnswer, explanation}]}]}`
 
 `SchemaProvidersConfig` exposes them as two qualified `SchemaProvider` beans
 (`testGenerationOutputSchemaProvider`, `verificationOutputSchemaProvider`). The schema is used twice: it is

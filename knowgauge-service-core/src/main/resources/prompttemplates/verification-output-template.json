@@ -2,12 +2,14 @@
   "results": [
     {
       "questionIndex": 1,
+      "questionText": "",
       "evaluatedAnswers": [
         {
           "option": "A",
-          "explanation": "",
+          "originalAnswer": "",
           "verdict": true,
-          "replacementAnswer": ""
+          "replacementAnswer": "",
+          "explanation": ""
         }
       ]
     }
