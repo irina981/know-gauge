@@ -14,12 +14,21 @@ A new test status `PUBLISHED` marks a test as ready for distribution.
   can be created.
 - Only `PUBLISHED` tests accept attempts (`TestStatus.acceptsAttempts()`). The attempt service does not exist yet and
   must enforce this when it is added.
-- There is no unpublish. To change a published test, create a new test (a future "clone to draft" action).
+- `POST /api/tests/{testId}/unpublish` (same optional body) returns a published test to the status it had before
+  publishing, `GENERATED` or `REVIEWED`, so it can be reviewed again. It is allowed only while **no attempt** exists
+  for the test (`AttemptRepository.existsByTenantIdAndTestId`), otherwise 409. The restored status is
+  `previousStatus` from the latest `TEST_PUBLISHED` event, falling back to `REVIEWED`. Unpublishing records a
+  `TEST_UNPUBLISHED` event (payload `restoredStatus`).
+- Once attempts exist, a published test cannot change any more. To fix it, create a new test (a future "clone to
+  draft" action).
 
-Publishing and review actions are serialized on the test row: `applyNewVersion` and `publish` both start with
-`SELECT … FOR UPDATE` on the test (`TestRepository.findByTenantIdAndIdForUpdate`) and check the status under that
-lock. `TestReviewServiceImpl` also checks the status before calling the LLM, so a regeneration on a published test
-fails fast.
+Publish, unpublish and review actions are serialized on the test row: `applyNewVersion`, `publish` and `unpublish`
+all start with `SELECT … FOR UPDATE` on the test (`TestRepository.findByTenantIdAndIdForUpdate`) and check the
+status under that lock. `TestReviewServiceImpl` also checks the status before calling the LLM, so a regeneration on a
+published test fails fast. The attempt service, when added, must take the same lock before inserting an attempt, so
+that an unpublish and the first attempt cannot both succeed.
+
+The flow is drawn in [test-status-flow.puml](../architecture/diagrams/test-status-flow.puml).
 
 ## Context
 
@@ -43,7 +52,9 @@ new version just after the test was published. The check before the LLM call is 
 * Adopted because: review code does not depend on attempt tables, and clients read "draft" vs "live" from one field.
 * Adopted because: attempt creation needs a single status check.
 * Adopted despite: a reviewer must publish explicitly before attempts can start.
-* Adopted despite: a published test with a mistake cannot be corrected in place. It must be replaced by a new test.
+* Adopted because: a mistake found before anyone took the test can be fixed in place by unpublishing it.
+* Adopted despite: once attempts exist, a published test with a mistake cannot be corrected in place. It must be
+  replaced by a new test.
 
 ### Option 2: Forbid review actions while an attempt exists
 
@@ -63,4 +74,6 @@ new version just after the test was published. The check before the LLM call is 
 
 ## Supporting Material
 * [ADR001 – Test Review Process and Question History](ADR001-review-process.md)
-* Migration: `knowgauge-service-rest-api/src/main/resources/db/migration/V2__publish_tests.sql`
+* Migrations: `V2__publish_tests.sql`, `V3__unpublish_tests.sql` in
+  `knowgauge-service-rest-api/src/main/resources/db/migration/`
+* Diagram: [test-status-flow.puml](../architecture/diagrams/test-status-flow.puml)

@@ -13,4 +13,9 @@ public interface AttemptRepository {
 	Optional<Attempt> findById(Long id);
 
 	Page<Attempt> findByTestId(Long testId, Pageable pageable);
+
+	/**
+	 * @return whether any attempt (in any status) exists for the test
+	 */
+	boolean existsByTenantIdAndTestId(Long tenantId, Long testId);
 }

@@ -1,0 +1,50 @@
+@startuml test-status-flow
+title Test status flow (TestStatus)
+
+hide empty description
+skinparam state {
+  BackgroundColor<<frozen>> #DDEBF7
+  BorderColor<<frozen>> #2F5597
+  BackgroundColor<<terminal>> #F8D7DA
+}
+
+state CREATED : test persisted,\ngeneration running
+state GENERATED : no question needs review
+state REQUIRES_REVIEW : ≥ 1 question NEEDS_REVIEW
+state REVIEWED : every flagged question resolved\nby a review action
+state FAILED <<terminal>> : generation threw
+state PUBLISHED <<frozen>> : content frozen,\nonly status that accepts attempts
+
+[*] --> CREATED : POST /api/tests\n(persistTest)
+
+CREATED --> GENERATED : generation done,\nno flags
+CREATED --> REQUIRES_REVIEW : generation done,\n≥ 1 option flagged
+CREATED --> FAILED : exception
+FAILED --> [*]
+
+REQUIRES_REVIEW --> REVIEWED : last flagged question resolved\n(accept fix / regenerate / manual replace)
+GENERATED --> REQUIRES_REVIEW : regenerated question\ncomes back flagged
+REVIEWED --> REQUIRES_REVIEW : regenerated question\ncomes back flagged
+
+GENERATED --> PUBLISHED : POST /publish
+REVIEWED --> PUBLISHED : POST /publish
+
+PUBLISHED --> GENERATED : POST /unpublish\n[no attempts, was GENERATED]
+PUBLISHED --> REVIEWED : POST /unpublish\n[no attempts, was REVIEWED]
+
+note right of PUBLISHED
+  Review actions return 409.
+  Publish and every review action lock the
+  test row (SELECT … FOR UPDATE) and check
+  the status under the lock.
+  Unpublish restores previousStatus from the
+  latest TEST_PUBLISHED event (fallback REVIEWED).
+end note
+
+note bottom of REQUIRES_REVIEW
+  Review actions are allowed in
+  GENERATED, REQUIRES_REVIEW and REVIEWED.
+  Publish is not allowed here (409).
+end note
+
+@enduml

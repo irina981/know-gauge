@@ -164,7 +164,8 @@ Represents generated tests with full audit trail and generation lifecycle.
 - `REQUIRES_REVIEW`: Generated content flagged for human review
 - `REVIEWED`: Human review completed
 - `FAILED`: Generation process failed
-- `PUBLISHED`: Frozen and ready for distribution. No review actions; the only status that accepts attempts (ADR005)
+- `PUBLISHED`: Frozen and ready for distribution. No review actions; the only status that accepts attempts. Can be
+  unpublished back to its previous status while no attempt exists (ADR005)
 
 **Relationships (Junction Tables):**
 - Many-to-Many with DocumentChunk via test_used_chunks (source chunks for generation)
@@ -240,6 +241,8 @@ One of the four options (A–D) of a version. Immutable like its version.
 4. 🔍 When no question needs review any more, the test becomes `REVIEWED`.
 5. 📢 The reviewer publishes the test (`POST /api/tests/{id}/publish`, only from `GENERATED` or `REVIEWED`). A
    `PUBLISHED` test can no longer be changed, and only published tests accept attempts (ADR005).
+6. ↩️ While no attempt exists, the reviewer can unpublish it (`POST /api/tests/{id}/unpublish`). The test returns to
+   the status it had before publishing and can be reviewed again.
 
 ### 8.2 TestEvent (History Trail)
 Append-only record of everything that happened to a test and its questions.
@@ -248,7 +251,7 @@ Append-only record of everything that happened to a test and its questions.
 - `id`, `tenantId`, `testId`
 - `questionId` (Long, nullable) - Null for test-level events
 - `eventType` (TestEventType) - `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`,
-  `TEST_FAILED`, `TEST_PUBLISHED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`,
+  `TEST_FAILED`, `TEST_PUBLISHED`, `TEST_UNPUBLISHED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`,
   `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED`
 - `fromVersionId`, `toVersionId` (Long, nullable) - Versions before and after the change
 - `actorUserId` (Long, nullable) - Acting user; NULL = system
@@ -375,7 +378,8 @@ One row per LLM call made for a test: initial generation batches, regeneration o
 - `REQUIRES_REVIEW`: Generated content flagged for human review
 - `REVIEWED`: Human review completed
 - `FAILED`: Generation process failed
-- `PUBLISHED`: Frozen and ready for distribution. No review actions; the only status that accepts attempts (ADR005)
+- `PUBLISHED`: Frozen and ready for distribution. No review actions; the only status that accepts attempts. Can be
+  unpublished back to its previous status while no attempt exists (ADR005)
 
 ### CoverageMode
 - `BALANCED_PER_DOCS`: Distribute questions across documents equally
@@ -406,7 +410,7 @@ One row per LLM call made for a test: initial generation batches, regeneration o
 
 ### TestEventType
 - Test level: `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`, `TEST_FAILED`,
-  `TEST_PUBLISHED`
+  `TEST_PUBLISHED`, `TEST_UNPUBLISHED`
 - Question level: `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`,
   `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED`
 

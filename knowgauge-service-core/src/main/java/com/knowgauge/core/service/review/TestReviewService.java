@@ -44,6 +44,12 @@ public interface TestReviewService {
 	Test publish(Long testId, String comment);
 
 	/**
+	 * Returns a published test to the status it had before publishing, so it can
+	 * be reviewed again (ADR005). Allowed only while no attempt exists for it.
+	 */
+	Test unpublish(Long testId, String comment);
+
+	/**
 	 * @return all versions of the question, oldest first
 	 */
 	List<TestQuestionVersion> getVersions(Long testId, Long questionId);

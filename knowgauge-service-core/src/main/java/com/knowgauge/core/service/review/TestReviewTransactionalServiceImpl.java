@@ -10,12 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.exception.ReviewConflictException;
 import com.knowgauge.core.model.Test;
+import com.knowgauge.core.model.TestEvent;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.TestQuestionVersion;
 import com.knowgauge.core.model.enums.QuestionStatus;
 import com.knowgauge.core.model.enums.TestEventType;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.model.enums.VersionOrigin;
+import com.knowgauge.core.port.repository.AttemptRepository;
+import com.knowgauge.core.port.repository.TestEventRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.service.history.TestHistoryRecorder;
@@ -24,20 +27,27 @@ import com.knowgauge.core.service.history.TestHistoryRecorder;
  * The single write transaction of every review action: insert the new version,
  * switch the slot to it (optimistic check), record events, recompute the test
  * status. A conflict rolls the whole thing back, including the inserted version.
- * Also publishes tests. Both lock the test row first, so a review action and a
- * publish of the same test never interleave.
+ * Also publishes and unpublishes tests. All of them lock the test row first, so
+ * a review action and a (un)publish of the same test never interleave.
  */
 @Service
 public class TestReviewTransactionalServiceImpl {
 
+	/** Restored by unpublish when the publish event has no usable previous status. */
+	static final TestStatus UNPUBLISH_FALLBACK_STATUS = TestStatus.REVIEWED;
+
 	private final TestRepository testRepository;
 	private final TestQuestionRepository questionRepository;
+	private final TestEventRepository eventRepository;
+	private final AttemptRepository attemptRepository;
 	private final TestHistoryRecorder history;
 
 	public TestReviewTransactionalServiceImpl(TestRepository testRepository, TestQuestionRepository questionRepository,
-			TestHistoryRecorder history) {
+			TestEventRepository eventRepository, AttemptRepository attemptRepository, TestHistoryRecorder history) {
 		this.testRepository = testRepository;
 		this.questionRepository = questionRepository;
+		this.eventRepository = eventRepository;
+		this.attemptRepository = attemptRepository;
 		this.history = history;
 	}
 
@@ -111,6 +121,61 @@ public class TestReviewTransactionalServiceImpl {
 				Map.of("previousStatus", current.name(), "questionCount", questions.size()));
 		test.setStatus(TestStatus.PUBLISHED);
 		return test;
+	}
+
+	/**
+	 * Returns a published test to the status it had before publishing
+	 * ({@code GENERATED} or {@code REVIEWED}), so it can be reviewed again
+	 * (ADR005). Allowed only while no attempt exists for the test. An attempt
+	 * service must lock the test row the same way before inserting an attempt, so
+	 * the check cannot race with attempt creation.
+	 */
+	@Transactional
+	public Test unpublish(Long tenantId, Long testId, Long actorUserId, String comment) {
+		Test test = testRepository.findByTenantIdAndIdForUpdate(tenantId, testId)
+				.orElseThrow(() -> new ResourceNotFoundException("Test not found: " + testId));
+		if (test.getStatus() != TestStatus.PUBLISHED) {
+			throw new ReviewConflictException(
+					"Test " + testId + " is not published (status " + test.getStatus() + ").");
+		}
+		if (attemptRepository.existsByTenantIdAndTestId(tenantId, testId)) {
+			throw new ReviewConflictException("Test " + testId
+					+ " has attempts and cannot be unpublished. Create a new test to change its questions.");
+		}
+
+		TestStatus restored = statusBeforePublish(tenantId, testId);
+		testRepository.updateStatus(tenantId, testId, restored);
+		history.testEvent(tenantId, testId, TestEventType.TEST_UNPUBLISHED, actorUserId, comment,
+				Map.of("restoredStatus", restored.name()));
+		test.setStatus(restored);
+		return test;
+	}
+
+	/**
+	 * Reads {@code previousStatus} from the latest {@code TEST_PUBLISHED} event.
+	 * Falls back to {@code REVIEWED} if it is missing or not publishable.
+	 */
+	private TestStatus statusBeforePublish(Long tenantId, Long testId) {
+		List<TestEvent> events = eventRepository.findByTenantIdAndTestId(tenantId, testId);
+		for (int i = events.size() - 1; i >= 0; i--) {
+			TestEvent event = events.get(i);
+			if (event.getEventType() != TestEventType.TEST_PUBLISHED) {
+				continue;
+			}
+			Object previous = event.getPayload() != null ? event.getPayload().get("previousStatus") : null;
+			if (previous != null) {
+				try {
+					TestStatus status = TestStatus.valueOf(previous.toString());
+					if (status.isPublishable()) {
+						return status;
+					}
+				} catch (IllegalArgumentException ignored) {
+					// fall through to the fallback
+				}
+			}
+			break;
+		}
+		return UNPUBLISH_FALLBACK_STATUS;
 	}
 
 	private Test lockReviewableTest(Long tenantId, Long testId) {

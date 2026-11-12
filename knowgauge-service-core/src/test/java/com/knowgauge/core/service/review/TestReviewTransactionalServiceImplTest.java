@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.knowgauge.core.exception.ReviewConflictException;
+import com.knowgauge.core.model.TestEvent;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.TestQuestionVersion;
 import com.knowgauge.core.model.enums.AnswerCardinality;
@@ -26,6 +28,8 @@ import com.knowgauge.core.model.enums.QuestionStatus;
 import com.knowgauge.core.model.enums.TestEventType;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.model.enums.VersionOrigin;
+import com.knowgauge.core.port.repository.AttemptRepository;
+import com.knowgauge.core.port.repository.TestEventRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.service.history.TestHistoryRecorder;
@@ -39,6 +43,8 @@ class TestReviewTransactionalServiceImplTest {
 
 	private TestRepository testRepository;
 	private TestQuestionRepository questionRepository;
+	private TestEventRepository eventRepository;
+	private AttemptRepository attemptRepository;
 	private TestHistoryRecorder history;
 	private TestReviewTransactionalServiceImpl tx;
 
@@ -49,7 +55,10 @@ class TestReviewTransactionalServiceImplTest {
 		testRepository = mock(TestRepository.class);
 		questionRepository = mock(TestQuestionRepository.class);
 		history = mock(TestHistoryRecorder.class);
-		tx = new TestReviewTransactionalServiceImpl(testRepository, questionRepository, history);
+		eventRepository = mock(TestEventRepository.class);
+		attemptRepository = mock(AttemptRepository.class);
+		tx = new TestReviewTransactionalServiceImpl(testRepository, questionRepository, eventRepository,
+				attemptRepository, history);
 
 		TestQuestionVersion v = QuestionFixtures.defaultVersion();
 		v.getOption(OptionLetter.B).flag("ArrayDeque", "r");
@@ -201,5 +210,56 @@ class TestReviewTransactionalServiceImplTest {
 
 		assertThatThrownBy(() -> tx.publish(TENANT, TEST_ID, 42L, null))
 				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("already published");
+	}
+
+	// ---------------- unpublish (ADR005) ----------------
+
+	private void givenPublishEvent(String previousStatus) {
+		TestEvent published = TestEvent.builder().tenantId(TENANT).testId(TEST_ID)
+				.eventType(TestEventType.TEST_PUBLISHED).payload(Map.of("previousStatus", previousStatus)).build();
+		TestEvent created = TestEvent.builder().tenantId(TENANT).testId(TEST_ID)
+				.eventType(TestEventType.TEST_CREATED).build();
+		when(eventRepository.findByTenantIdAndTestId(TENANT, TEST_ID)).thenReturn(List.of(created, published));
+	}
+
+	@Test
+	void unpublishRestoresTheStatusBeforePublishing() {
+		givenLockedTest(TestStatus.PUBLISHED);
+		givenPublishEvent("GENERATED");
+
+		var test = tx.unpublish(TENANT, TEST_ID, 42L, "typo in question 3");
+
+		assertThat(test.getStatus()).isEqualTo(TestStatus.GENERATED);
+		verify(testRepository).updateStatus(TENANT, TEST_ID, TestStatus.GENERATED);
+		verify(history).testEvent(eq(TENANT), eq(TEST_ID), eq(TestEventType.TEST_UNPUBLISHED), eq(42L),
+				eq("typo in question 3"), eq(Map.of("restoredStatus", "GENERATED")));
+	}
+
+	@Test
+	void unpublishFallsBackToReviewedWithoutAUsablePublishEvent() {
+		givenLockedTest(TestStatus.PUBLISHED);
+		givenPublishEvent("REQUIRES_REVIEW");
+
+		assertThat(tx.unpublish(TENANT, TEST_ID, 42L, null).getStatus()).isEqualTo(TestStatus.REVIEWED);
+		verify(testRepository).updateStatus(TENANT, TEST_ID, TestStatus.REVIEWED);
+	}
+
+	@Test
+	void testWithAttemptsCannotBeUnpublished() {
+		givenLockedTest(TestStatus.PUBLISHED);
+		when(attemptRepository.existsByTenantIdAndTestId(TENANT, TEST_ID)).thenReturn(true);
+
+		assertThatThrownBy(() -> tx.unpublish(TENANT, TEST_ID, 42L, null))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("has attempts");
+		verify(testRepository, never()).updateStatus(anyLong(), anyLong(), any());
+		verify(history, never()).testEvent(anyLong(), anyLong(), any(), any(), any(), any());
+	}
+
+	@Test
+	void testThatIsNotPublishedCannotBeUnpublished() {
+		givenLockedTest(TestStatus.REVIEWED);
+
+		assertThatThrownBy(() -> tx.unpublish(TENANT, TEST_ID, 42L, null))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("not published");
 	}
 }

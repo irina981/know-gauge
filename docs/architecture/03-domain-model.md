@@ -82,7 +82,7 @@ erDiagram
 | `OptionLetter` | `A`, `B`, `C`, `D` | Option keys (exactly 4 options) |
 | `QuestionStatus` | `OK`, `NEEDS_REVIEW` | Question slot status, derived from flags on the current version |
 | `VersionOrigin` | `GENERATED`, `REGENERATED`, `FIX_ACCEPTED`, `MANUAL` | How a question version was created |
-| `TestEventType` | `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`, `TEST_FAILED`, `TEST_PUBLISHED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`, `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED` | History trail |
+| `TestEventType` | `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`, `TEST_FAILED`, `TEST_PUBLISHED`, `TEST_UNPUBLISHED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`, `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED` | History trail |
 | `GenerationRunPurpose` | `TEST_GENERATION`, `REGENERATION`, `VERIFICATION` | Why an LLM call was made |
 | `AttemptStatus` | `STARTED`, `SUBMITTED`, `SCORED` | Attempts (not wired) |
 | `GenerationRunStatus` | `SUCCESS`, `FAILED` | Outcome of an LLM call |
@@ -120,12 +120,15 @@ stateDiagram-v2
     REVIEWED --> REQUIRES_REVIEW: a regenerated question comes back flagged
     GENERATED --> PUBLISHED: publish (no question needs review)
     REVIEWED --> PUBLISHED: publish (no question needs review)
+    PUBLISHED --> GENERATED: unpublish (no attempts, was GENERATED)
+    PUBLISHED --> REVIEWED: unpublish (no attempts, was REVIEWED)
 ```
 
-Every transition is also recorded as a `TestEvent` (`TEST_CREATED`, `TEST_GENERATED`, …, `TEST_PUBLISHED`).
+Every transition is also recorded as a `TestEvent` (`TEST_CREATED`, `TEST_GENERATED`, …, `TEST_PUBLISHED`,
+`TEST_UNPUBLISHED`). The same flow as PlantUML: [diagrams/test-status-flow.puml](diagrams/test-status-flow.puml).
 
-`PUBLISHED` is final ([ADR005](../adr/ADR005-publish-tests.md)): no review action can change the test, and only
-published tests accept attempts. `TestStatus.isReviewable()`, `isPublishable()` and `acceptsAttempts()` encode the
+`PUBLISHED` is frozen ([ADR005](../adr/ADR005-publish-tests.md)): no review action can change the test, and only
+published tests accept attempts. It can be unpublished back to its previous status only while no attempt exists. `TestStatus.isReviewable()`, `isPublishable()` and `acceptsAttempts()` encode the
 rules.
 
 ## Questions, versions and review (ADR001)

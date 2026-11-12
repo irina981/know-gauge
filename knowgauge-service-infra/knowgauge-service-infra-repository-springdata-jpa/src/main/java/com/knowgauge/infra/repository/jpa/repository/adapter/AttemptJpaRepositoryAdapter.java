@@ -37,4 +37,9 @@ public class AttemptJpaRepositoryAdapter implements AttemptRepository {
         return jpaRepository.findByTestId(testId, pageable)
                 .map(mapper::toDomain);
     }
+
+    @Override
+    public boolean existsByTenantIdAndTestId(Long tenantId, Long testId) {
+        return jpaRepository.existsByTenantIdAndTestId(tenantId, testId);
+    }
 }

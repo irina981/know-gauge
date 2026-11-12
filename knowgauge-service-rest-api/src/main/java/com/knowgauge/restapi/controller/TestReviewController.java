@@ -100,6 +100,17 @@ public class TestReviewController {
 				.ok(testMapper.toDto(reviewService.publish(testId, input != null ? input.comment() : null)));
 	}
 
+	@PostMapping("/unpublish")
+	@Operation(summary = "Unpublish the test", description = "Returns a published test to the status it had before publishing (GENERATED or REVIEWED), so its questions can be reviewed again. Allowed only while no attempt exists for the test.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Test unpublished; returns the test with its restored status"),
+			@ApiResponse(responseCode = "404", description = "Test not found"),
+			@ApiResponse(responseCode = "409", description = "Test is not published, or attempts exist for it") })
+	public ResponseEntity<TestDto> unpublish(@PathVariable Long testId,
+			@RequestBody(required = false) @Valid PublishTestInput input) {
+		return ResponseEntity
+				.ok(testMapper.toDto(reviewService.unpublish(testId, input != null ? input.comment() : null)));
+	}
+
 	// ---------------- history ----------------
 
 	@GetMapping("/questions/{questionId}/versions")

@@ -215,12 +215,24 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public Test publish(Long testId, String comment) {
-		Long tenantId = executionContext.tenantId();
-		var userId = executionContext.userId();
-		Long actorUserId = userId.isPresent() ? userId.getAsLong() : null;
-		Test published = tx.publish(tenantId, testId, actorUserId, comment);
+		Long actorUserId = actorUserId();
+		Test published = tx.publish(executionContext.tenantId(), testId, actorUserId, comment);
 		log.info("Review: test {} - published by user {}", testId, actorUserId);
 		return published;
+	}
+
+	@Override
+	public Test unpublish(Long testId, String comment) {
+		Long actorUserId = actorUserId();
+		Test unpublished = tx.unpublish(executionContext.tenantId(), testId, actorUserId, comment);
+		log.info("Review: test {} - unpublished by user {} (back to {})", testId, actorUserId,
+				unpublished.getStatus());
+		return unpublished;
+	}
+
+	private Long actorUserId() {
+		var userId = executionContext.userId();
+		return userId.isPresent() ? userId.getAsLong() : null;
 	}
 
 	// ------------------------------------------------------------------

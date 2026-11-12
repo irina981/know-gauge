@@ -5,7 +5,9 @@ package com.knowgauge.core.model.enums;
  * {@code GENERATED}, {@code REQUIRES_REVIEW} or {@code FAILED}; review moves it
  * between {@code GENERATED}/{@code REQUIRES_REVIEW}/{@code REVIEWED}. Publishing
  * (ADR005) freezes the content: a {@code PUBLISHED} test can no longer be
- * changed, and only published tests accept attempts.
+ * changed, and only published tests accept attempts. While no attempt exists,
+ * unpublishing returns it to {@code GENERATED} or {@code REVIEWED}. See
+ * docs/architecture/diagrams/test-status-flow.puml.
  */
 public enum TestStatus {
     CREATED,

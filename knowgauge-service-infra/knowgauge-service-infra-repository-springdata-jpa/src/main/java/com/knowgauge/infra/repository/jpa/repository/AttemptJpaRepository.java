@@ -11,4 +11,6 @@ import com.knowgauge.infra.repository.jpa.entity.AttemptEntity;
 public interface AttemptJpaRepository extends JpaRepository<AttemptEntity, Long> {
 
 	Page<AttemptEntity> findByTestId(Long testId, Pageable pageable);
+
+	boolean existsByTenantIdAndTestId(Long tenantId, Long testId);
 }
