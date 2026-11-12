@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Input used to generate a new test")
 public record TestInput(
+		@Schema(description = "Test name (required, max 200 characters). Clients supply a default when the user leaves it empty", example = "Java Concurrency – Medium (10 questions)", requiredMode = Schema.RequiredMode.REQUIRED) String name,
+		@Schema(description = "Optional free-text description (max 2000 characters)", example = "Practice test for the threads and executors chapters") String description,
 		@Schema(description = "Topics to scope retrieval and generation", example = "[101, 102]") List<Long> topicIds,
 		@Schema(description = "Optional explicit document scope", example = "[2001, 2002]") List<Long> documentIds,
 		@Schema(description = "Desired difficulty", example = "MEDIUM") String difficulty,

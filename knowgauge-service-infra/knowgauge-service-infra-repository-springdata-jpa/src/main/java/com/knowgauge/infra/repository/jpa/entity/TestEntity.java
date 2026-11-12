@@ -41,6 +41,12 @@ public class TestEntity extends AuditableEntity {
 	@Column(name = "tenant_id", nullable = false)
 	private Long tenantId;
 
+	@Column(nullable = false, length = 200)
+	private String name;
+
+	@Column(columnDefinition = "text")
+	private String description;
+
 	// ============================================================
 	// Coverage scope
 	// ============================================================

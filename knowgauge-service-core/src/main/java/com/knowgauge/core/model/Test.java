@@ -32,6 +32,21 @@ public class Test extends AuditableObject {
 	private Long tenantId;
 
 	// ============================================================
+	// Identification
+	// ============================================================
+
+	/**
+	 * Display name. Required: the client supplies a default when the user leaves
+	 * it empty.
+	 */
+	private String name;
+
+	/**
+	 * Optional free-text description.
+	 */
+	private String description;
+
+	// ============================================================
 	// Coverage scope
 	// ============================================================
 

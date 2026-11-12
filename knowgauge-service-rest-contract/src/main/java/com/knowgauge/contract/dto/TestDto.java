@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record TestDto(
 		@Schema(description = "Test identifier", example = "5001") Long id,
 		@Schema(description = "Owning tenant identifier", example = "1") Long tenantId,
+		@Schema(description = "Test name", example = "Java Concurrency – Medium (10 questions)") String name,
+		@Schema(description = "Optional free-text description", example = "Practice test for the threads and executors chapters") String description,
 		@Schema(description = "Topics used for generation", example = "[101, 102]") List<Long> topicIds,
 		@Schema(description = "Documents used for generation", example = "[2001, 2002]") List<Long> documentIds,
 		@Schema(description = "Configured difficulty", example = "MEDIUM") String difficulty,

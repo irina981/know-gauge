@@ -63,7 +63,7 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 | `documents` | FK topic (cascade). `UNIQUE(topic_id, original_file_name)`, `UNIQUE(topic_id, checksum)`, status CHECK | `storage_key`, `version`, `error_message`, `ingested_at` |
 | `document_sections` | FK document (cascade) | Not populated yet |
 | `document_chunks` | FKs document/topic (cascade), section (set null). `UNIQUE(tenant, document, version, ordinal)` | Indexes for (tenant, doc, ver), (tenant, topic), (tenant, checksum) |
-| `tests` | CHECKs on status, difficulty, coverage, cardinality, language, `question_count>0`, lifecycle ordering | `generation_params_json JSONB` |
+| `tests` | `name VARCHAR(200) NOT NULL` (non-blank CHECK). CHECKs on status, difficulty, coverage, cardinality, language, `question_count>0`, lifecycle ordering | `description TEXT` (nullable), `generation_params_json JSONB` |
 | `test_questions` | FK test (cascade), `UNIQUE(test_id, question_index)`, status CHECK (`OK`/`NEEDS_REVIEW`), `current_version_id` FK → versions (set null) | Question **slot** ([ADR001](../adr/ADR001-review-process.md)) |
 | `test_question_versions` | FK question (cascade), parent version (set null), generation and verification run (set null). `UNIQUE(question_id, version_no)`, origin CHECK | **Insert-only** content snapshots. `created_by` NULL = system |
 | `test_question_version_options` | FK version (cascade), `UNIQUE(version_id, option_letter)`, letter CHECK | `text`, `correct`, `flagged`, `suggested_text`, `flag_reason`. Insert-only |

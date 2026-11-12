@@ -58,6 +58,8 @@ frozen: every review action returns 409 until it is unpublished (possible only w
 
 ```json
 {
+  "name": "Java Concurrency – Medium (10 questions)",
+  "description": "Practice test for the threads and executors chapters",
   "topicIds": [2000],
   "documentIds": [1],
   "difficulty": "MEDIUM",
@@ -75,8 +77,10 @@ frozen: every review action returns 409 until it is unpublished (possible only w
 }
 ```
 
-Every field is optional and falls back to `kg.testgen.defaults.*`, but at least one topic or document ID is
-required. Enum fields are strings, parsed case-insensitively by `EnumParser` through `EnumMappingHelper`.
+`name` is required (non-blank after trimming, at most 200 characters). The backend does not invent one: the client
+proposes a meaningful default (for example from the selected topics, difficulty and question count) and lets the
+user edit it. `description` is optional (at most 2000 characters; blank is stored as `null`). Every other field is
+optional and falls back to `kg.testgen.defaults.*`, but at least one topic or document ID is required. Enum fields are strings, parsed case-insensitively by `EnumParser` through `EnumMappingHelper`.
 
 ### `TestQuestionDto`
 

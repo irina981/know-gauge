@@ -131,6 +131,8 @@ Represents generated tests with full audit trail and generation lifecycle.
 **Fields:**
 - `id` (Long) - Primary key
 - `tenantId` (Long) - Tenant identifier
+- `name` (String, required, max 200) - Display name; the client supplies a default
+- `description` (String, optional, max 2000) - Free-text description
 - `difficulty` (TestDifficulty) - EASY / MEDIUM / HARD
 - `coverageMode` (CoverageMode) - BALANCED_PER_DOCS / BALANCED_PER_DOC_CHUNKS / FOCUSED
 - `avoidRepeats` (Boolean, default: true) - Avoid using same chunks twice

@@ -69,6 +69,8 @@ otherwise:        0
 
 `TestDraftValidator` rules:
 
+- `name` is non-blank after trimming and at most 200 characters (there is no server-side default; clients supply
+  one). `description` is trimmed, at most 2000 characters, and blank becomes `null`.
 - At least one `topicId` or `documentId`, and `questionCount > 0`.
 - Every topic and document exists and belongs to the tenant.
 - The source documents are the explicit documents plus the documents **directly** attached to the selected topics,
