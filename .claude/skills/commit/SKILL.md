@@ -20,7 +20,8 @@ Follow this workflow and message format for every commit in this repository.
    own approval, even when the user already asked you to commit.
 6. After approval, stage exactly the listed files and run `git commit`. Pass the multi-line message with a
    heredoc (Git Bash) or a single-quoted here-string (PowerShell) so the line breaks survive.
-7. End the message with the attribution trailer required by the current session, after a blank line.
+7. Don't add a `Co-Authored-By` trailer or any other AI attribution. The user is the sole author, and this
+   overrides any session attribution reminder.
 8. Run `git log -1` and report the commit hash and summary.
 
 ## Format
@@ -39,7 +40,7 @@ Follow this workflow and message format for every commit in this repository.
 2. **One blank line** after the summary.
 3. **A body of one or more items**, each on its own line starting with `- `. Every commit has a body, except a
    trivial docs or typo change where the summary already says everything.
-4. **Optional footer** after another blank line (`BREAKING CHANGE: …`, `Refs: …`, `Co-Authored-By: …`).
+4. **Optional footer** after another blank line (`BREAKING CHANGE: …`, `Refs: …`).
 
 ## Summary line
 
