@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.enums.TestStatus;
@@ -49,6 +50,7 @@ public class TestJpaRepositoryAdapter implements TestRepository {
 	}
 
 	@Override
+	@Transactional // derived delete methods need a transaction
 	public void deleteByTenantIdAndId(Long tenantId, Long id) {
 		jpaRepository.deleteByTenantIdAndId(tenantId, id);
 	}
