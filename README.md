@@ -25,7 +25,7 @@ This is a multi-module Maven project with the following structure:
 ```
 knowgauge-service/
 ├── pom.xml (parent)
-├── docker-compose.yml
+├── local-development/                                  # docker-compose.yml, .env.example, local setup README
 ├── Dockerfile
 ├── DOMAIN_MODEL.md                                     # Complete domain model documentation
 ├── knowgauge-service-core/                             # Core business logic and domain models
@@ -124,8 +124,12 @@ mvn clean package
 The easiest way to run the application with all dependencies:
 
 ```bash
-docker-compose up
+cp local-development/.env.example local-development/.env   # then set OPENAI_API_KEY
+docker compose -f local-development/docker-compose.yml up --build
 ```
+
+See [local-development/README.md](local-development/README.md) for details, including how to start only the
+backing services and run the app from the IDE.
 
 This will start 4 containers:
 - **postgres**: Main PostgreSQL database for storing application domain objects (port 5432)
@@ -172,19 +176,20 @@ The application uses PostgreSQL with pgvector extension (main DB) and a separate
 - **tests**: Generated MCQ tests with reproducibility tracking and generation audit
   - Tracks difficulty (EASY, MEDIUM, HARD), status (CREATED, GENERATED, REQUIRES_REVIEW, REVIEWED, FAILED)
   - Records generation model, parameters, and lifecycle timestamps
-- **test_questions**: Individual questions with text and explanations
-  - One-to-many relationship with test_question_options
-- **test_question_options**: Individual answer options with three-tier override system
-  - Fields: originalText (AI-generated), replacementText (AI suggestion), finalText (user override)
-  - Fields: originalVerdict, verifiedVerdict, finalVerdict (with priority logic)
-  - State tracking: OK, FLAGGED, RESOLVED
+- **test_questions**: Question slots (position, status OK / NEEDS_REVIEW, pointer to the current version)
+- **test_question_versions**: Immutable question content (origin GENERATED, REGENERATED, FIX_ACCEPTED or MANUAL; author; generation and verification run)
+- **test_question_version_options**: Options A–D of a version: text, correct (answer key), and verifier flag with suggested replacement and reason
+- **test_events**: Append-only history trail of each test (generation, flags, review actions, status changes, with actor)
 - **test_used_chunks**: Junction table mapping tests to source document chunks
 - **test_covered_topics**: Junction table mapping tests to covered topics
 - **test_covered_documents**: Junction table mapping tests to covered documents
 - **attempts**: User test attempts with scoring (status: STARTED, SUBMITTED, SCORED)
-- **attempt_answers**: Individual user answers to questions
+- **attempt_answers**: Individual user answers to questions (linked to the exact question version answered)
 - **attempt_answer_chosen_options**: Multi-select answer choices per question
-- **generation_runs**: Audit trail for RAG generation runs (SUCCESS, FAILED)
+- **generation_runs**: One row per LLM call (generation, regeneration, verification) with model, tokens and raw response
+
+Review of flagged questions (accept fix / regenerate / manual replace) and the history trail are described in
+[ADR001](docs/adr/ADR001-review-process.md).
 
 **Vector Database (postgres-vectors):**
 - **chunk_embeddings**: Vector embeddings storage (via pgvector extension)

@@ -170,74 +170,88 @@ Represents generated tests with full audit trail and generation lifecycle.
 - Many-to-Many with Topic via test_covered_topics (topics covered by questions)
 - Many-to-Many with Document via test_covered_documents (documents used as sources)
 
-### 7. TestQuestion (Test Questions)
-Individual questions with multiple-choice options via TestQuestionOption.
+### 7. TestQuestion (Question Slot)
+A stable position in a test. The content lives in immutable versions (see
+[ADR001](docs/adr/ADR001-review-process.md)).
 
 **Fields:**
 - `id` (Long) - Primary key
 - `tenantId` (Long) - Tenant identifier
 - `testId` (Long) - Foreign key to Test
 - `questionIndex` (Integer) - Question order within test (0-based)
-- `questionText` (String) - Question text
-- `explanation` (String, optional) - Explanation for the answer
-- `sourceChunkIdsJson` (JSONB, optional) - JSON array of source chunk IDs for traceability
-- `createdAt`, `updatedAt` (Instant) - Timestamps
-- `createdBy` (Long) - User who created the question
-- `updatedBy` (Long) - User who last updated the question
+- `status` (QuestionStatus) - `OK` or `NEEDS_REVIEW` (derived from the current version's flags)
+- `currentVersionId` (Long) - Foreign key to the current TestQuestionVersion
+- `createdAt`, `updatedAt`, `createdBy`, `updatedBy` - Audit fields
 
 **Constraints:**
-- UNIQUE(testId, questionIndex) - Ensure one question per position per test
+- UNIQUE(testId, questionIndex) - One question per position per test
+- CHECK status IN ('OK', 'NEEDS_REVIEW')
 
 **Relationship:**
-- One-to-Many with TestQuestionOption (4 options per question via OptionLetter.A/B/C/D)
-- Correct answer is determined by which TestQuestionOption has verdict=true
+- One-to-Many with TestQuestionVersion (all versions are kept)
+- Points to exactly one current version
 
-**Guarantees:**
-- 🎯 Deterministic scoring (verdict values are immutable once set)
-- 🎯 Traceability (source chunks recorded)
-- 🎯 No hallucinated answers (options traced back to source)
-
-### 8. TestQuestionOption (Answer Options with Verification Tracking)
-Individual answer options with three-tier text and verdict override capability for quality control.
+### 8. TestQuestionVersion (Immutable Question Content)
+A snapshot of a question's content. It is **insert-only**: a change to a question is a new version.
 
 **Fields:**
 - `id` (Long) - Primary key
 - `tenantId` (Long) - Tenant identifier
 - `questionId` (Long) - Foreign key to TestQuestion
-- `letter` (OptionLetter) - Option letter (A, B, C, or D)
-- `originalText` (String) - Original AI-generated option text
-- `replacementText` (String, optional) - AI-suggested text correction/improvement (from verification)
-- `finalText` (String, optional) - User override text (highest priority for display)
-- `originalVerdict` (Boolean, optional) - AI verdict (true = correct answer)
-- `verifiedVerdict` (Boolean, optional) - LLM verification of the verdict
-- `finalVerdict` (Boolean, optional) - User override verdict (true = correct answer, overrides AI/LLM)
-- `state` (OptionState) - Option state (OK, FLAGGED, or RESOLVED)
-- `createdAt`, `updatedAt` (Instant) - Timestamps
-- `createdBy` (Long) - User who created the option
-- `updatedBy` (Long) - User who last updated the option
+- `versionNo` (Integer) - 1 = as generated, then 2, 3, …
+- `origin` (VersionOrigin) - `GENERATED`, `REGENERATED`, `FIX_ACCEPTED` or `MANUAL`
+- `parentVersionId` (Long, nullable) - Version this one replaced
+- `generationRunId` (Long, nullable) - LLM call that produced the content (null for FIX_ACCEPTED and MANUAL)
+- `verificationRunId` (Long, nullable) - Verification call that checked the content
+- `questionText` (String) - Question text
+- `explanation` (String, optional) - Explanation for the answer
+- `sourceChunkIds` (JSONB, optional) - Source chunk IDs for traceability
+- `createdAt` (Instant) - When the version was created
+- `createdBy` (Long, nullable) - Author; NULL = system (LLM generation)
 
 **Constraints:**
-- UNIQUE(questionId, letter) - One option per letter per question
+- UNIQUE(questionId, versionNo)
+- CHECK origin IN ('GENERATED', 'REGENERATED', 'FIX_ACCEPTED', 'MANUAL')
+
+### 8.1 TestQuestionOption (Answer Option of a Version)
+One of the four options (A–D) of a version. Immutable like its version.
+
+**Fields:**
+- `letter` (OptionLetter) - A, B, C or D
+- `text` (String) - Option text
+- `correct` (boolean) - Part of the answer key. **Never changed by verification**
+- `flagged` (boolean) - The verifier judged this distractor to be possibly true
+- `suggestedText` (String, nullable) - Verifier's clearly false replacement
+- `flagReason` (String, nullable) - Verifier's explanation
+
+**Constraints:**
+- UNIQUE(versionId, letter)
 - CHECK letter IN ('A', 'B', 'C', 'D')
-- CHECK state IN ('OK', 'FLAGGED', 'RESOLVED')
 
-**Priority Logic:**
-- **Get Effective Text for Display**: finalText (if set) → originalText (default)
-  - replacementText is optional middle suggestion for human review but never displayed as final
-- **Get Effective Verdict for Scoring**: finalVerdict (if set) → verifiedVerdict (if set) → originalVerdict (default)
-- **Requires Review Flag**: true when verifiedVerdict differs from originalVerdict AND finalVerdict is null
+**Review workflow:**
+1. 📝 Generation creates version 1 with the answer key (`correct`).
+2. 🚩 Verification flags distractors it judges true and adds a suggestion and a reason. The question becomes
+   `NEEDS_REVIEW` and the test `REQUIRES_REVIEW`.
+3. 👤 The reviewer resolves the question with one action, each creating a new version:
+   - **Accept fix** – flagged texts replaced by suggestions (`FIX_ACCEPTED`)
+   - **Regenerate** – a new LLM question from the test's context, verified again (`REGENERATED`)
+   - **Manual replace** – the reviewer's own question and answer key (`MANUAL`)
+4. 🔍 When no question needs review any more, the test becomes `REVIEWED`.
 
-**State Values:**
-- `OK`: Normal, no issues detected
-- `FLAGGED`: Marked as needing human attention/review
-- `RESOLVED`: Issue has been addressed and resolved
+### 8.2 TestEvent (History Trail)
+Append-only record of everything that happened to a test and its questions.
 
-**Workflow:**
-1. 📝 AI generation creates option with originalText and originalVerdict
-2. ✅ LLM verification step optionally suggests replacementText and may change verdict to verifiedVerdict
-3. 🚩 If verification differs from AI, option is flagged for review (state or requires_review flag)
-4. 👤 Human reviewer can accept/override with finalText and finalVerdict
-5. 🔍 System uses getEffectiveText() and getEffectiveVerdict() for final display and scoring
+**Fields:**
+- `id`, `tenantId`, `testId`
+- `questionId` (Long, nullable) - Null for test-level events
+- `eventType` (TestEventType) - `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`,
+  `TEST_FAILED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`,
+  `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED`
+- `fromVersionId`, `toVersionId` (Long, nullable) - Versions before and after the change
+- `actorUserId` (Long, nullable) - Acting user; NULL = system
+- `comment` (String, nullable) - Reviewer comment
+- `payload` (JSONB, nullable) - Event details (flagged option, reason, suggestion, run ids, …)
+- `createdAt` (Instant)
 
 ### 9. Attempt (Test Attempts with Scoring)
 Tracks user test attempts and scoring results.
@@ -279,6 +293,7 @@ Records user's answer to a single question in an attempt.
 - `tenantId` (Long) - Tenant identifier
 - `attemptId` (Long) - Foreign key to Attempt
 - `questionId` (Long) - Foreign key to TestQuestion
+- `questionVersionId` (Long) - Exact question version the user answered
 - `correct` (Boolean) - Whether the answer was correct (based on verdict comparison)
 - `createdAt`, `updatedAt` (Instant) - Timestamps
 - `createdBy` (Long) - System who created the answer record
@@ -308,30 +323,35 @@ Junction table storing which option(s) the user selected for a question.
 - For SINGLE_CORRECT questions: typically one row per answer
 - For MULTIPLE_CORRECT questions: multiple rows per answer
 
-### 11. GenerationRun (Generation Audit Trail)
-Tracks individual RAG generation attempts for debugging and reproducibility.
+### 11. GenerationRun (LLM Call Audit Trail)
+One row per LLM call made for a test: initial generation batches, regeneration of a question, and verification.
 
 **Fields:**
 - `id` (Long) - Primary key
-- `testId` (Long) - Foreign key to Test (which test was this generation for?)
-- `model` (String) - AI model used (e.g., gpt-4)
-- `promptTemplateVersion` (String) - Which prompt template version was used
-- `retrievedChunkIdsJson` (JSONB, optional) - JSON array of chunk IDs retrieved before generation
-- `rawResponse` (String, optional) - Raw API response from LLM (for debugging)
+- `tenantId` (Long) - Tenant identifier
+- `testId` (Long) - Foreign key to Test
+- `questionId` (Long, nullable) - Question being regenerated (REGENERATION and its VERIFICATION)
+- `purpose` (GenerationRunPurpose) - `TEST_GENERATION`, `REGENERATION` or `VERIFICATION`
+- `batchIndex` (Integer, nullable) - Batch number within the generation
+- `model` (String) - AI model used (e.g., gpt-4.1)
+- `promptTemplateId` (String) - Prompt template used
+- `retrievedChunkIds` (JSONB, optional) - Chunk IDs used as context
+- `rawResponse` (String, optional) - Raw model output
+- `inputTokens`, `outputTokens` (Integer, optional) - Token usage
+- `finishReason` (String, optional) - Provider finish reason
 - `status` (GenerationRunStatus) - SUCCESS / FAILED
-- `errorMessage` (String, optional) - Error details if generation failed
-- `createdAt`, `updatedAt` (Instant) - Timestamps
-- `createdBy` (Long) - System/user who initiated the generation
-- `updatedBy` (Long) - System/user who updated the record
+- `errorMessage` (String, optional) - Error details if the call failed
+- `createdAt`, `updatedAt`, `createdBy`, `updatedBy` - Audit fields
 
 **Constraints:**
 - CHECK status IN ('SUCCESS', 'FAILED')
+- CHECK purpose IN ('TEST_GENERATION', 'REGENERATION', 'VERIFICATION')
 
 **Use Cases:**
-- 🏆 Debugging RAG quality (which chunks were retrieved?)
-- 🏆 Reproducibility (regenerate with same model/template)
+- 🏆 What exactly did the LLM return for a question (linked from `TestQuestionVersion.generationRunId`)
+- 🏆 Debugging RAG quality (which chunks were used?)
+- 🏆 Cost tracking (token usage per test)
 - 🏆 A/B testing different prompts and models
-- 🏆 Performance analysis (model choice vs question quality)
 
 ## Enums
 
@@ -370,10 +390,23 @@ Tracks individual RAG generation attempts for debugging and reproducibility.
 ### OptionLetter
 - `A`, `B`, `C`, `D` - Answer option letters
 
-### OptionState
-- `OK`: Normal, no issues detected
-- `FLAGGED`: Marked as needing human attention/review
-- `RESOLVED`: Issue has been addressed
+### QuestionStatus
+- `OK`: Current version has no flagged options
+- `NEEDS_REVIEW`: Current version has at least one flagged option
+
+### VersionOrigin
+- `GENERATED`: Version 1, from the initial test generation
+- `REGENERATED`: Replaced by a reviewer-requested LLM regeneration
+- `FIX_ACCEPTED`: Flagged option texts replaced by the verifier's suggestions
+- `MANUAL`: Written by a reviewer
+
+### TestEventType
+- Test level: `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`, `TEST_FAILED`
+- Question level: `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`,
+  `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED`
+
+### GenerationRunPurpose
+- `TEST_GENERATION`, `REGENERATION`, `VERIFICATION`
 
 ### GenerationRunStatus
 - `SUCCESS`: Generation completed without errors
