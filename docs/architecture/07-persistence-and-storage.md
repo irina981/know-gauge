@@ -51,9 +51,9 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 | `db/dev-migration/R__dev_seed_topics.sql` | main | Repeatable seed of a fixed-ID topic tree (tenant 1) | `local` only (added to `spring.flyway.locations`) |
 | `db/pgvector-migration/V1__pgvector_and_embeddings.sql` | vector | `CREATE EXTENSION vector`, `chunk_embeddings`, indexes | all profiles |
 
-> The schema is still a single `V1` that has been edited in place (the working tree has uncommitted changes to
-> it). This works only while databases are recreated. Once a shared or persistent environment exists, add new
-> `V{n}__*.sql` files instead of editing `V1`.
+> The schema is still a single `V1` that is edited in place. This works only while databases are recreated (an
+> existing database fails Flyway's checksum validation after every change). Once a shared or persistent environment
+> exists, add new `V{n}__*.sql` files instead of editing `V1`.
 
 ## Relational schema (main DB)
 

@@ -33,8 +33,8 @@ operability, not effort.
 - **No automated tests** in the repository (`src/test` is absent everywhere). The most valuable first targets are
   `ChunkingServiceImpl`, `RetrievingServiceImpl.calculateMaxChunksPerDocument`, `TestQuestionValidator`, the
   option verdict logic, the response mappers, and Testcontainers for both Flyway schemas.
-- **Schema evolution**: schema changes are incremental migrations from `V2__publish_tests.sql` on. Don't edit
-  `V1__create_initial_schema.sql` any more.
+- **Schema evolution**: `V1__create_initial_schema.sql` is edited in place and databases are recreated after each
+  change. Switch to incremental migrations before any persistent environment exists.
 - **Unused model pieces**: `Attempt`/`AttemptAnswer`, `DocumentSection`, `User` and `Tenant` have no services or
   endpoints. `rest-client` is a placeholder.
 - **Per-call `OpenAiChatModel` construction**: simple and flexible, but it rebuilds the HTTP client every call.

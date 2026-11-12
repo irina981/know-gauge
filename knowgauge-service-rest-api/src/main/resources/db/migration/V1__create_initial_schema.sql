@@ -135,7 +135,7 @@ CREATE TABLE tests (
     created_by BIGINT NOT NULL,
     updated_by BIGINT NOT NULL,
 
-    CONSTRAINT chk_tests_status CHECK (status IN ('CREATED', 'GENERATED', 'REQUIRES_REVIEW', 'REVIEWED', 'FAILED')),
+    CONSTRAINT chk_tests_status CHECK (status IN ('CREATED', 'GENERATED', 'REQUIRES_REVIEW', 'REVIEWED', 'FAILED', 'PUBLISHED')),
     CONSTRAINT chk_tests_difficulty CHECK (difficulty IN ('EASY', 'MEDIUM', 'HARD')),
     CONSTRAINT chk_tests_coverage_mode CHECK (coverage_mode IN ('BALANCED_PER_DOCS', 'BALANCED_PER_DOC_CHUNKS', 'FOCUSED')),
     CONSTRAINT chk_tests_answer_cardinality CHECK (answer_cardinality IN ('SINGLE_CORRECT', 'MULTIPLE_CORRECT')),
@@ -306,7 +306,7 @@ CREATE TABLE test_events (
     CONSTRAINT fk_test_events_question FOREIGN KEY (question_id) REFERENCES test_questions(id) ON DELETE CASCADE,
     CONSTRAINT chk_test_events_type CHECK (event_type IN (
         'TEST_CREATED', 'TEST_GENERATED', 'TEST_REQUIRES_REVIEW', 'TEST_REVIEWED', 'TEST_FAILED',
-        'QUESTION_GENERATED', 'OPTION_FLAGGED', 'FIX_ACCEPTED', 'QUESTION_REGENERATED',
+        'TEST_PUBLISHED', 'TEST_UNPUBLISHED', 'QUESTION_GENERATED', 'OPTION_FLAGGED', 'FIX_ACCEPTED', 'QUESTION_REGENERATED',
         'REGENERATION_FAILED', 'QUESTION_MANUALLY_REPLACED'))
 );
 

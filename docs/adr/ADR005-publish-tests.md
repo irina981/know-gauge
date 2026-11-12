@@ -74,6 +74,6 @@ new version just after the test was published. The check before the LLM call is 
 
 ## Supporting Material
 * [ADR001 – Test Review Process and Question History](ADR001-review-process.md)
-* Migrations: `V2__publish_tests.sql`, `V3__unpublish_tests.sql` in
-  `knowgauge-service-rest-api/src/main/resources/db/migration/`
+* Schema: `chk_tests_status` and `chk_test_events_type` in
+  `knowgauge-service-rest-api/src/main/resources/db/migration/V1__create_initial_schema.sql`
 * Diagram: [test-status-flow.puml](../architecture/diagrams/test-status-flow.puml)
