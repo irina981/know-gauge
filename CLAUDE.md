@@ -13,7 +13,7 @@ before changing ingestion, retrieval, test generation or persistence wiring.
 
 ## Tech stack
 
-Java 21 · Spring Boot 3.5.16 · Maven multi-module (no wrapper; use a local `mvn`) · LangChain4j 1.1.0 (OpenAI)
+Java 21 · Spring Boot 3.5.16 · Maven multi-module (no wrapper; use a local `mvn`) · LangChain4j 1.1.0 (OpenAI, Ollama)
 · PostgreSQL 15 + pgvector · Flyway · MinIO · Resilience4j 2.2 · MapStruct 1.5.5 · Lombok 1.18.46 · springdoc.
 
 ## Build & run
@@ -29,6 +29,9 @@ Compose files and `.env.example` live in [`local-development/`](local-developmen
 
 - A Spring profile is **required**: `dev` (localhost ports 5432/5433/9000) or `docker`. Without one, no
   `CurrentTenantProvider` bean exists and startup fails.
+- Distractor verification runs on a local Ollama model in `dev`/`docker`
+  (`kg.testgen.verification.provider=ollama`, model `qwen2.5:7b-instruct` on port 11434). Set the provider to
+  `openai` to use OpenAI instead ([ADR002](docs/adr/ADR002-local-verification-model.md)).
 - `OPENAI_API_KEY` must be set in the environment (or in `local-development/.env` for compose). Compose is for
   local development only and needs no `.env`: every other variable defaults to the `application-dev.properties`
   values. Keep those defaults in sync when changing dev credentials.

@@ -137,13 +137,24 @@ flowchart LR
       C2 --> M2[OpenAiChatModel built per call]
       A --> RM1[TestGenerationResponseMapper]
       B --> RM2[VerificationResponseMapper]
+      O[OllamaIncorrectOptionsVerificationServiceImpl] --> M3[OllamaChatModel built per call<br/>JSON mode]
+      O --> RM2
     end
 ```
+
+- **Verifier provider**: `kg.testgen.verification.provider` picks one adapter for the
+  `LlmIncorrectOptionsVerificationService` port. `openai` (the default in `application.properties`) uses
+  `LlmIncorrectOptionsVerificationServiceImpl`. `ollama` (set in the `dev` and `docker` profiles) uses
+  `OllamaIncorrectOptionsVerificationServiceImpl`. It runs the same prompt on a local model
+  (`kg.testgen.verification.chat-model.ollama.*`, default `qwen2.5:7b-instruct`) in Ollama's JSON mode and maps the
+  reply with the same `VerificationResponseMapper`, so it spends no OpenAI tokens. See
+  [ADR002](../adr/ADR002-local-verification-model.md).
 
 - An `OpenAiChatModel` is **built per call**. Model, temperature, max tokens and timeout are resolved with this
   precedence: generation: `Test.generationModel` / `generationParams.temperature|maxOutputTokens` →
   `kg.testgen.chat-model.openai.*`. Verification: `generationParams.verificationModel|verificationTemperature|verificationMaxOutputTokens`
-  → `kg.testgen.verification.chat-model.openai.*` → main chat-model properties.
+  → `kg.testgen.verification.chat-model.openai.*` → main chat-model properties. The Ollama verifier uses the same
+  `generationParams` overrides, then `kg.testgen.verification.chat-model.ollama.*`.
 - **Structured output** is turned on when the model name starts with one of
   `kg.testgen.chat-model.openai.structured-output-model-prefixes` (`gpt-4.1,gpt-4o,o1,o3,o4`). Then
   `strictJsonSchema(true)` is set and the `responseFormat` is attached. In every case the prompt gets the suffix
@@ -196,7 +207,8 @@ The verifier answers one question: *"Is any option the generator marked as wrong
 4. The call is recorded as a `VERIFICATION` run, and each draft records it as `verificationRunId`.
 
 Verification runs for every batch, whatever the cardinality. It is **best effort**: a failure is recorded as a
-`FAILED` run, and generation continues with unverified questions.
+`FAILED` run, and generation continues with unverified questions. This includes an Ollama server that is down or a
+model that has not been pulled.
 
 A flagged question passes validation unchanged (flags don't affect correctness), so it is **kept** with status
 `NEEDS_REVIEW` and later resolved through a review action. See
@@ -228,4 +240,6 @@ A flagged question passes validation unchanged (flags don't affect correctness),
 | `kg.testgen.defaults.max-consecutive-zero-progress-batches` | 1 | Failure threshold |
 | `kg.testgen.defaults.generation-model` | `gpt-4.1` | Generation model |
 | `kg.testgen.chat-model.openai.temperature` / `max-output-tokens` / `timeout-seconds` | 0.2 / 1200 / 60 | Generation call |
-| `kg.testgen.verification.chat-model.openai.model` / `temperature` / `max-output-tokens` / `timeout-seconds` | `gpt-4.1` / 0 / 800 / 30 | Verification call |
+| `kg.testgen.verification.provider` | `openai` (`ollama` in dev/docker) | Verifier adapter |
+| `kg.testgen.verification.chat-model.openai.model` / `temperature` / `max-output-tokens` / `timeout-seconds` | `gpt-4.1` / 0 / 800 / 30 | Verification call (OpenAI) |
+| `kg.testgen.verification.chat-model.ollama.base-url` / `model` / `temperature` / `max-output-tokens` / `timeout-seconds` | `http://localhost:11434` / `qwen2.5:7b-instruct` / 0 / 800 / 120 | Verification call (Ollama) |

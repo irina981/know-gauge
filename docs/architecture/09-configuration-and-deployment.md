@@ -25,7 +25,7 @@ profile needs real implementations first.
 | `kg.testgen.defaults.*` | `TestGenerationDefaultsProperties` | See [06 – tunables](06-test-generation.md#tunables-defaults) |
 | `kg.testgen.prompt.templates.*` | `ClasspathPromptTemplateLoader`, `SchemaProvidersConfig` | `classpathBase`, `output-schema-file` |
 | `kg.testgen.chat-model.openai.*` | `OpenAiChatModelProperties`, `OpenAiConfig` | `api-key`, `model`, `temperature`, `max-output-tokens`, `timeout-seconds`, `structured-output-model-prefixes` |
-| `kg.testgen.verification.*` | `OpenAiVerificationModelProperties`, `VerificationPromptBuilder`, `SchemaProvidersConfig` | `chat-model.openai.*`, `prompt.templates.*`, `defaults.prompt-template-id` |
+| `kg.testgen.verification.*` | `OpenAiVerificationModelProperties`, `OllamaVerificationModelProperties`, `VerificationPromptBuilder`, `SchemaProvidersConfig` | `provider` (`openai`/`ollama`), `chat-model.openai.*`, `chat-model.ollama.*` (`base-url`, `model`, `temperature`, `max-output-tokens`, `timeout-seconds`), `prompt.templates.*`, `defaults.prompt-template-id` |
 | `kg.pgvector.datasource.*` | `PgVectorJpaConfig` | `url` / `jdbc-url`, `username`, `password`, `driver-class-name` |
 | `kg.pgvector.flyway.*` | `PgVectorFlywayConfig` | `enabled`, `locations`, `schemas` |
 | `kg.pgvector.jpa.*` | (declared but not read by the vector EMF) | `hibernate.ddl-auto`, `show-sql`, … |
@@ -47,9 +47,12 @@ an optional override file; `local-development/.env.example` is its template:
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `minio`, `minio12345` | MinIO container and `KG_STORAGE_ACCESSKEY/SECRETKEY` |
 | `MINIO_BUCKET` | – | Informational (the app uses `kg.storage.bucket`) |
 | `OPENAI_API_KEY` | none | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
+| `KG_OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Model pulled by `ollama-pull` and used by the verifier (`kg.testgen.verification.chat-model.ollama.model`) |
 
 The `dev` profile has local credentials hard-coded (`knowgauge_user/knowgauge_pass`, `minio/minio12345`), but
-`OPENAI_API_KEY` must still be set in the environment. The verification model inherits the chat model's API key.
+`OPENAI_API_KEY` must still be set in the environment. The OpenAI verification model inherits the chat model's API
+key. The `dev` and `docker` profiles verify distractors on a local Ollama model instead
+(`kg.testgen.verification.provider=ollama`), so that pass needs no API key.
 
 ## Docker Compose
 
@@ -63,11 +66,15 @@ All services join the `knowgauge-network` bridge:
 | `postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` |
 | `postgres-vectors` | `pgvector/pgvector:pg15` | 5433→5432 | `postgres_vectors_data` |
 | `minio` | `minio/minio:latest` | 9000 (S3), 9001 (console) | `minio_data` |
+| `ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` |
+| `ollama-pull` (one-shot) | `ollama/ollama:latest` | – | – (pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits) |
 | app (`knowgauge-service`, profile `full`) | built from `Dockerfile` | 8080, 5005 (JDWP, `suspend=n`) | – |
 
-Every service has a healthcheck. The app `depends_on` the other three with `condition: service_healthy`, and its own
+Every long-running service has a healthcheck. The app `depends_on` the databases and MinIO with
+`condition: service_healthy`, and on `ollama-pull` with `condition: service_completed_successfully`. Its own
 healthcheck polls `/actuator/health/readiness`. The app uses `SPRING_PROFILES_ACTIVE=docker`, and the compose file
-sets the datasource URLs and credentials through env vars (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_*`, `KG_STORAGE_*`, `OPENAI_API_KEY`).
+sets the datasource URLs and credentials through env vars (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_*`, `KG_STORAGE_*`, `OPENAI_API_KEY`, `KG_OLLAMA_BASE_URL`,
+`KG_TESTGEN_VERIFICATION_CHATMODEL_OLLAMA_MODEL`).
 
 For local development in the IDE, run only the backing services
 (`docker compose -f local-development/docker-compose.yml up -d`) and start the app with `-Dspring.profiles.active=dev` (see `.vscode/launch.json`).
