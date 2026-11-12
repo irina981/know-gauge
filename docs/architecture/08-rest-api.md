@@ -10,17 +10,18 @@ There is **no authentication**. The tenant and user come from `ExecutionContext`
 
 | Method | Path | Body / params | Result |
 |---|---|---|---|
-| GET | `/topics/{id}` | – | `200 TopicDto` (the body is `null` if the topic is not found) |
+| GET | `/topics/{id}` | – | `200 TopicDto`, `404` if not found |
 | GET | `/topics/roots` | – | `200 List<TopicDto>` |
 | GET | `/topics/children/{parentId}` | – | `200 List<TopicDto>` (direct children) |
 | GET | `/topics/descendants/{parentId}` | – | `200 List<TopicDto>` (all descendants, by path prefix) |
 | POST | `/topics` | `TopicCreateInput` (parentId?, name, description) | `201 TopicDto` + `Location` |
+| PUT | `/topics/{id}` | `TopicUpdateInput` (name, description; `null` = unchanged, body `id` ignored) | `200 TopicDto`. `404` if not found, `400` on a duplicate name under the same parent |
 | POST | `/topics/tree` | `TopicTreeNodeInput` (recursive name/description/children) | `201 TopicDto` (root with created children) |
 | DELETE | `/topics/{id}` | – | `200` (DB cascade deletes subtopics, documents and chunks. MinIO objects and embeddings are **not** cleaned up) |
-| GET | `/documents/{id}` | – | `200 DocumentDto` (`null` body if not found) |
+| GET | `/documents/{id}` | – | `200 DocumentDto` (includes ingestion `status`, `errorMessage`, `ingestedAt`), `404` if not found |
 | GET | `/documents/all/{topicId}` | Spring `Pageable` (`page`, `size`, `sort`) | `200 Page<DocumentDto>` |
 | POST | `/documents` | `multipart/form-data`: part `meta` = JSON `DocumentInput` (topicId, title), part `file` | `201 DocumentDto` + `Location`. Max 50 MB |
-| GET | `/documents/{id}/content` | – | Binary stream with `Content-Type` and `Content-Disposition: attachment` |
+| GET | `/documents/{id}/content` | – | Binary stream with `Content-Type` and `Content-Disposition: attachment`. `404` if not found |
 | DELETE | `/documents/{id}` | – | `200` (DB row, then MinIO object) |
 | POST | `/documents/ingestion/{id}` | – | `200` once ingestion has finished (synchronous) |
 
@@ -126,15 +127,16 @@ Behaviour to know about:
   their initial checks in a plain `RuntimeException`. Embedding, storage and LLM errors raised during these flows
   therefore come back as **500**, not as the typed statuses above. The typed handlers apply to direct calls such as
   upload and download.
-- "Not found" for documents and topics in core services is an `IllegalArgumentException`, so it returns **400**,
-  not 404. `GET /topics/{id}` and `GET /documents/{id}` return 200 with an empty body.
+- "Not found" for documents and topics in most core service methods is an `IllegalArgumentException`, so it returns
+  **400**, not 404. The single-resource endpoints (`GET`/`PUT /topics/{id}`, `GET /documents/{id}`,
+  `GET /documents/{id}/content`) return 404.
 - `DuplicateDocument*Exception` classes exist, but `DocumentServiceImpl` throws `IllegalArgumentException` (400).
   The DB unique constraints act as a 409 safety net.
 
 ## Contract module
 
 The `knowgauge-service-rest-contract` records are the public API surface: `TopicDto`, `TopicCreateInput`,
-`TopicUpdateInput` (no endpoint yet), `TopicTreeNodeInput`, `DocumentDto`, `DocumentInput`, `DocumentChunkDto`
+`TopicUpdateInput`, `TopicTreeNodeInput`, `DocumentDto`, `DocumentInput`, `DocumentChunkDto`
 (no endpoint yet), `TestInput`, `TestDto`, `TestQuestionDto`, `TestQuestionOptionDto`, `TestQuestionVersionDto`,
 `TestEventDto`, `GenerationRunDto`, `ReviewActionInput` and `ManualQuestionInput`. They use
 `jakarta.validation` and `@Schema` annotations. `knowgauge-service-rest-client` is meant to hold a typed client

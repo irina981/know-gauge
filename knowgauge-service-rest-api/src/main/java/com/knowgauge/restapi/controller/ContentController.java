@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -28,6 +29,8 @@ import com.knowgauge.contract.dto.DocumentInput;
 import com.knowgauge.contract.dto.TopicCreateInput;
 import com.knowgauge.contract.dto.TopicDto;
 import com.knowgauge.contract.dto.TopicTreeNodeInput;
+import com.knowgauge.contract.dto.TopicUpdateInput;
+import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.service.content.DocumentService;
@@ -77,10 +80,11 @@ public class ContentController {
 
 	@GetMapping("/topics/{id}")
 	@Operation(summary = "Get topic by id")
-	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Topic returned") })
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Topic returned"),
+			@ApiResponse(responseCode = "404", description = "Topic not found") })
 	public ResponseEntity<TopicDto> getTopic(@PathVariable Long id) {
-		Topic topic = topicService.get(id).orElse(null);
-		return ResponseEntity.status(200).body(topicMapper.toDto(topic));
+		Topic topic = topicService.get(id).orElseThrow(() -> new ResourceNotFoundException("Topic not found: " + id));
+		return ResponseEntity.ok(topicMapper.toDto(topic));
 	}
 
 	@GetMapping("/topics/roots")
@@ -124,6 +128,18 @@ public class ContentController {
 				: ResponseEntity.status(201).body(topicMapper.toDto(created));
 	}
 
+	@PutMapping("/topics/{id}")
+	@Operation(summary = "Update topic name and description", description = "Null fields are left unchanged. The id in the body, if any, is ignored.")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Topic updated"),
+			@ApiResponse(responseCode = "400", description = "Invalid input or duplicate name under the same parent"),
+			@ApiResponse(responseCode = "404", description = "Topic not found") })
+	public ResponseEntity<TopicDto> updateTopic(@PathVariable Long id, @RequestBody @Valid TopicUpdateInput topicInput) {
+		Topic topic = topicMapper.toDomain(topicInput);
+		topic.setId(id);
+		Topic updated = topicService.update(topic);
+		return ResponseEntity.ok(topicMapper.toDto(updated));
+	}
+
 	@PostMapping("/topics/tree")
 	@Operation(summary = "Create topic tree")
 	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Topic tree created") })
@@ -141,9 +157,12 @@ public class ContentController {
 
 	@GetMapping("/documents/{id}")
 	@Operation(summary = "Get document metadata by id")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Document returned"),
+			@ApiResponse(responseCode = "404", description = "Document not found") })
 	public ResponseEntity<DocumentDto> getDocument(@PathVariable Long id) {
-		Document document = documentService.get(id).orElse(null);
-		return ResponseEntity.status(200).body(documentMaper.toDto(document));
+		Document document = documentService.get(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Document not found: " + id));
+		return ResponseEntity.ok(documentMaper.toDto(document));
 	}
 
 	@GetMapping("/documents/all/{topicId}")
@@ -196,7 +215,8 @@ public class ContentController {
 	public void downloadDocument(@PathVariable Long id, HttpServletResponse response) throws IOException {
 
 		// Get metadata first (NO streaming yet)
-		Document document = documentService.get(id).orElseThrow();
+		Document document = documentService.get(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Document not found: " + id));
 
 		// Set headers BEFORE writing body
 		response.setContentType(document.getContentType());

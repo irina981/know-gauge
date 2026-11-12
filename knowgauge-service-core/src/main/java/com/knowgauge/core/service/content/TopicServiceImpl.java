@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.port.repository.TopicRepository;
 
@@ -41,7 +42,7 @@ public class TopicServiceImpl implements TopicService {
 	@Transactional
 	public Topic update(Topic topic) {
 		Topic existingTopic = topicRepository.findById(topic.getId())
-				.orElseThrow(() -> new IllegalArgumentException("Topic not found: " + topic.getId()));
+				.orElseThrow(() -> new ResourceNotFoundException("Topic not found: " + topic.getId()));
 
 		// Only allow changing name + description (PATCH semantics: null = no change)
 		String newName = topic.getName() != null ? topic.getName() : existingTopic.getName();
@@ -49,7 +50,7 @@ public class TopicServiceImpl implements TopicService {
 				: existingTopic.getDescription();
 
 		// Enforce uniqueness only if name actually changes
-		if (existingTopic.getParentId() != null && !existingTopic.getName().equals(newName)) {
+		if (!existingTopic.getName().equals(newName)) {
 			validateUniqueNameUnderParent(existingTopic.getParentId(), newName);
 		}
 

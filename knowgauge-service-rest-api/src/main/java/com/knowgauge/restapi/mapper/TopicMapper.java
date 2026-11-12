@@ -7,6 +7,7 @@ import org.mapstruct.ReportingPolicy;
 import com.knowgauge.contract.dto.TopicDto;
 import com.knowgauge.contract.dto.TopicCreateInput;
 import com.knowgauge.contract.dto.TopicTreeNodeInput;
+import com.knowgauge.contract.dto.TopicUpdateInput;
 import com.knowgauge.core.model.Topic;
 
 @Mapper(
@@ -38,6 +39,20 @@ public interface TopicMapper {
     @Mapping(target = "updatedAt", ignore = true)      // set by service/DB
     @Mapping(target = "updatedBy", ignore = true)      // set by service/DB
     Topic toDomain(TopicTreeNodeInput input);
+
+    /**
+     * Update input -> Domain. Only name and description are updatable; the id is taken from the path.
+     */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "tenantId", ignore = true)
+    @Mapping(target = "parentId", ignore = true)
+    @Mapping(target = "path", ignore = true)
+    @Mapping(target = "children", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    Topic toDomain(TopicUpdateInput input);
 
     /**
      * Domain -> Response DTO

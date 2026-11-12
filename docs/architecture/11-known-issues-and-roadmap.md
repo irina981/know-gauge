@@ -21,7 +21,7 @@ operability, not effort.
 | 12 | Ingestion | `markIngesting`'s returned row count is ignored, so concurrent ingestion of the same document is not prevented | Low | `IngestionServiceImpl` |
 | 13 | Ingestion | One `embedAll` call per document, with no sub-batching. Large documents can exceed provider request limits | Medium | `OpenAiEmbeddingServiceImpl` |
 | 14 | Ingestion | Re-ingestion deletes chunks, which cascades to `test_used_chunks` of existing tests and loses their provenance. Regenerating a question of such a test then fails (502, no context) | Medium | FK `ON DELETE CASCADE` |
-| 15 | API | `GET /topics/{id}` and `/documents/{id}` return 200 with an empty body when not found. Service-level "not found" is `IllegalArgumentException` → 400 | Low | `ContentController`, services |
+| 15 | API | Service-level "not found" for topics and documents is mostly `IllegalArgumentException` → 400 (the single-resource GET/PUT endpoints already return 404) | Low | `ContentController`, services |
 | 16 | Startup | No `CurrentTenantProvider` or `CurrentUserProvider` outside the `dev`/`docker` profiles, so the context fails to start | High (prod) | `restapi/context` |
 | 17 | Config | `PgVectorJpaConfig` has `@EntityScan("com.knowgauge.pgvector.repo.jpa.entity")`, a stale package. It is harmless because the EMF sets `packagesToScan` explicitly. `kg.pgvector.jpa.*` properties are not applied | Low | `PgVectorJpaConfig` |
 | 18 | Compose | `APP_STORAGE_ACCESSKEY/SECRETKEY` env vars in `local-development/docker-compose.yml` don't map to any property. It works only because `application-docker.properties` reads `MINIO_ROOT_*` | Low | `local-development/docker-compose.yml` |

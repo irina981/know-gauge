@@ -25,6 +25,12 @@ public record DocumentDto(
 
         @Schema(description = "Object version id, if versioning is enabled", example = "3Lgk9J") String version,     // nullable if versioning disabled
 
-        @Schema(description = "Creation time (UTC)", example = "2026-02-18T10:15:30Z") Instant createdAt   // useful for UI & auditing
+        @Schema(description = "Creation time (UTC)", example = "2026-02-18T10:15:30Z") Instant createdAt,   // useful for UI & auditing
+
+        @Schema(description = "Ingestion status", example = "INGESTED", allowableValues = { "UPLOADED", "INGESTING", "INGESTED", "FAILED" }) String status,
+
+        @Schema(description = "Last ingestion error, if status is FAILED", example = "Embedding provider unavailable") String errorMessage,
+
+        @Schema(description = "Time the document was last ingested successfully (UTC)", example = "2026-02-18T10:16:05Z") Instant ingestedAt
 ) {}
 
