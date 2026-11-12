@@ -23,7 +23,7 @@ There is **no authentication**. The tenant and user come from `ExecutionContext`
 | POST | `/documents` | `multipart/form-data`: part `meta` = JSON `DocumentInput` (topicId, title), part `file` | `201 DocumentDto` + `Location`. Max 50 MB |
 | GET | `/documents/{id}/content` | – | Binary stream with `Content-Type` and `Content-Disposition: attachment`. `404` if not found |
 | DELETE | `/documents/{id}` | – | `200` (DB row, then MinIO object) |
-| POST | `/documents/ingestion/{id}` | – | `200` once ingestion has finished (synchronous) |
+| POST | `/documents/ingestion/{id}` | – | `200` once ingestion has finished (synchronous), `409` if the document is already being ingested |
 
 ## Tests – `TestGenerationController` (`/api/tests`)
 

@@ -33,6 +33,7 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `KG_USER_ID` | no (empty: no user) | `kg.context.user-id` |
 | `KG_GENERATION_MODEL`, `KG_VERIFICATION_MODEL` | no (`gpt-4.1`) | `kg.testgen.defaults.generation-model`, `kg.testgen.verification.chat-model.openai.model` |
 | `KG_VERIFICATION_PROVIDER`, `KG_OLLAMA_BASE_URL` | no (`openai`, `http://localhost:11434`) | `kg.testgen.verification.provider`, `chat-model.ollama.base-url` |
+| `KG_INGESTION_JOB_ENABLED`, `KG_INGESTION_JOB_CRON`, `KG_INGESTION_JOB_BATCH_SIZE` | no (`true`, `0 */5 * * * *`, `5`) | `kg.ingestion.job.*` (see [04](04-document-ingestion.md#scheduled-ingestion-job)) |
 | `KG_LOG_LEVEL` | no (`INFO`) | `logging.level.com.knowgauge` |
 | `KG_ACTUATOR_ENDPOINTS` | no (`health,info,metrics`) | `management.endpoints.web.exposure.include` |
 | `KG_SWAGGER_ENABLED` | no (`false`) | `springdoc.api-docs.enabled`, `springdoc.swagger-ui.enabled` |
@@ -43,6 +44,7 @@ provides the tenant and user, so a prod deployment serves one tenant.
 |---|---|---|
 | `kg.storage.*` | `StorageProperties`, `MinIoConfig`, `MinIoStorageService` | `type`, `bucket`, `storage-key-template`, `endpoint`, `accessKey`, `secretKey`, `connectTimeout`, `readTimeout`, `writeTimeout`, `callTimeout` |
 | `kg.chunking.*` | `ChunkingProperties` | `maxChunkSizeChars`, `overlapSizeChars`, `trimWhitespace`, `includePageMetadata` |
+| `kg.ingestion.job.*` | `IngestionJobProperties`, `ScheduledIngestionJob`, `SchedulingConfig` | `enabled`, `cron`, `batch-size` |
 | `kg.embedding.*` | `OpenAiEmbeddingConfig`, `OpenAiEmbeddingServiceImpl` | `dimension`, `provider`, `openai.api-key`, `openai.model`, `openai.base-url`, `openai.timeout` |
 | `kg.testgen.defaults.*` | `TestGenerationDefaultsProperties` | See [06 – tunables](06-test-generation.md#tunables-defaults) |
 | `kg.testgen.prompt.templates.*` | `ClasspathPromptTemplateLoader`, `SchemaProvidersConfig` | `classpathBase`, `output-schema-file` |

@@ -129,7 +129,8 @@ Compose files and `.env.example` live in [`local-development/`](local-developmen
 ## Gotchas
 
 - Ingestion (`POST /api/content/documents/ingestion/{id}`) and generation (`POST /api/tests`) are synchronous and
-  can take a long time.
+  can take a long time. `ScheduledIngestionJob` also ingests the oldest `UPLOADED` documents on the
+  `kg.ingestion.job.cron` schedule (`batch-size` per run; disabled in the `test` profile).
 - Most failures inside `ingest()`/`generate()` are wrapped in `RuntimeException`, so they return 500 whatever the
   typed handler would map.
 - The `local` profile seeds a fixed topic tree (`R__dev_seed_topics.sql`, tenant 1) and uploads the sample PDFs from

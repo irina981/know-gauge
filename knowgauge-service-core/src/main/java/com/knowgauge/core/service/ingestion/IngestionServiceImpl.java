@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.knowgauge.core.exception.DocumentIngestionConflictException;
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.enums.DocumentStatus;
@@ -57,9 +58,12 @@ public class IngestionServiceImpl implements IngestionService {
 		Integer documentVersion = document.getVersion();
 		String embeddingModel = embeddingService.modelName();
 
-		// 2) Update document status from UPLOADED to INGESTING
-		ingestionTransactionalService.markIngesting(documentId);
-		log.info("       Ingesting document {} - Status updated from {} to {}", documentId, DocumentStatus.UPLOADED, DocumentStatus.INGESTING);
+		// 2) Claim the document: conditional update from UPLOADED/FAILED to INGESTING.
+		// Fails if a concurrent request or the scheduled job claimed it first.
+		if (!ingestionTransactionalService.markIngesting(documentId)) {
+			throw new DocumentIngestionConflictException(documentId);
+		}
+		log.info("       Ingesting document {} - Status updated from {} to {}", documentId, document.getStatus(), DocumentStatus.INGESTING);
 
 		try {
 			List<String> pages;

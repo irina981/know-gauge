@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.knowgauge.core.model.enums.DocumentStatus;
 import com.knowgauge.infra.repository.jpa.entity.DocumentEntity;
 
 @Repository
@@ -55,4 +56,7 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, Lon
 	boolean existsByTopicIdAndChecksum(Long topicId, String contentHash);
 	
 	List<DocumentEntity> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicId);
+
+	List<DocumentEntity> findByTenantIdAndStatusOrderByCreatedAtAscIdAsc(Long tenantId, DocumentStatus status,
+			Pageable pageable);
 }

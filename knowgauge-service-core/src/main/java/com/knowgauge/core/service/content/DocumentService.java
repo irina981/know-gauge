@@ -35,4 +35,9 @@ public interface DocumentService {
 	int markFailed(Long documentId, String errorMessage);
 	
 	List<Document> findByTopicIds(Long tenantId, List<Long> topicIds);
+
+	/**
+	 * Returns up to {@code limit} {@code UPLOADED} documents of the tenant, oldest first.
+	 */
+	List<Document> findOldestUploaded(Long tenantId, int limit);
 }

@@ -18,7 +18,6 @@ operability, not effort.
 | 9 | Storage | MinIO fallback methods have return types that don't match their primary methods (`StoredObject` for `InputStream` and `void`) | Medium | `MinIoStorageService` |
 | 10 | Upload | MinIO `put` runs inside the DB transaction, so a failed commit leaves an orphaned object | Low | `DocumentServiceImpl.uploadDocument` |
 | 11 | Delete | Deleting a document or topic doesn't delete its embeddings (separate DB, no FK). Deleting a topic doesn't delete its MinIO objects. Orphan embeddings are filtered out by `document_id IN (...)` but still use space | Medium | `DocumentServiceImpl.delete`, `TopicServiceImpl.delete` |
-| 12 | Ingestion | `markIngesting`'s returned row count is ignored, so concurrent ingestion of the same document is not prevented | Low | `IngestionServiceImpl` |
 | 13 | Ingestion | One `embedAll` call per document, with no sub-batching. Large documents can exceed provider request limits | Medium | `OpenAiEmbeddingServiceImpl` |
 | 14 | Ingestion | Re-ingestion deletes chunks, which cascades to `test_used_chunks` of existing tests and loses their provenance. Regenerating a question of such a test then fails (502, no context) | Medium | FK `ON DELETE CASCADE` |
 | 15 | API | Service-level "not found" for topics and documents is mostly `IllegalArgumentException` → 400 (the single-resource GET/PUT endpoints already return 404) | Low | `ContentController`, services |
@@ -27,7 +26,8 @@ operability, not effort.
 
 ## Structural debt
 
-- **Synchronous long-running work**: ingestion and generation run inside HTTP requests. Tests that crash mid-run
+- **Synchronous long-running work**: generation and REST-triggered ingestion run inside HTTP requests (the scheduled
+  ingestion job runs on the scheduler thread). Tests that crash mid-run
   stay `CREATED` and documents stay `INGESTING`, and nothing recovers them. Planned: async jobs or an outbox,
   worker retries and a dead-letter queue, status polling.
 - **No automated tests** in the repository (`src/test` is absent everywhere). The most valuable first targets are

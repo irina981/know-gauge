@@ -19,6 +19,7 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.knowgauge.core.exception.DocumentIngestionConflictException;
 import com.knowgauge.core.exception.DuplicateDocumentContentException;
 import com.knowgauge.core.exception.DuplicateDocumentNameException;
 import com.knowgauge.core.exception.EmbeddingAuthException;
@@ -314,6 +315,14 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 			DuplicateDocumentContentException ex) {
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.CONFLICT, request, ex);
 		log.warn("Duplicate document content: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.CONFLICT, request);
+	}
+
+	@ExceptionHandler(DocumentIngestionConflictException.class)
+	public ResponseEntity<Object> handleDocumentIngestionConflictException(WebRequest request,
+			DocumentIngestionConflictException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.CONFLICT, request, ex);
+		log.warn("Document ingestion conflict: {}", ex.getMessage());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.CONFLICT, request);
 	}
 

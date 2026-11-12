@@ -3,10 +3,11 @@
 Ingestion has two separately triggered steps:
 
 1. **Upload**: `POST /api/content/documents` stores the binary and creates a `Document` in `UPLOADED` state.
-2. **Ingest**: `POST /api/content/documents/ingestion/{id}` parses, chunks and embeds the document and moves it to
-   `INGESTED`.
+2. **Ingest**: parses, chunks and embeds the document and moves it to `INGESTED`. It is triggered either by
+   `POST /api/content/documents/ingestion/{id}` or by the [scheduled ingestion job](#scheduled-ingestion-job), which
+   picks up the oldest `UPLOADED` documents.
 
-Both steps run synchronously on the request thread.
+Upload and REST-triggered ingestion run synchronously on the request thread.
 
 ## 1. Upload
 
@@ -66,7 +67,8 @@ sequenceDiagram
 
     CC->>IS: ingest(documentId)
     IS->>DS: get(documentId) – must be UPLOADED or FAILED
-    IS->>ITX: markIngesting  [commit #1]
+    IS->>ITX: markIngesting – conditional UPLOADED/FAILED → INGESTING  [commit #1]
+    Note over IS: 0 rows updated → DocumentIngestionConflictException (409)
     IS->>DS: download(documentId) → InputStream (MinIO)
     IS->>P: extractPages(in) – parser chosen by contentType
     IS->>CS: chunkDocument(tenant, topic, doc, version, pages, policy)
@@ -126,6 +128,29 @@ Chunks are not linked to `DocumentSection`s yet (`sectionId = null`). Section de
 `ChunkEmbedding` rows copy the chunk's tenant, topic, document, version, section, chunk id and checksum, plus the
 `embeddingModel` name. The model name matters because **vectors are only comparable within the same model**.
 Retrieval always filters on `embedding_model = embeddingService.modelName()`.
+
+## Scheduled ingestion job
+
+`ScheduledIngestionJob` (core) ingests uploaded documents in the background, so clients don't have to call the
+ingestion endpoint. Each run:
+
+1. loads up to `batch-size` documents of the current tenant (`ExecutionContext.tenantId()`) in `UPLOADED` state,
+   oldest `created_at` first (`DocumentService.findOldestUploaded`);
+2. calls `IngestionService.ingest` for each one, sequentially, on the scheduler thread;
+3. logs per-document failures and carries on with the next document. A failed document is marked `FAILED` by
+   `IngestionServiceImpl` and is **not** picked up again; retry it through the REST endpoint.
+
+A document that a REST call (or another instance) has already claimed is skipped: `markIngesting` is a conditional
+update, and `ingest` throws `DocumentIngestionConflictException` when it updates no row. Spring does not start a
+cron run while the previous run is still in progress.
+
+| Property | Default | Meaning |
+|---|---|---|
+| `kg.ingestion.job.enabled` | `true` (`false` in `test`) | Creates the job bean and enables `@Scheduled` processing (`SchedulingConfig`) |
+| `kg.ingestion.job.cron` | `0 */5 * * * *` | Spring cron expression, six fields (second minute hour day month weekday) |
+| `kg.ingestion.job.batch-size` | `5` | Maximum documents ingested per run |
+
+In `prod` they come from `KG_INGESTION_JOB_ENABLED`, `KG_INGESTION_JOB_CRON` and `KG_INGESTION_JOB_BATCH_SIZE`.
 
 ## Consistency and idempotency
 

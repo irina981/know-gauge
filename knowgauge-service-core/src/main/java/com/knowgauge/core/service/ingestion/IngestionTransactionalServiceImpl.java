@@ -36,8 +36,12 @@ public class IngestionTransactionalServiceImpl {
 		documentService.markFailed(documentId, errorMessage);
 	}
 
-	public void markIngesting(Long documentId) {
-		documentService.markIngesting(documentId);
+	/**
+	 * Claims the document for ingestion: moves it from UPLOADED or FAILED to
+	 * INGESTING. Returns false if another caller already claimed it.
+	 */
+	public boolean markIngesting(Long documentId) {
+		return documentService.markIngesting(documentId) == 1;
 	}
 
 	/**

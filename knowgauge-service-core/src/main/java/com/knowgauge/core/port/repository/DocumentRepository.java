@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import com.knowgauge.core.model.Document;
+import com.knowgauge.core.model.enums.DocumentStatus;
 
 public interface DocumentRepository {
 	Document save(Document document);
@@ -16,6 +17,11 @@ public interface DocumentRepository {
 	Page<Document> findByTopicId(Long topicId, Pageable pageable);
 	
 	List<Document> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicId);
+
+	/**
+	 * Returns up to {@code limit} documents of the tenant in the given status, oldest (by creation time) first.
+	 */
+	List<Document> findOldestByTenantIdAndStatus(Long tenantId, DocumentStatus status, int limit);
 	
 	void updateStorageKey(Long id, String storageKey);
 	

@@ -4,10 +4,12 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.Document;
+import com.knowgauge.core.model.enums.DocumentStatus;
 import com.knowgauge.core.port.repository.DocumentRepository;
 import com.knowgauge.infra.repository.jpa.mapper.DocumentEntityMapper;
 import com.knowgauge.infra.repository.jpa.repository.DocumentJpaRepository;
@@ -76,5 +78,12 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 	@Override
 	public List<Document> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicIds) {
 		return jpaRepository.findByTenantIdAndTopicIdIn(tenantId, topicIds).stream().map(mapper::toDomain).toList();
+	}
+
+	@Override
+	public List<Document> findOldestByTenantIdAndStatus(Long tenantId, DocumentStatus status, int limit) {
+		return jpaRepository
+				.findByTenantIdAndStatusOrderByCreatedAtAscIdAsc(tenantId, status, PageRequest.of(0, limit))
+				.stream().map(mapper::toDomain).toList();
 	}
 }
