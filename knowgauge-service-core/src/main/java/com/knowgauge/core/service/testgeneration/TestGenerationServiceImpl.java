@@ -1,7 +1,10 @@
 package com.knowgauge.core.service.testgeneration;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -20,6 +23,8 @@ import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.service.retrieving.RetrievingService;
 import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator.BatchRequest;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
+import com.knowgauge.core.service.testgeneration.validation.TestQuestionValidator;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -45,15 +50,17 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final DocumentChunkRepository documentChunkRepository;
 	private final ExecutionContext executionContext;
 	private final TestGenerationDefaultsProperties defaults;
+	private final TestQuestionValidator questionValidator;
 
 	public TestGenerationServiceImpl(RetrievingService retrievingService, QuestionBatchGenerator batchGenerator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
-			TestGenerationDefaultsProperties defaults) {
+			TestGenerationDefaultsProperties defaults, TestQuestionValidator questionValidator) {
 		this.retrievingService = retrievingService;
 		this.batchGenerator = batchGenerator;
 		this.testDraftValidator = testDraftValidator;
+		this.questionValidator = questionValidator;
 		this.tx = tx;
 		this.testRepository = testRepository;
 		this.testQuestionRepository = testQuestionRepository;
@@ -115,7 +122,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		}
 	}
 
-	private record ChunksContext(List<DocumentChunk> chunks, List<Long> chunkIds) {
+	/** Chunks and their ids, both in retrieval order. */
+	record ChunksContext(List<DocumentChunk> chunks, List<Long> chunkIds) {
 	}
 
 	private ChunksContext retrieveAndLoadChunks(Long tenantId, Test test, List<Long> documentIds, List<Long> topicIds) {
@@ -126,14 +134,20 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		log.info("    Test generation {} - Retrieved {} chunks: [{}]", test.getId(), chunkIds.size(), chunkIds);
 		requireEnoughChunks(test, chunkIds.size());
 
-		List<DocumentChunk> chunks = documentChunkRepository.findByTenantIdAndIdIn(tenantId, chunkIds);
-		if (chunks == null || chunks.isEmpty()) {
+		List<DocumentChunk> loaded = documentChunkRepository.findByTenantIdAndIdIn(tenantId, chunkIds);
+		if (loaded == null || loaded.isEmpty()) {
 			throw new IllegalStateException("No chunks could be loaded for retrieved embeddings (tenantId=" + tenantId
 					+ ", chunkIds=" + chunkIds.size() + ").");
 		}
+		// Keep retrieval order (random, mixed across documents) so batch slices mix documents too
+		Map<Long, DocumentChunk> byId = new HashMap<>();
+		loaded.forEach(c -> byId.put(c.getId(), c));
+		List<DocumentChunk> chunks = chunkIds.stream().map(byId::get).filter(Objects::nonNull).toList();
+		List<Long> loadedIds = chunks.stream().map(DocumentChunk::getId).toList();
+		requireEnoughChunks(test, loadedIds.size());
 
-		tx.setUsedChunks(tenantId, test.getId(), chunkIds);
-		return new ChunksContext(chunks, chunkIds);
+		tx.setUsedChunks(tenantId, test.getId(), loadedIds);
+		return new ChunksContext(chunks, loadedIds);
 	}
 
 	/**
@@ -151,6 +165,11 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	/**
 	 * Generates batches until the requested count is reached, failing after too
 	 * many consecutive batches without any valid question.
+	 *
+	 * <p>
+	 * Each planned batch gets its own slice of the chunks, and every batch is told
+	 * which questions the test already has. Questions that still duplicate an
+	 * earlier one are dropped.
 	 */
 	private List<TestQuestion> generateAllBatches(Test test, ChunksContext ctx) {
 		int batchSize = defaults.getQuestionGenerationBatchSize();
@@ -158,15 +177,20 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		int maxZeroProgress = defaults.getMaxConsecutiveZeroProgressBatches() != null
 				? defaults.getMaxConsecutiveZeroProgressBatches()
 				: 3;
+		List<ChunksContext> slices = sliceChunks(ctx, (totalQuestions + batchSize - 1) / batchSize);
 		List<TestQuestion> all = new ArrayList<>();
 		int batchIndex = 0;
 		int zeroProgress = 0;
 
 		while (all.size() < totalQuestions) {
 			int size = Math.min(batchSize, totalQuestions - all.size());
-			List<TestQuestion> batch = batchGenerator.generateBatch(new BatchRequest(test, ctx.chunks(),
-					ctx.chunkIds(), size, null, all.size(), ++batchIndex, GenerationRunPurpose.TEST_GENERATION, null,
-					List.of()));
+			// Extra batches (after a short one) cycle through the slices again
+			ChunksContext slice = slices.get(batchIndex % slices.size());
+			List<String> avoidTexts = all.stream().map(TestQuestion::getQuestionText).toList();
+			List<TestQuestion> generated = batchGenerator.generateBatch(new BatchRequest(test, slice.chunks(),
+					slice.chunkIds(), size, null, all.size(), ++batchIndex, GenerationRunPurpose.TEST_GENERATION, null,
+					avoidTexts));
+			List<TestQuestion> batch = dropDuplicates(test, batchIndex, generated, all);
 
 			if (batch.isEmpty()) {
 				zeroProgress++;
@@ -187,6 +211,41 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 					batchIndex, all.size(), totalQuestions);
 		}
 		return all;
+	}
+
+	/**
+	 * Splits the chunks into {@code batchCount} contiguous slices of near-equal
+	 * size (at most one slice per chunk).
+	 */
+	static List<ChunksContext> sliceChunks(ChunksContext ctx, int batchCount) {
+		int n = ctx.chunks().size();
+		int sliceCount = Math.max(1, Math.min(batchCount, n));
+		List<ChunksContext> slices = new ArrayList<>(sliceCount);
+		for (int i = 0; i < sliceCount; i++) {
+			int from = i * n / sliceCount;
+			int to = (i + 1) * n / sliceCount;
+			slices.add(new ChunksContext(ctx.chunks().subList(from, to), ctx.chunkIds().subList(from, to)));
+		}
+		return slices;
+	}
+
+	/**
+	 * Drops questions that duplicate one already accepted and renumbers the rest
+	 * so indexes stay sequential.
+	 */
+	private List<TestQuestion> dropDuplicates(Test test, int batchIndex, List<TestQuestion> batch,
+			List<TestQuestion> accepted) {
+		List<TestQuestion> kept = new ArrayList<>(batch.size());
+		for (TestQuestion q : batch) {
+			if (questionValidator.isDuplicateOfAny(q, accepted)) {
+				log.warn("    Test generation {} - Batch No. {} - Dropped duplicate question: '{}'", test.getId(),
+						batchIndex, q.getQuestionText());
+				continue;
+			}
+			q.setQuestionIndex(accepted.size() + kept.size());
+			kept.add(q);
+		}
+		return kept;
 	}
 
 	private int recommendedChunkLimit(Test test) {

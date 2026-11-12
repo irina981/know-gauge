@@ -35,14 +35,16 @@ sequenceDiagram
     G->>G: fewer than questionCount × min-chunks-per-question chunks → InsufficientContextException (422)
     G->>CR: findByTenantIdAndIdIn(chunkIds)
     G->>TX: setUsedChunks(testId, chunkIds)
+    G->>G: split chunks into one slice per planned batch
     loop until questionCount reached
-        G->>B: generateBatch(test, chunks, size, startIndex, batchIndex)
+        G->>B: generateBatch(test, slice, size, startIndex, batchIndex, questions so far to avoid)
         B->>LLM: generate(prompt, batchTest)
         B->>RUN: TEST_GENERATION run (raw response, tokens)
         B->>PRE: validateAndNormalize – discard malformed questions
         B->>VER: verify(prompt, test, preValidated) – flag distractors only
         B->>RUN: VERIFICATION run
         B->>POST: validateAndNormalize (full rules + shuffle + quota)
+        G->>G: drop duplicates of earlier questions, renumber
     end
     G->>TX: persistGeneratedQuestions – slots + version 1 + events QUESTION_GENERATED / OPTION_FLAGGED
     alt any question NEEDS_REVIEW
@@ -80,10 +82,17 @@ otherwise:        0
 
 1. A **batch copy** of the test is made with `questionCount = batchSize` and a batch-level
    `minMultipleCorrectQuestionsCount`.
-2. The prompt is built from the **same chunk set** for every batch. All retrieved chunks go into every prompt.
-3. Generation, pre-validation, verification and post-validation run.
-4. The number of questions generated so far advances by the number that survived validation. Question indexes
-   continue from it.
+2. The prompt is built from the batch's own **chunk slice**. The retrieved chunks (in retrieval order, which is
+   random and mixes documents) are split into `ceil(questionCount / batchSize)` contiguous slices of near-equal
+   size, one per planned batch. Extra batches after a short one cycle through the slices again. The slice's chunk
+   IDs are also the only citations the validators accept for that batch.
+3. The prompt lists the questions the test already has and tells the model not to repeat or paraphrase them
+   (the same instruction regeneration uses).
+4. Generation, pre-validation, verification and post-validation run.
+5. Questions that still duplicate an earlier question of the test (`TestQuestionValidator.isDuplicateOfAny`: same
+   normalized text, or same text and option set) are dropped with a warning. The rest are renumbered, so indexes
+   stay sequential.
+6. The number of questions generated so far advances by the number kept. Question indexes continue from it.
 
 **Token-limit backoff**: if the LLM stops with `finish_reason = length`, `OpenAiClientImpl` throws
 `LlmResponseParsingException(LENGTH)`. A `FAILED` run is recorded and the batch is retried with `batchSize - 1`,
@@ -93,8 +102,7 @@ down to 1. Other `LlmResponseParsingException` reasons are recorded and rethrown
 resets it. Once the counter reaches `max-consecutive-zero-progress-batches` (default **1**, fallback 3 if unset),
 the generation fails with `IllegalStateException`. With the default, the first empty batch fails the whole test.
 
-> Duplicate questions across batches are not detected. Dedupe works only within a batch, and every batch sees the
-> same context, so repeats are possible.
+A batch whose questions are all dropped as duplicates counts as zero progress.
 
 ## Step 2 – Prompt construction
 
