@@ -1,7 +1,6 @@
 package com.knowgauge.infra.embedding.langchain4j.openai.service;
 
 import java.io.IOException;
-import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Objects;
 
@@ -18,7 +17,14 @@ import com.knowgauge.core.port.embedding.EmbeddingService;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.exception.AuthenticationException;
 import dev.langchain4j.exception.HttpException;
+import dev.langchain4j.exception.InternalServerException;
+import dev.langchain4j.exception.InvalidRequestException;
+import dev.langchain4j.exception.ModelNotFoundException;
+import dev.langchain4j.exception.RateLimitException;
+import dev.langchain4j.exception.TimeoutException;
+import dev.langchain4j.exception.UnresolvedModelServerException;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -119,27 +125,62 @@ public class OpenAiEmbeddingServiceImpl implements EmbeddingService {
 
 	private RuntimeException translateEmbeddingException(Exception e) {
 
-		if (e instanceof SocketTimeoutException || e instanceof IOException) {
-			return new EmbeddingUnavailableException("Embedding call failed due to IO/timeout", e);
+		// Our own checks (empty vector, dimension mismatch) already carry a clear message.
+		if (e instanceof EmbeddingUnexpectedException || e instanceof IllegalStateException) {
+			return (RuntimeException) e;
 		}
 
-		if (e instanceof HttpException he) {
-			int code = he.statusCode();
+		// LangChain4j wraps provider HTTP errors in typed exceptions (RateLimitException, AuthenticationException,
+		// ...) with the HttpException as the cause, so search the whole cause chain.
+		HttpException http = findCause(e, HttpException.class);
+		if (http != null) {
+			return translateHttpStatus(http.statusCode(), e);
+		}
+		if (findCause(e, RateLimitException.class) != null) {
+			return new EmbeddingRateLimitedException("Embedding rate limited: " + rootMessage(e), e);
+		}
+		if (findCause(e, AuthenticationException.class) != null) {
+			return new EmbeddingAuthException("Embedding auth/permission error: " + rootMessage(e), e);
+		}
+		if (findCause(e, InvalidRequestException.class) != null || findCause(e, ModelNotFoundException.class) != null) {
+			return new EmbeddingBadRequestException("Embedding request rejected: " + rootMessage(e), e);
+		}
+		if (findCause(e, InternalServerException.class) != null || findCause(e, TimeoutException.class) != null
+				|| findCause(e, UnresolvedModelServerException.class) != null
+				|| findCause(e, IOException.class) != null) {
+			return new EmbeddingUnavailableException("Embedding provider unavailable: " + rootMessage(e), e);
+		}
 
-			return switch (code) {
-			case 400, 404, 422 -> new EmbeddingBadRequestException("Embedding request rejected (" + code + ")", e);
-			case 401, 403 -> new EmbeddingAuthException("Embedding auth/permission error (" + code + ")", e);
-			case 408 -> new EmbeddingUnavailableException("Embedding request timed out (" + code + ")", e);
-			case 429 -> new EmbeddingRateLimitedException("Embedding rate limited (" + code + ")", e);
-			default -> {
-				if (code >= 500 && code <= 599) {
-					yield new EmbeddingUnavailableException("Embedding provider unavailable (" + code + ")", e);
-				}
-				yield new EmbeddingUnexpectedException("Embedding HTTP error (" + code + ")", e);
+		return new EmbeddingUnexpectedException("Unexpected embedding failure: " + rootMessage(e), e);
+	}
+
+	private RuntimeException translateHttpStatus(int code, Exception e) {
+		String detail = " (" + code + "): " + rootMessage(e);
+		return switch (code) {
+		case 400, 404, 422 -> new EmbeddingBadRequestException("Embedding request rejected" + detail, e);
+		case 401, 403 -> new EmbeddingAuthException("Embedding auth/permission error" + detail, e);
+		case 408 -> new EmbeddingUnavailableException("Embedding request timed out" + detail, e);
+		case 429 -> new EmbeddingRateLimitedException("Embedding rate limited" + detail, e);
+		default -> code >= 500 && code <= 599
+				? new EmbeddingUnavailableException("Embedding provider unavailable" + detail, e)
+				: new EmbeddingUnexpectedException("Embedding HTTP error" + detail, e);
+		};
+	}
+
+	private static <T extends Throwable> T findCause(Throwable t, Class<T> type) {
+		for (Throwable c = t; c != null; c = (c.getCause() == c) ? null : c.getCause()) {
+			if (type.isInstance(c)) {
+				return type.cast(c);
 			}
-			};
 		}
+		return null;
+	}
 
-		return new EmbeddingUnexpectedException("Unexpected embedding failure", e);
+	private static String rootMessage(Throwable t) {
+		Throwable root = t;
+		while (root.getCause() != null && root.getCause() != root) {
+			root = root.getCause();
+		}
+		return root.getClass().getSimpleName() + ": " + root.getMessage();
 	}
 }

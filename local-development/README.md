@@ -11,7 +11,7 @@ This folder holds the Docker Compose setup for running KnowGauge on your machine
 ## Setup
 
 This setup is for local development only, so no `.env` file is required. Every variable in `docker-compose.yml`
-has a default that matches `application-dev.properties`:
+has a default that matches `application-local.properties`:
 
 | Variable | Default |
 |---|---|
@@ -19,12 +19,13 @@ has a default that matches `application-dev.properties`:
 | `POSTGRES_VECTORS_DB` / `POSTGRES_VECTORS_USER` / `POSTGRES_VECTORS_PASSWORD` | `knowgauge_vectors` / `knowgauge_user` / `knowgauge_pass` |
 | `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | `minio` / `minio12345` |
 | `OPENAI_API_KEY` | none (needed for ingestion and test generation) |
-| `KG_OLLAMA_MODEL` | `qwen2.5:7b-instruct` (local model for distractor verification) |
+| `KG_TESTGEN_VERIFICATION_PROVIDER` | `openai` (set `ollama`, with `--profile ollama`, to verify locally) |
+| `KG_OLLAMA_MODEL` | `qwen2.5:7b-instruct` (opt-in local model for distractor verification) |
 
 The only value you need to supply is `OPENAI_API_KEY`, and only when running the app in a container. Set it in your
 shell, or copy `.env.example` to `.env` and put it there. Compose reads `.env` from this folder (if it exists) for
 `${...}` substitution, and shell variables take precedence. If you change a default, change
-`application-dev.properties` too, otherwise the app run from the IDE can't connect.
+`application-local.properties` too, otherwise the app run from the IDE can't connect.
 
 ## What gets started
 
@@ -36,14 +37,14 @@ named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 | `postgres` | `knowgauge-postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` | Main database: topics, documents, chunks, tests, questions, attempts, generation runs. Schema created by Flyway on app startup |
 | `postgres-vectors` | `knowgauge-postgres-vectors` | `pgvector/pgvector:pg15` | 5433 → 5432 | `postgres_vectors_data` | Vector database: chunk embeddings (`vector(1536)`) used for retrieval |
 | `minio` | `knowgauge-minio` | `minio/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
-| `ollama` | `knowgauge-ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` | Local LLM server. Verifies distractors during test generation, so that pass costs no OpenAI tokens |
-| `ollama-pull` | `knowgauge-ollama-pull` | `ollama/ollama:latest` | – | – | One-shot: pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits. The first pull downloads about 4.7 GB |
-| `knowgauge-service` | `knowgauge-service` | built from the root `Dockerfile` | 8080 (HTTP), 5005 (JDWP debugger) | – | The Spring Boot app, run with the `docker` profile. Only in the `full` compose profile (see option 2). Starts only after the other services are healthy |
+| `ollama` | `knowgauge-ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` | Opt-in (`--profile ollama`). Local LLM server for the optional local distractor verifier |
+| `ollama-pull` | `knowgauge-ollama-pull` | `ollama/ollama:latest` | – | – | Opt-in (`--profile ollama`). One-shot: pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits. The first pull downloads about 4.7 GB |
+| `knowgauge-service` | `knowgauge-service` | built from the root `Dockerfile` | 8080 (HTTP), 5005 (JDWP debugger) | – | The Spring Boot app, run with the `local` profile (hostnames overridden through env vars). Only in the `full` compose profile (see option 2). Starts only after the other services are healthy |
 
 The database and MinIO credentials come from `POSTGRES_*`, `POSTGRES_VECTORS_*` and `MINIO_ROOT_*` (defaults
 above). The app also needs `OPENAI_API_KEY` for embeddings and test generation.
 
-With the `docker` (and `dev`) profile the app seeds a fixed topic tree (root "Knowledge Library" with "Programming"
+With the `local` profile the app seeds a fixed topic tree (root "Knowledge Library" with "Programming"
 and "Employee Onboarding & Compliance"), creates the MinIO bucket and uploads the sample PDFs from
 `knowgauge-service-rest-api/src/main/resources/devdocs/` at startup. The uploads are not ingested automatically; call
 the ingestion endpoint for each document before generating tests. The onboarding policy PDFs are generated from
@@ -51,24 +52,26 @@ the ingestion endpoint for each document before generating tests. The onboarding
 
 ## Option 1: backing services only (run the app from the IDE)
 
-This is the usual setup while coding. Start the databases, MinIO and Ollama in Docker, then run the app locally with
-the `dev` profile, which points at `localhost:5432`, `localhost:5433`, `localhost:9000` and `localhost:11434`.
+This is the usual setup while coding. Start the databases and MinIO in Docker, then run the app locally with the
+`local` profile, which points at `localhost:5432`, `localhost:5433` and `localhost:9000`.
 
-A plain `up` starts every service except the app, which sits in the `full` compose profile. From the repository root:
+A plain `up` starts only these backing services. The app sits in the `full` compose profile and Ollama in the
+`ollama` compose profile. From the repository root:
 
 ```bash
 docker compose -f local-development/docker-compose.yml up -d
 ```
 
-If Ollama already runs natively on port 11434, start only `postgres postgres-vectors minio` and run
-`ollama pull qwen2.5:7b-instruct` once. To verify with OpenAI instead, set
-`kg.testgen.verification.provider=openai`.
+Distractor verification uses OpenAI `gpt-4.1`. To try the local Ollama verifier instead (it judged distractors
+unreliably, see [ADR003](../docs/adr/ADR003-grounded-reason-first-verification.md)), add `--profile ollama` and set
+`kg.testgen.verification.provider=ollama`. If Ollama already runs natively on port 11434, run
+`ollama pull qwen2.5:7b-instruct` once instead.
 
 ```bash
-mvn -pl knowgauge-service-rest-api spring-boot:run -Dspring-boot.run.profiles=dev
+mvn -pl knowgauge-service-rest-api spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-The `dev` profile has the local database and MinIO credentials built in, but `OPENAI_API_KEY` must be set in your
+The `local` profile has the local database and MinIO credentials built in, but `OPENAI_API_KEY` must be set in your
 environment. The VS Code launch configuration loads it from `local-development/.env`.
 
 ## Option 2: everything in containers
@@ -113,4 +116,4 @@ docker compose -f local-development/docker-compose.yml --profile full down
 docker compose -f local-development/docker-compose.yml --profile full down -v
 ```
 
-Pass `--profile full` to `down` so it also removes the app container. The last command also deletes the volumes, so the databases and stored files start empty next time.
+Pass `--profile full` to `down` so it also removes the app container (add `--profile ollama` if you started Ollama). The last command also deletes the volumes, so the databases and stored files start empty next time.

@@ -22,7 +22,7 @@ operability, not effort.
 | 13 | Ingestion | One `embedAll` call per document, with no sub-batching. Large documents can exceed provider request limits | Medium | `OpenAiEmbeddingServiceImpl` |
 | 14 | Ingestion | Re-ingestion deletes chunks, which cascades to `test_used_chunks` of existing tests and loses their provenance. Regenerating a question of such a test then fails (502, no context) | Medium | FK `ON DELETE CASCADE` |
 | 15 | API | Service-level "not found" for topics and documents is mostly `IllegalArgumentException` → 400 (the single-resource GET/PUT endpoints already return 404) | Low | `ContentController`, services |
-| 16 | Startup | No `CurrentTenantProvider` or `CurrentUserProvider` outside the `dev`/`docker` profiles, so the context fails to start | High (prod) | `restapi/context` |
+| 16 | Tenancy | No authentication: tenant and user are fixed per deployment (`kg.context.tenant-id` / `user-id`, `KG_TENANT_ID` / `KG_USER_ID` in prod), so a deployment serves one tenant | High (prod) | `restapi/context` |
 | 17 | Config | `PgVectorJpaConfig` has `@EntityScan("com.knowgauge.pgvector.repo.jpa.entity")`, a stale package. It is harmless because the EMF sets `packagesToScan` explicitly. `kg.pgvector.jpa.*` properties are not applied | Low | `PgVectorJpaConfig` |
 
 ## Structural debt

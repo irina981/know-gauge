@@ -1,6 +1,6 @@
 # ADR002 - Local Ollama Model for Distractor Verification
 * Date: Nov 12, 2026
-* Status: [ACCEPTED]
+* Status: [ACCEPTED] (the development default was reverted to OpenAI by [ADR003](ADR003-grounded-reason-first-verification.md); the Ollama adapter stays as an opt-in)
 * Author: Irina Mijatovic (drafted with Claude Code)
 
 ## Decision
@@ -10,7 +10,7 @@ Ollama model instead of OpenAI. `kg.testgen.verification.provider` selects the a
 `LlmIncorrectOptionsVerificationService` port:
 
 - `openai` (default in `application.properties`): `LlmIncorrectOptionsVerificationServiceImpl`, as before.
-- `ollama` (set in the `dev` and `docker` profiles): `OllamaIncorrectOptionsVerificationServiceImpl`, using a
+- `ollama` (was set in the former `dev` and `docker` profiles; now opt-in): `OllamaIncorrectOptionsVerificationServiceImpl`, using a
   general instruction model (default `qwen2.5:7b-instruct`) in Ollama's JSON mode.
 
 The Ollama adapter sends the same prompt and parses the reply with the same `VerificationResponseMapper`. Core,

@@ -63,7 +63,11 @@ public class LlmIncorrectOptionsVerificationServiceImpl implements LlmIncorrectO
 		String model = resolveModelName(test);
 		ChatResponse response = null;
 		try {
+			log.info("Verification prompt (testId={}, model={}, questions={}):\n{}", test.getId(), model,
+					questions.size(), prompt);
 			response = openAiClient.callLlm(prompt, test, buildChatModel(test), model);
+			log.info("Verification response (testId={}, model={}):\n{}", test.getId(), model,
+					response != null && response.aiMessage() != null ? response.aiMessage().text() : null);
 			int flagged = responseMapper.mapAndApplyVerificationResult(response, questions, test);
 			return new LlmVerificationResult(flagged, LlmCallMetadataMapper.from(response, model), null);
 		} catch (Exception e) {

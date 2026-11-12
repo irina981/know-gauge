@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 @ConditionalOnProperty(name = "kg.dev.seed.enabled", havingValue = "true")
-@Profile({ "dev", "docker" })
+@Profile("local")
 public class DevDocumentSeeder {
 
 	@Bean

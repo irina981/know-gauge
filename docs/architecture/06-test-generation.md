@@ -106,19 +106,26 @@ Templates are plain text files in `knowgauge-service-core/src/main/resources/pro
 | `mcq-default.txt` | `promptTemplateId = mcq-default` and `SINGLE_CORRECT` |
 | `mcq-default-multiple-correct.txt` | `MULTIPLE_CORRECT`: the builder appends the suffix `-multiple-correct` |
 | `mcq-default-multiple-correct-full.txt` | Not selected automatically. A longer variant with evidence requirements, reachable as `promptTemplateId=mcq-default-multiple-correct-full` only for `SINGLE_CORRECT` (otherwise the suffix is appended again) |
-| `incorrect-options-verification-only-flagged.txt` | **Default** verification prompt (`kg.testgen.verification.defaults.prompt-template-id`). Returns only distractors judged true |
-| `incorrect-options-verification.txt` | Alternative verification prompt that returns every verdict (the mapper flags only the true ones) |
+| `incorrect-options-verification.txt` | **Default** verification prompt (`kg.testgen.verification.defaults.prompt-template-id`). Returns a verdict for every distractor, explanation first; the mapper flags only the true ones ([ADR003](../adr/ADR003-grounded-reason-first-verification.md)) |
+| `incorrect-options-verification-only-flagged.txt` | Alternative that returns only distractors judged true. Shorter, but models tend to return an empty result without checking |
 
 Generation variables: `difficulty`, `questionCount`, `language`, `minMulti`, `model`, `context`, `outputSchema`.
 For regeneration, the builder appends the existing question texts of the test with an instruction not to repeat
 them.
+
+The generator answers **only from the sources**. The verifier judges distractors with the **sources and its own
+knowledge**: facts specific to the sources (numbers, extensions, internal rules) are decided by the sources, and
+general knowledge can also make a distractor correct. `VerificationPromptBuilder` puts the input JSON in `{{input}}`:
+`sources` (each chunk the questions cite, once, as `{chunkId, text}`) and `questions`
+(`{questionIndex, questionText, sourceChunkIds, correctAnswers, answers}`). `correctAnswers` is the answer key, given
+as context only; `answers` holds the distractors to judge.
 The `context` block joins the chunks with `\n\n---\n\n`. Each chunk gets a header
 `[SOURCE: topicId=… docId=… chunkId=…]` so the model can cite chunk IDs.
 
 **Output schemas** are example JSON documents, not JSON Schema:
 
 - `mcq-output-template.json` → `{questions:[{question, options{A..D}, correctOptions[], explanation, sources[]}]}`
-- `verification-output-template.json` → `{results:[{questionIndex, questionText, evaluatedAnswers[{option, originalAnswer, verdict, replacementAnswer, explanation}]}]}`
+- `verification-output-template.json` → `{results:[{questionIndex, evaluatedAnswers[{option, explanation, verdict, replacementAnswer}]}]}` (explanation before verdict so the model reasons first; no echoed question or answer text)
 
 `SchemaProvidersConfig` exposes them as two qualified `SchemaProvider` beans
 (`testGenerationOutputSchemaProvider`, `verificationOutputSchemaProvider`). The schema is used twice: it is
@@ -144,7 +151,7 @@ flowchart LR
 
 - **Verifier provider**: `kg.testgen.verification.provider` picks one adapter for the
   `LlmIncorrectOptionsVerificationService` port. `openai` (the default in `application.properties`) uses
-  `LlmIncorrectOptionsVerificationServiceImpl`. `ollama` (set in the `dev` and `docker` profiles) uses
+  `LlmIncorrectOptionsVerificationServiceImpl`. `ollama` (opt-in; no profile sets it, see [ADR003](../adr/ADR003-grounded-reason-first-verification.md)) uses
   `OllamaIncorrectOptionsVerificationServiceImpl`. It runs the same prompt on a local model
   (`kg.testgen.verification.chat-model.ollama.*`, default `qwen2.5:7b-instruct`) in Ollama's JSON mode and maps the
   reply with the same `VerificationResponseMapper`, so it spends no OpenAI tokens. See
@@ -240,6 +247,7 @@ A flagged question passes validation unchanged (flags don't affect correctness),
 | `kg.testgen.defaults.max-consecutive-zero-progress-batches` | 1 | Failure threshold |
 | `kg.testgen.defaults.generation-model` | `gpt-4.1` | Generation model |
 | `kg.testgen.chat-model.openai.temperature` / `max-output-tokens` / `timeout-seconds` | 0.2 / 1200 / 60 | Generation call |
-| `kg.testgen.verification.provider` | `openai` (`ollama` in dev/docker) | Verifier adapter |
-| `kg.testgen.verification.chat-model.openai.model` / `temperature` / `max-output-tokens` / `timeout-seconds` | `gpt-4.1` / 0 / 800 / 30 | Verification call (OpenAI) |
-| `kg.testgen.verification.chat-model.ollama.base-url` / `model` / `temperature` / `max-output-tokens` / `timeout-seconds` | `http://localhost:11434` / `qwen2.5:7b-instruct` / 0 / 800 / 120 | Verification call (Ollama) |
+| `kg.testgen.verification.provider` | `openai` (all profiles; `ollama` is opt-in) | Verifier adapter |
+| `kg.testgen.verification.chat-model.openai.model` / `temperature` / `max-output-tokens` / `timeout-seconds` | `gpt-4.1` / 0 / 2000 / 60 | Verification call (OpenAI) |
+| `kg.testgen.verification.chat-model.ollama.base-url` / `model` / `temperature` / `max-output-tokens` / `timeout-seconds` | `http://localhost:11434` / `qwen2.5:7b-instruct` / 0 / 2000 / 600 | Verification call (Ollama, no retries; CPU-only Ollama writes about 7 tokens/s) |
+| `kg.testgen.verification.chat-model.ollama.context-length` | 8192 | Ollama `num_ctx` (prompt + reply). Ollama's own default of 4096 can silently cut the start of a prompt with sources |

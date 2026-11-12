@@ -48,7 +48,7 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 | Location | DB | Content | Active in |
 |---|---|---|---|
 | `db/migration/V1__create_initial_schema.sql` | main | Full relational schema | all profiles |
-| `db/dev-migration/R__dev_seed_topics.sql` | main | Repeatable seed of a fixed-ID topic tree (tenant 1) | `dev`, `docker` (added to `spring.flyway.locations`) |
+| `db/dev-migration/R__dev_seed_topics.sql` | main | Repeatable seed of a fixed-ID topic tree (tenant 1) | `local` only (added to `spring.flyway.locations`) |
 | `db/pgvector-migration/V1__pgvector_and_embeddings.sql` | vector | `CREATE EXTENSION vector`, `chunk_embeddings`, indexes | all profiles |
 
 > The schema is still a single `V1` that has been edited in place (the working tree has uncommitted changes to
@@ -104,7 +104,7 @@ together.
 ## Object storage (MinIO)
 
 - Bucket: `kg.storage.bucket` (`knowgauge-content`). It is created at startup by `DevDocumentSeeder` through
-  `StorageService.ensureBucketExists()`, **only** in `dev`/`docker` with `kg.dev.seed.enabled=true`. Other
+  `StorageService.ensureBucketExists()`, **only** in the `local` profile with `kg.dev.seed.enabled=true`. Other
   environments must create the bucket beforehand.
 - Key layout: `{tenantId}/docs/by-id/{shard3}/{documentId}/v{version}/source/content` (see
   [04](04-document-ingestion.md#1-upload)).

@@ -78,9 +78,9 @@ For the HTTP mapping and its quirks, see [08 – Error model](08-rest-api.md#err
 
 ## Security
 
-- No authentication or authorization on the API. Actuator `env` and `beans` are exposed.
+- No authentication or authorization on the API. Actuator `env` and `beans` are exposed outside `prod`.
 - Secrets come from environment variables (`OPENAI_API_KEY`, DB and MinIO credentials). `.env` is gitignored, but
-  the `dev` profile has local credentials in the properties file.
+  the `local` profile has local credentials in the properties file; `prod` reads every secret from env vars.
 - Uploads: 50 MB limit and SHA-256 dedupe. There is no content-type allow-list beyond the fact that only
   `application/pdf` can be ingested, and no malware scanning.
 - Prompt injection: document text is inserted verbatim into the LLM prompts. The closed-world instructions and the

@@ -320,7 +320,9 @@ Implemented as proposed, with these additions:
   and preserves the slot's kind: a multi-correct question is regenerated as multi-correct.
 * `QuestionBatchGenerator` (prompt → LLM → pre-validate → verify → post-validate) is shared by generation and
   regeneration. `GenerationRunRecorder` and `TestHistoryRecorder` write runs and events.
-* The default verification prompt is now `incorrect-options-verification-only-flagged`.
+* The default verification prompt is now `incorrect-options-verification-only-flagged`. (Superseded by
+  [ADR003](ADR003-grounded-reason-first-verification.md): the default is `incorrect-options-verification`, with
+  sources, the answer key and an explanation before each verdict.)
 * Pre-validation still discards malformed LLM questions before verification. Manual replace uses the non-LLM rules
   and returns every failing reason.
 

@@ -61,9 +61,13 @@ public class OllamaIncorrectOptionsVerificationServiceImpl implements LlmIncorre
 		String model = resolveModelName(test);
 		ChatResponse response = null;
 		try {
-			ChatRequest request = ChatRequest.builder().messages(List.of(UserMessage.from(prompt + JSON_ONLY_SUFFIX)))
-					.build();
+			String effectivePrompt = prompt + JSON_ONLY_SUFFIX;
+			log.info("Ollama verification prompt (testId={}, model={}, questions={}):\n{}", test.getId(), model,
+					questions.size(), effectivePrompt);
+			ChatRequest request = ChatRequest.builder().messages(List.of(UserMessage.from(effectivePrompt))).build();
 			response = buildChatModel(test, model).chat(request);
+			log.info("Ollama verification response (testId={}, model={}):\n{}", test.getId(), model,
+					response != null && response.aiMessage() != null ? response.aiMessage().text() : null);
 			checkFinishReason(response, test);
 			if (response.tokenUsage() != null) {
 				log.info("Ollama verification response (testId={}): usage={}", test.getId(), response.tokenUsage());
@@ -81,7 +85,9 @@ public class OllamaIncorrectOptionsVerificationServiceImpl implements LlmIncorre
 
 	private OllamaChatModel buildChatModel(Test test, String model) {
 		OllamaChatModel.OllamaChatModelBuilder builder = OllamaChatModel.builder().baseUrl(properties.getBaseUrl())
-				.modelName(model).responseFormat(ResponseFormat.JSON).maxRetries(1);
+				.modelName(model).responseFormat(ResponseFormat.JSON)
+				// A local model that timed out will time out again; a retry only doubles the wait.
+				.maxRetries(0);
 
 		Double temperature = resolveDouble(test, "verificationTemperature", properties.getTemperature());
 		if (temperature != null) {
@@ -91,6 +97,10 @@ public class OllamaIncorrectOptionsVerificationServiceImpl implements LlmIncorre
 		Integer maxOutputTokens = resolveInteger(test, "verificationMaxOutputTokens", properties.getMaxOutputTokens());
 		if (maxOutputTokens != null) {
 			builder.numPredict(maxOutputTokens);
+		}
+
+		if (properties.getContextLength() != null) {
+			builder.numCtx(properties.getContextLength());
 		}
 
 		if (properties.getTimeoutSeconds() != null) {

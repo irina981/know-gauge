@@ -34,6 +34,10 @@ WORKDIR /app
 # Copy the built JAR from builder stage
 COPY --from=builder /app/knowgauge-service-rest-api/target/*.jar knowgauge-service.jar
 
+# Production by default (all settings from env vars, see application-prod.properties).
+# local-development/docker-compose.yml overrides this with SPRING_PROFILES_ACTIVE=local.
+ENV SPRING_PROFILES_ACTIVE=prod
+
 # Expose application port
 EXPOSE 8080
 

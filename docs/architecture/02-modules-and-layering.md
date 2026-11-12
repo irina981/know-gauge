@@ -70,7 +70,7 @@ puts everything on one classpath. `@SpringBootApplication(scanBasePackages = "co
 | `DocumentSplitter` | `core.port.documentsplitter` | `LangChainDocumentSplitter` | Takes the core `ChunkingPolicy` |
 | `LlmTestGenerationService` | `core.port.testgeneration` | `LlmTestGenerationServiceImpl` | prompt → `List<TestQuestion>` |
 | `LlmIncorrectOptionsVerificationService` | `core.port.testgeneration` | `LlmIncorrectOptionsVerificationServiceImpl` | Mutates options in place and returns the flagged count |
-| `CurrentTenantProvider`, `CurrentUserProvider`, `ExecutionContext` | `core.context` | `DefaultTenantProvider`, `DefaultUserProvider`, `DefaultExecutionContext` (rest-api) | Stubs returning `1L`, active only in the `dev` and `docker` profiles |
+| `CurrentTenantProvider`, `CurrentUserProvider`, `ExecutionContext` | `core.context` | `DefaultTenantProvider`, `DefaultUserProvider`, `DefaultExecutionContext` (rest-api) | Return the fixed `kg.context.tenant-id` / `user-id` (1/1 in `local` and `test`, `KG_TENANT_ID` / `KG_USER_ID` in `prod`) until authentication exists |
 
 ## Core package structure
 

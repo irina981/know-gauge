@@ -21,19 +21,22 @@ Java 21 · Spring Boot 3.5.16 · Maven multi-module (no wrapper; use a local `mv
 ```bash
 mvn clean install -DskipTests                                    # build all modules
 docker compose -f local-development/docker-compose.yml up -d   # backing services only (default)
-mvn -pl knowgauge-service-rest-api spring-boot:run -Dspring-boot.run.profiles=dev   # run app locally
-docker compose -f local-development/docker-compose.yml --profile full up --build   # app in a container too (Spring profile: docker)
+mvn -pl knowgauge-service-rest-api spring-boot:run -Dspring-boot.run.profiles=local   # run app locally
+docker compose -f local-development/docker-compose.yml --profile full up --build   # app in a container too (Spring profile: local)
 ```
 
 Compose files and `.env.example` live in [`local-development/`](local-development/README.md).
 
-- A Spring profile is **required**: `dev` (localhost ports 5432/5433/9000) or `docker`. Without one, no
-  `CurrentTenantProvider` bean exists and startup fails.
-- Distractor verification runs on a local Ollama model in `dev`/`docker`
-  (`kg.testgen.verification.provider=ollama`, model `qwen2.5:7b-instruct` on port 11434). Set the provider to
-  `openai` to use OpenAI instead ([ADR002](docs/adr/ADR002-local-verification-model.md)).
+- Spring profiles: `local` (development; localhost ports 5432/5433/9000, also used by the compose app container with
+  env-var host overrides), `test` (automated tests only) and `prod` (every environment-specific value from env vars,
+  required ones without defaults; the `Dockerfile` defaults to it). `application.properties` holds the values common
+  to all. One profile is **required**: without it the datasources and `kg.context.tenant-id` are missing and startup
+  fails. The tenant and user come from `kg.context.tenant-id` / `user-id` (`KG_TENANT_ID` / `KG_USER_ID` in prod).
+- Distractor verification runs on OpenAI `gpt-4.1` in every profile (`kg.testgen.verification.provider=openai`).
+  A local Ollama adapter exists (`provider=ollama`, `qwen2.5:7b-instruct` on port 11434, compose
+  `--profile ollama`) but judged distractors unreliably ([ADR002](docs/adr/ADR002-local-verification-model.md), [ADR003](docs/adr/ADR003-grounded-reason-first-verification.md)).
 - `OPENAI_API_KEY` must be set in the environment (or in `local-development/.env` for compose). Compose is for
-  local development only and needs no `.env`: every other variable defaults to the `application-dev.properties`
+  local development only and needs no `.env`: every other variable defaults to the `application-local.properties`
   values. Keep those defaults in sync when changing dev credentials.
 - Swagger UI: http://localhost:8080/swagger-ui.html · health: `/actuator/health`.
 - Unit tests exist for the core (`knowgauge-service-core/src/test/java`: question model, validator, review
@@ -129,7 +132,7 @@ Compose files and `.env.example` live in [`local-development/`](local-developmen
   can take a long time.
 - Most failures inside `ingest()`/`generate()` are wrapped in `RuntimeException`, so they return 500 whatever the
   typed handler would map.
-- Dev/docker profiles seed a fixed topic tree (`R__dev_seed_topics.sql`, tenant 1) and upload the sample PDFs from
+- The `local` profile seeds a fixed topic tree (`R__dev_seed_topics.sql`, tenant 1) and uploads the sample PDFs from
   `resources/devdocs/` at startup (`kg.dev.seed.enabled=true`). The seeder also creates the MinIO bucket. Other
   profiles must create it beforehand.
 - Audit `createdBy`/`updatedBy` are hard-coded to `1` in `AuditableEntity` (`@PrePersist`).

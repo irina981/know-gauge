@@ -6,14 +6,36 @@ All application configuration is in `knowgauge-service-rest-api/src/main/resourc
 
 | File | Purpose |
 |---|---|
-| `application.properties` | Shared defaults: multipart limits, actuator, springdoc, JPA `validate`, Flyway, all `kg.*` properties |
-| `application-dev.properties` | Local run against containers on `localhost` (5432, 5433, 9000). Adds dev seed migrations. DEBUG logging. DevTools |
-| `application-docker.properties` | Inside Docker Compose (service hostnames). Credentials come from env vars |
+| `application.properties` | Values common to all environments: multipart limits, actuator, springdoc, JPA `validate`, Flyway, JDBC drivers, all shared `kg.*` properties |
+| `application-local.properties` | Local development against `local-development/docker-compose.yml` on `localhost` (5432, 5433, 9000). Local credentials, seed topic migration and seed PDFs, DEBUG logging. The app container in compose uses it too, with hostnames overridden through env vars |
+| `application-test.properties` | Automated tests only. Schema migrations without seed data, no seeder, a placeholder OpenAI key. Datasources and the MinIO endpoint are supplied by the test (for example Testcontainers) |
+| `application-prod.properties` | Production. Every environment-specific value comes from an env var (see below); required ones have no default, so a missing one fails startup. No seed data, Swagger off, actuator limited to `health,info,metrics` |
 | `resilience4j.properties` | Retry, bulkhead and circuit breaker instances (imported through `spring.config.import`) |
 
-**Profiles**: `dev` and `docker`. The only `CurrentTenantProvider` and `CurrentUserProvider` beans are annotated
-`@Profile({"dev","docker"})`, so the application **does not start without one of these profiles**. A production
-profile needs real implementations first.
+**Profiles**: `local`, `test` and `prod`. Exactly one must be active: the base file does not set the datasources,
+the storage endpoint or `kg.context.tenant-id`, so the application **does not start without a profile**. The
+`Dockerfile` sets `SPRING_PROFILES_ACTIVE=prod`; compose and the IDE launch configuration use `local`.
+
+`DefaultTenantProvider` and `DefaultUserProvider` return the fixed `kg.context.tenant-id` / `kg.context.user-id`
+(`1` / `1` in `local` and `test`, `KG_TENANT_ID` / `KG_USER_ID` in `prod`). They stand in until authentication
+provides the tenant and user, so a prod deployment serves one tenant.
+
+### Production environment variables
+
+| Variable | Required | Property |
+|---|---|---|
+| `KG_DB_URL`, `KG_DB_USERNAME`, `KG_DB_PASSWORD` | yes | `spring.datasource.*` |
+| `KG_VECTOR_DB_URL`, `KG_VECTOR_DB_USERNAME`, `KG_VECTOR_DB_PASSWORD` | yes | `kg.pgvector.datasource.*` |
+| `KG_STORAGE_ENDPOINT`, `KG_STORAGE_ACCESS_KEY`, `KG_STORAGE_SECRET_KEY` | yes | `kg.storage.endpoint`, `accessKey`, `secretKey` |
+| `KG_STORAGE_BUCKET` | no (`knowgauge-content`) | `kg.storage.bucket`. The bucket must exist; prod does not create it |
+| `OPENAI_API_KEY` | yes | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
+| `KG_TENANT_ID` | yes | `kg.context.tenant-id` |
+| `KG_USER_ID` | no (empty: no user) | `kg.context.user-id` |
+| `KG_GENERATION_MODEL`, `KG_VERIFICATION_MODEL` | no (`gpt-4.1`) | `kg.testgen.defaults.generation-model`, `kg.testgen.verification.chat-model.openai.model` |
+| `KG_VERIFICATION_PROVIDER`, `KG_OLLAMA_BASE_URL` | no (`openai`, `http://localhost:11434`) | `kg.testgen.verification.provider`, `chat-model.ollama.base-url` |
+| `KG_LOG_LEVEL` | no (`INFO`) | `logging.level.com.knowgauge` |
+| `KG_ACTUATOR_ENDPOINTS` | no (`health,info,metrics`) | `management.endpoints.web.exposure.include` |
+| `KG_SWAGGER_ENABLED` | no (`false`) | `springdoc.api-docs.enabled`, `springdoc.swagger-ui.enabled` |
 
 ## Custom property namespaces (`kg.*`)
 
@@ -29,7 +51,8 @@ profile needs real implementations first.
 | `kg.pgvector.datasource.*` | `PgVectorJpaConfig` | `url` / `jdbc-url`, `username`, `password`, `driver-class-name` |
 | `kg.pgvector.flyway.*` | `PgVectorFlywayConfig` | `enabled`, `locations`, `schemas` |
 | `kg.pgvector.jpa.*` | (declared but not read by the vector EMF) | `hibernate.ddl-auto`, `show-sql`, … |
-| `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (dev/docker only) |
+| `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (`local` profile only) |
+| `kg.context.*` | `DefaultTenantProvider`, `DefaultUserProvider` | `tenant-id` (required), `user-id` (optional) |
 
 Property-name styles are mixed (`camelCase` in `kg.chunking`/`kg.storage` timeouts, `kebab-case` elsewhere).
 Spring relaxed binding accepts both for `@ConfigurationProperties`, but `@Value` needs the exact form.
@@ -37,7 +60,7 @@ Spring relaxed binding accepts both for `@ConfigurationProperties`, but `@Value`
 ## Secrets and environment variables
 
 Compose is for local development only, so every variable in `docker-compose.yml` has a `${VAR:-default}` fallback
-that matches `application-dev.properties`, and no `.env` file is required. `local-development/.env` (gitignored) is
+that matches `application-local.properties`, and no `.env` file is required. `local-development/.env` (gitignored) is
 an optional override file; `local-development/.env.example` is its template:
 
 | Variable | Default | Used for |
@@ -47,18 +70,20 @@ an optional override file; `local-development/.env.example` is its template:
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `minio`, `minio12345` | MinIO container and `KG_STORAGE_ACCESSKEY/SECRETKEY` |
 | `MINIO_BUCKET` | – | Informational (the app uses `kg.storage.bucket`) |
 | `OPENAI_API_KEY` | none | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
+| `KG_TESTGEN_VERIFICATION_PROVIDER` | `openai` | Verifier for the app container; `ollama` needs `--profile ollama` |
 | `KG_OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Model pulled by `ollama-pull` and used by the verifier (`kg.testgen.verification.chat-model.ollama.model`) |
 
-The `dev` profile has local credentials hard-coded (`knowgauge_user/knowgauge_pass`, `minio/minio12345`), but
+The `local` profile has local credentials hard-coded (`knowgauge_user/knowgauge_pass`, `minio/minio12345`), but
 `OPENAI_API_KEY` must still be set in the environment. The OpenAI verification model inherits the chat model's API
-key. The `dev` and `docker` profiles verify distractors on a local Ollama model instead
-(`kg.testgen.verification.provider=ollama`), so that pass needs no API key.
+key. All profiles verify distractors with OpenAI `gpt-4.1`. Setting `kg.testgen.verification.provider=ollama` moves
+that pass to the local Ollama model, which needs no API key but judged distractors unreliably (ADR003).
 
 ## Docker Compose
 
 The compose file lives in [`local-development/`](../../local-development/README.md), with the repository root as the
 app's build context (`..`). The app service is in the `full` compose profile, so a plain `up` starts only the backing
 services, and `docker compose -f local-development/docker-compose.yml --profile full up --build` also starts the app.
+Ollama is in the `ollama` compose profile and starts only with `--profile ollama`.
 All services join the `knowgauge-network` bridge:
 
 | Service | Image | Ports | Volume |
@@ -66,18 +91,18 @@ All services join the `knowgauge-network` bridge:
 | `postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` |
 | `postgres-vectors` | `pgvector/pgvector:pg15` | 5433→5432 | `postgres_vectors_data` |
 | `minio` | `minio/minio:latest` | 9000 (S3), 9001 (console) | `minio_data` |
-| `ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` |
-| `ollama-pull` (one-shot) | `ollama/ollama:latest` | – | – (pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits) |
+| `ollama` (profile `ollama`) | `ollama/ollama:latest` | 11434 | `ollama_data` |
+| `ollama-pull` (profile `ollama`, one-shot) | `ollama/ollama:latest` | – | – (pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits) |
 | app (`knowgauge-service`, profile `full`) | built from `Dockerfile` | 8080, 5005 (JDWP, `suspend=n`) | – |
 
 Every long-running service has a healthcheck. The app `depends_on` the databases and MinIO with
-`condition: service_healthy`, and on `ollama-pull` with `condition: service_completed_successfully`. Its own
-healthcheck polls `/actuator/health/readiness`. The app uses `SPRING_PROFILES_ACTIVE=docker`, and the compose file
-sets the datasource URLs and credentials through env vars (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_*`, `KG_STORAGE_*`, `OPENAI_API_KEY`, `KG_OLLAMA_BASE_URL`,
-`KG_TESTGEN_VERIFICATION_CHATMODEL_OLLAMA_MODEL`).
+`condition: service_healthy`. Its own healthcheck polls `/actuator/health/readiness`. The app uses
+`SPRING_PROFILES_ACTIVE=local`, and the compose file overrides the `localhost` values with the service hostnames
+through env vars, which take precedence over properties files (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_*`,
+`KG_STORAGE_ENDPOINT`/`ACCESSKEY`/`SECRETKEY`, `OPENAI_API_KEY`, `KG_TESTGEN_VERIFICATION_*`).
 
 For local development in the IDE, run only the backing services
-(`docker compose -f local-development/docker-compose.yml up -d`) and start the app with `-Dspring.profiles.active=dev` (see `.vscode/launch.json`).
+(`docker compose -f local-development/docker-compose.yml up -d`) and start the app with `-Dspring.profiles.active=local` (see `.vscode/launch.json`).
 
 ## Build & image
 
@@ -87,15 +112,16 @@ For local development in the IDE, run only the backing services
   Lombok-generated accessors.
 - Multi-stage `Dockerfile`: copy all module POMs and run `mvn validate` to warm the cache layer, copy the sources,
   run `mvn -DskipTests clean package`, and copy `knowgauge-service-rest-api/target/*.jar` into a
-  `temurin:21-jre-alpine` runtime image.
+  `temurin:21-jre-alpine` runtime image. The image sets `SPRING_PROFILES_ACTIVE=prod`.
 - **Adding a module** means updating the root `<modules>`, the `Dockerfile` POM `COPY` list and the `rest-api`
   dependencies.
 
 ## Observability
 
-- Logs: SLF4J/Logback. `com.knowgauge` logs at DEBUG in dev/docker. Ingestion and generation steps log progress
+- Logs: SLF4J/Logback. `com.knowgauge` logs at DEBUG in `local` and `test`, `KG_LOG_LEVEL` (default INFO) in `prod`. Ingestion and generation steps log progress
   lines prefixed with `***` (start and end) and indented step messages. Validators log each rejection with its
   reason. LLM calls log token usage and finish reason.
 - Actuator: health (liveness/readiness), metrics, env, beans, loggers. `env` and `beans` are exposed with no auth,
-  which is only acceptable locally.
+  which is only acceptable locally; `prod` exposes only `health,info,metrics` unless `KG_ACTUATOR_ENDPOINTS` says
+  otherwise.
 - There is no correlation ID, tracing or metrics for LLM cost yet (on the backlog).

@@ -67,7 +67,7 @@ Review actions are allowed while the test is `GENERATED`, `REQUIRES_REVIEW` or `
   "promptTemplateId": "mcq-default",
   "generationParams": {
     "temperature": 0.2, "maxOutputTokens": 1200,
-    "verificationModel": "gpt-4.1", "verificationTemperature": 0, "verificationMaxOutputTokens": 800
+    "verificationModel": "gpt-4.1", "verificationTemperature": 0, "verificationMaxOutputTokens": 2000
   }
 }
 ```

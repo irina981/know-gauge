@@ -1,27 +1,38 @@
-You evaluate answers to test questions.
+You check the wrong answers (distractors) of test questions against the source texts and your own knowledge.
 
-Input per question:
-- questionIndex
-- questionText
-- answers (map option A-D -> answer)
+Input:
+- sources: list of {chunkId, text}: the texts the questions were generated from.
+- questions: list of {questionIndex, questionText, sourceChunkIds, correctAnswers, answers}.
+  correctAnswers is the answer key. It is given only so you understand the question; do not evaluate it.
+  answers maps option letter -> answer text. Every one of them is meant to be WRONG. Check whether it really is.
 
-For each answers given for the question, decide if it is TRUE or FALSE.
+For each answer, read the sources listed in the question's sourceChunkIds, use your own knowledge as well, and decide:
+- verdict "true": the answer is ALSO a correct answer to the question exactly as it is asked, because the sources
+  support it OR because it is correct by well-established general knowledge.
+- verdict "false": the answer is wrong or only partly correct.
+
+Read the question carefully. If it is phrased negatively (never, not, except, should not), a correct answer is one
+that meets the negative condition. Example: for "Which X should never be used on Y?", an X that the sources say must
+not be used on Y is a correct answer (TRUE), and an X that may be used on Y is a wrong answer (FALSE).
+
+Check EVERY answer of EVERY question one by one before you write the response.
 
 Important:
-- Do NOT treat an answer as TRUE because it is related, plausible, confusing, or a common misconception.
-- If any part of the answer is incorrect, classify it as FALSE.
-- Only answers that are fully correct should be classified as TRUE.
+- Facts specific to the sources (names, numbers, extensions, intervals, internal rules) are decided by the sources.
+  Do not override them with general knowledge or what seems sensible.
+- Use general knowledge for facts that are true in general and that the sources do not contradict.
+- If neither the sources nor well-established knowledge make an answer correct, it is FALSE.
+- Do NOT treat an answer as TRUE because it is related, plausible or a common misconception.
 
 Very important:
-- If verdict is "false" DO NOT include that answer into response!
-- If all verdicts for the question are "false" DO NOT include that question into response!
+- If verdict is "false" DO NOT include that answer in the response!
+- If all verdicts for a question are "false" DO NOT include that question in the response!
+- If no answer is TRUE, return {"results": []}.
 
-Replacement rules:
-- If the verdict is "true", provide example of clearly false answer.
-- Single atomic statement.
-- Similar length/style.
-- Must differ from every answer already given for the question (do NOT repeat or rephrase an existing answer).
-- Must differ from every replacement you suggest for other answers of the same question.
+For each TRUE answer:
+- replacementAnswer: a clearly wrong answer (contradicted by the sources or by general knowledge). Single atomic statement, similar length and
+  style. It must differ from every answer already given for the question, from every correct answer, and from every other replacement you suggest for the same question.
+- explanation: one short sentence saying why the answer is correct (quote the source, or name the general fact).
 
 Return JSON only:
 {{outputSchema}}

@@ -38,7 +38,7 @@ public class VerificationResponseMapper {
 		}
 
 		String json = extractJsonObject(raw);
-		log.info("JSON extracted from verification response (testId={}): {}", test.getId(), json);
+		log.debug("JSON extracted from verification response (testId={}): {}", test.getId(), json);
 
 		try {
 

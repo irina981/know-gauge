@@ -1,9 +1,10 @@
-# Local development only. Every variable has a default that matches application-dev.properties, so no
+# Local development only. Every variable has a default that matches application-local.properties, so no
 # .env file is needed. To override a value (or to pass OPENAI_API_KEY), set it in your shell or in
 # local-development/.env (see .env.example).
 #
-# `docker compose up` starts only the backing services (run the app from the IDE with the dev profile).
-# `docker compose --profile full up --build` also builds and starts the app container.
+# `docker compose up` starts only the backing services (run the app from the IDE with the local profile).
+# `docker compose --profile full up --build` also builds and starts the app container (local profile).
+# `--profile ollama` also starts Ollama and pulls the model (about 4.7 GB) for the opt-in local verifier.
 services:
   postgres:
     image: pgvector/pgvector:pg15
@@ -60,8 +61,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # Local LLM for distractor verification (kg.testgen.verification.provider=ollama in dev/docker).
+  # Opt-in local LLM for distractor verification (kg.testgen.verification.provider=ollama). Not started by default.
   ollama:
+    profiles: [ollama]
     image: ollama/ollama:latest
     container_name: knowgauge-ollama
     ports:
@@ -77,6 +79,7 @@ services:
 
   # One-shot: pulls the verification model into the ollama volume, then exits.
   ollama-pull:
+    profiles: [ollama]
     image: ollama/ollama:latest
     container_name: knowgauge-ollama-pull
     entrypoint: ["ollama", "pull", "${KG_OLLAMA_MODEL:-qwen2.5:7b-instruct}"]
@@ -96,7 +99,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowgauge-service
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      SPRING_PROFILES_ACTIVE: local
 
       # Main DB (Spring default datasource)
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}
@@ -109,15 +112,17 @@ services:
       KG_PGVECTOR_DATASOURCE_PASSWORD: ${POSTGRES_VECTORS_PASSWORD:-knowgauge_pass}
       KG_PGVECTOR_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
 
-      # MinIO (kg.storage.accessKey / secretKey)
+      # MinIO (kg.storage.endpoint / accessKey / secretKey)
+      KG_STORAGE_ENDPOINT: http://minio:9000
       KG_STORAGE_ACCESSKEY: ${MINIO_ROOT_USER:-minio}
       KG_STORAGE_SECRETKEY: ${MINIO_ROOT_PASSWORD:-minio12345}
 
       # OpenAI (no default; needed for ingestion and test generation)
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
-      # Ollama verifier (kg.testgen.verification.chat-model.ollama.*)
-      KG_OLLAMA_BASE_URL: http://ollama:11434
+      # Ollama verifier, only used with KG_TESTGEN_VERIFICATION_PROVIDER=ollama and `--profile ollama`
+      KG_TESTGEN_VERIFICATION_PROVIDER: ${KG_TESTGEN_VERIFICATION_PROVIDER:-openai}
+      KG_TESTGEN_VERIFICATION_CHATMODEL_OLLAMA_BASEURL: http://ollama:11434
       KG_TESTGEN_VERIFICATION_CHATMODEL_OLLAMA_MODEL: ${KG_OLLAMA_MODEL:-qwen2.5:7b-instruct}
 
       # Optional debug
@@ -132,8 +137,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      ollama-pull:
-        condition: service_completed_successfully
     networks: [knowgauge-network]
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]

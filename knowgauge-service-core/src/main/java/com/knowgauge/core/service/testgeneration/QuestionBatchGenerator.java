@@ -157,7 +157,7 @@ public class QuestionBatchGenerator {
 				req.batchIndex(), verificationPromptBuilder.getTemplateId(), req.chunkIds());
 		LlmVerificationResult result;
 		try {
-			String prompt = verificationPromptBuilder.buildPrompt(questions, batchTest);
+			String prompt = verificationPromptBuilder.buildPrompt(questions, batchTest, req.chunks());
 			result = verificationService.verify(prompt, batchTest, questions);
 		} catch (RuntimeException ex) {
 			result = new LlmVerificationResult(0, null, ex.getMessage());

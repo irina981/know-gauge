@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.exception.StorageAuthException;
 import com.knowgauge.core.exception.StorageBadRequestException;
+import com.knowgauge.core.exception.StorageException;
 import com.knowgauge.core.exception.StorageNotFoundException;
 import com.knowgauge.core.exception.StorageUnavailableException;
 import com.knowgauge.core.exception.StorageUnexpectedException;
@@ -114,20 +115,29 @@ public class MinIoStorageService implements StorageService {
 		}
 	}
 
+	// Fallback return types must match the guarded method, otherwise Resilience4j ignores the fallback.
 	private StoredObject putFallback(String objectKey, InputStream in, long size, String contentType, Throwable t) {
-		throw new StorageUnavailableException("MinIO PUT failed for key=" + objectKey, t);
+		throw fallbackException("MinIO PUT failed for key=" + objectKey, t);
 	}
 
-	private StoredObject deleteFallback(String objectKey, Throwable t) {
-		throw new StorageUnavailableException("MinIO DELETE failed for key=" + objectKey, t);
+	private void deleteFallback(String objectKey, Throwable t) {
+		throw fallbackException("MinIO DELETE failed for key=" + objectKey, t);
 	}
-	
-	private StoredObject downloadFallback(String objectKey, Throwable t) {
-		throw new StorageUnavailableException("MinIO GET failed for key=" + objectKey, t);
+
+	private InputStream downloadFallback(String objectKey, Throwable t) {
+		throw fallbackException("MinIO GET failed for key=" + objectKey, t);
 	}
-	
-	private StoredObject downloadToStreamFallback(String objectKey, OutputStream out, Throwable t) {
-		throw new StorageUnavailableException("MinIO GET failed for key=" + objectKey, t);
+
+	private void downloadToStreamFallback(String objectKey, OutputStream out, Throwable t) {
+		throw fallbackException("MinIO GET failed for key=" + objectKey, t);
+	}
+
+	// Keep typed storage errors (not found, auth, bad request) so callers can still tell them apart.
+	private RuntimeException fallbackException(String message, Throwable t) {
+		if (t instanceof StorageException se) {
+			return se;
+		}
+		return new StorageUnavailableException(message, t);
 	}
 
 	private RuntimeException translate(Exception e) {

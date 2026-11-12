@@ -1,6 +1,6 @@
 # Demo content
 
-Sources for the sample documents that the `dev` and `docker` profiles upload at startup (`DevDocumentSeeder`).
+Sources for the sample documents that the `local` profile uploads at startup (`DevDocumentSeeder`).
 
 | Folder | Topic (`R__dev_seed_topics.sql`) | Content |
 |---|---|---|
