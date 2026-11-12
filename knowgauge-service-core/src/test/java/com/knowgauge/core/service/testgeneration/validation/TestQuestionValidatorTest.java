@@ -57,6 +57,40 @@ class TestQuestionValidatorTest {
 	}
 
 	@Test
+	void suggestionRepeatingAnExistingOptionIsDroppedButFlagKept() {
+		TestQuestionVersion v = QuestionFixtures.defaultVersion();
+		v.getOption(OptionLetter.B).flag(" treeset ", "r"); // C is "TreeSet"
+		TestQuestion q = QuestionFixtures.draft(v);
+
+		List<TestQuestion> valid = validator.validateAndNormalize(List.of(q), singleCorrectTest, List.of(), 0,
+				TestQuestionValidator.postLlmStrategies());
+
+		assertThat(valid).hasSize(1);
+		TestQuestionOption flagged = q.getOption(q.getFlaggedOptions().get(0));
+		assertThat(flagged.getText()).isEqualTo("HashMap");
+		assertThat(flagged.getSuggestedText()).isNull();
+		assertThat(flagged.getFlagReason()).isEqualTo("r");
+		assertThat(v.isFixApplicable()).isFalse();
+	}
+
+	@Test
+	void suggestionEqualToOwnTextOrAnotherSuggestionIsDropped() {
+		TestQuestionVersion v = QuestionFixtures.defaultVersion();
+		v.getOption(OptionLetter.B).flag("HashMap", "r"); // same as its own text
+		v.getOption(OptionLetter.C).flag("ArrayDeque", "r");
+		v.getOption(OptionLetter.D).flag("arraydeque", "r"); // same as C's suggestion
+		TestQuestion q = QuestionFixtures.draft(v);
+
+		validator.validateAndNormalize(List.of(q), singleCorrectTest, List.of(), 0,
+				TestQuestionValidator.postLlmStrategies());
+
+		List<String> kept = q.getOptions().values().stream().map(TestQuestionOption::getSuggestedText)
+				.filter(s -> s != null).toList();
+		assertThat(kept).containsExactly("ArrayDeque");
+		assertThat(q.getFlaggedOptions()).hasSize(3);
+	}
+
+	@Test
 	void malformedQuestionsAreDiscardedByPreValidation() {
 		TestQuestion tooShort = QuestionFixtures
 				.draft(QuestionFixtures.version("Short?", Set.of(OptionLetter.A), "a1", "b1", "c1", "d1"));

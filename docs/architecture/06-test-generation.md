@@ -173,6 +173,7 @@ Correctness is always read from the answer key (`option.correct`); **verifier fl
 | `COUNT_REVEALING` | ✔ | ✔ | Multi-correct question text must not match `(which|select|choose) (two|three|four|\d+)` |
 | `DEDUPE` | ✔ | ✔ | Key = normalized question + sorted normalized options (order-independent), within the batch |
 | `CORRECT_OPTIONS_CARDINALITY` | ✔ | ✔ | `SINGLE_CORRECT` → exactly 1 correct option. Otherwise ≥1 |
+| `DUPLICATE_SUGGESTIONS` |  | ✔ | Never rejects. Clears a verifier suggestion that matches any option's text (its own included) or another suggestion; the flag stays, so Accept fix is unavailable and the reviewer regenerates or edits |
 | `SHUFFLE_AND_REMAP` |  | ✔ | Shuffles the option **objects** randomly and reassigns their letters, so the answer key and flags move with the text |
 | `POST_SHUFFLE_SANITY` |  | ✔ | Re-checks the structure, duplicates, bundling and count-revealing rules |
 | `MULTI_CORRECT_QUOTA` |  | ✔ | For `MULTIPLE_CORRECT`, the batch must contain at least `minMultipleCorrectQuestionsCount` questions with ≥2 correct options, **otherwise the whole batch is discarded** (counts as zero progress) |

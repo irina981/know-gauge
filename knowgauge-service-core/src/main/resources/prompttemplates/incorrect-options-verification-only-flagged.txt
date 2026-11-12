@@ -20,6 +20,8 @@ Replacement rules:
 - If the verdict is "true", provide example of clearly false answer.
 - Single atomic statement.
 - Similar length/style.
+- Must differ from every answer already given for the question (do NOT repeat or rephrase an existing answer).
+- Must differ from every replacement you suggest for other answers of the same question.
 
 Return JSON only:
 {{outputSchema}}

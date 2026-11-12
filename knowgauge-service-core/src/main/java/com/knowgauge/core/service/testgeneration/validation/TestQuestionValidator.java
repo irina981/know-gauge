@@ -63,7 +63,11 @@ public class TestQuestionValidator {
 
 	public enum ValidationStrategy {
 		NORMALIZE_FIELDS, STRUCTURE, GROUNDING, BUNDLED_OPTIONS, COUNT_REVEALING, DEDUPE, CORRECT_OPTIONS_CARDINALITY,
-		SHUFFLE_AND_REMAP, POST_SHUFFLE_SANITY, MULTI_CORRECT_QUOTA
+		/**
+		 * Drops verifier suggestions that repeat an option of the question (or another
+		 * suggestion). Never rejects: the flag stays, only the suggestion is removed.
+		 */
+		DUPLICATE_SUGGESTIONS, SHUFFLE_AND_REMAP, POST_SHUFFLE_SANITY, MULTI_CORRECT_QUOTA
 	}
 
 	public TestQuestionValidator() {
@@ -85,7 +89,8 @@ public class TestQuestionValidator {
 	public static List<ValidationStrategy> postLlmStrategies() {
 		return List.of(ValidationStrategy.NORMALIZE_FIELDS, ValidationStrategy.STRUCTURE, ValidationStrategy.GROUNDING,
 				ValidationStrategy.BUNDLED_OPTIONS, ValidationStrategy.COUNT_REVEALING, ValidationStrategy.DEDUPE,
-				ValidationStrategy.CORRECT_OPTIONS_CARDINALITY, ValidationStrategy.SHUFFLE_AND_REMAP,
+				ValidationStrategy.CORRECT_OPTIONS_CARDINALITY, ValidationStrategy.DUPLICATE_SUGGESTIONS,
+				ValidationStrategy.SHUFFLE_AND_REMAP,
 				ValidationStrategy.POST_SHUFFLE_SANITY, ValidationStrategy.MULTI_CORRECT_QUOTA);
 	}
 
@@ -250,6 +255,9 @@ public class TestQuestionValidator {
 				return r;
 			}
 		}
+		if (s.contains(ValidationStrategy.DUPLICATE_SUGGESTIONS)) {
+			dropDuplicateSuggestions(question, test);
+		}
 		if (s.contains(ValidationStrategy.SHUFFLE_AND_REMAP)) {
 			shuffleOptions(question);
 		}
@@ -395,6 +403,33 @@ public class TestQuestionValidator {
 			return "correct options cardinality not satisfied - question has no correct option";
 		}
 		return null;
+	}
+
+	/**
+	 * Removes a flagged option's suggestion when it matches the text of any option
+	 * of the question (its own included) or a suggestion already kept for an
+	 * earlier option. Accepting such a fix would create duplicate options. The flag
+	 * and its reason stay, so the question still needs review (regenerate or edit).
+	 */
+	private void dropDuplicateSuggestions(TestQuestion q, Test test) {
+		Set<String> taken = new HashSet<>();
+		for (OptionLetter letter : OptionLetter.values()) {
+			String text = optionText(q, letter);
+			if (!isBlank(text)) {
+				taken.add(normKey(text));
+			}
+		}
+		for (OptionLetter letter : OptionLetter.values()) {
+			TestQuestionOption option = q.getOption(letter);
+			if (option == null || !option.hasUsableSuggestion()) {
+				continue;
+			}
+			if (!taken.add(normKey(option.getSuggestedText()))) {
+				log.warn("Test {} - Dropped duplicate suggestion '{}' for flagged option {} in question '{}'",
+						test.getId(), option.getSuggestedText(), letter, preview(q.getQuestionText()));
+				option.setSuggestedText(null);
+			}
+		}
 	}
 
 	private boolean multiCorrectQuotaMet(List<TestQuestion> questions, int required) {
