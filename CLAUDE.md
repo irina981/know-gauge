@@ -126,7 +126,7 @@ Compose files and `.env.example` live in [`local-development/`](local-developmen
   can take a long time.
 - Most failures inside `ingest()`/`generate()` are wrapped in `RuntimeException`, so they return 500 whatever the
   typed handler would map.
-- Dev/docker profiles seed a fixed topic tree (`R__dev_seed_topics.sql`, tenant 1) and upload 4 PDFs from
+- Dev/docker profiles seed a fixed topic tree (`R__dev_seed_topics.sql`, tenant 1) and upload the sample PDFs from
   `resources/devdocs/` at startup (`kg.dev.seed.enabled=true`). The seeder also creates the MinIO bucket. Other
   profiles must create it beforehand.
 - Audit `createdBy`/`updatedBy` are hard-coded to `1` in `AuditableEntity` (`@PrePersist`).

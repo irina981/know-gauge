@@ -29,7 +29,7 @@ profile needs real implementations first.
 | `kg.pgvector.datasource.*` | `PgVectorJpaConfig` | `url` / `jdbc-url`, `username`, `password`, `driver-class-name` |
 | `kg.pgvector.flyway.*` | `PgVectorFlywayConfig` | `enabled`, `locations`, `schemas` |
 | `kg.pgvector.jpa.*` | (declared but not read by the vector EMF) | `hibernate.ddl-auto`, `show-sql`, … |
-| `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads 4 PDFs from `resources/devdocs/` under the fixed seed topics (dev/docker only) |
+| `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (dev/docker only) |
 
 Property-name styles are mixed (`camelCase` in `kg.chunking`/`kg.storage` timeouts, `kebab-case` elsewhere).
 Spring relaxed binding accepts both for `@ConfigurationProperties`, but `@Value` needs the exact form.
