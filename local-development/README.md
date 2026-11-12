@@ -35,7 +35,7 @@ named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 | `postgres` | `knowgauge-postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` | Main database: topics, documents, chunks, tests, questions, attempts, generation runs. Schema created by Flyway on app startup |
 | `postgres-vectors` | `knowgauge-postgres-vectors` | `pgvector/pgvector:pg15` | 5433 → 5432 | `postgres_vectors_data` | Vector database: chunk embeddings (`vector(1536)`) used for retrieval |
 | `minio` | `knowgauge-minio` | `minio/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
-| `knowgauge-service` | `knowgauge-service` | built from the root `Dockerfile` | 8080 (HTTP), 5005 (JDWP debugger) | – | The Spring Boot app, run with the `docker` profile. Starts only after the other three are healthy |
+| `knowgauge-service` | `knowgauge-service` | built from the root `Dockerfile` | 8080 (HTTP), 5005 (JDWP debugger) | – | The Spring Boot app, run with the `docker` profile. Only in the `full` compose profile (see option 2). Starts only after the other services are healthy |
 
 The database and MinIO credentials come from `POSTGRES_*`, `POSTGRES_VECTORS_*` and `MINIO_ROOT_*` (defaults
 above). The app also needs `OPENAI_API_KEY` for embeddings and test generation.
@@ -51,10 +51,10 @@ the ingestion endpoint for each document before generating tests. The onboarding
 This is the usual setup while coding. Start the databases and MinIO in Docker, then run the app locally with the
 `dev` profile, which points at `localhost:5432`, `localhost:5433` and `localhost:9000`.
 
-From the repository root:
+A plain `up` starts every service except the app, which sits in the `full` compose profile. From the repository root:
 
 ```bash
-docker compose -f local-development/docker-compose.yml up -d postgres postgres-vectors minio
+docker compose -f local-development/docker-compose.yml up -d
 ```
 
 ```bash
@@ -68,8 +68,10 @@ environment. The VS Code launch configuration loads it from `local-development/.
 
 From the repository root:
 
+Enable the `full` profile to also build and start the app container:
+
 ```bash
-docker compose -f local-development/docker-compose.yml up --build
+docker compose -f local-development/docker-compose.yml --profile full up --build
 ```
 
 Compose builds the app image with the repository root as the build context. The service is ready once its
@@ -97,11 +99,11 @@ docker compose -f local-development/docker-compose.yml logs -f knowgauge-service
 ```
 
 ```bash
-docker compose -f local-development/docker-compose.yml down
+docker compose -f local-development/docker-compose.yml --profile full down
 ```
 
 ```bash
-docker compose -f local-development/docker-compose.yml down -v
+docker compose -f local-development/docker-compose.yml --profile full down -v
 ```
 
-The last command also deletes the volumes, so the databases and stored files start empty next time.
+Pass `--profile full` to `down` so it also removes the app container. The last command also deletes the volumes, so the databases and stored files start empty next time.

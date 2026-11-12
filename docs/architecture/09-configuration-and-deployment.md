@@ -54,22 +54,23 @@ The `dev` profile has local credentials hard-coded (`knowgauge_user/knowgauge_pa
 ## Docker Compose
 
 The compose file lives in [`local-development/`](../../local-development/README.md), with the repository root as the
-app's build context (`..`). `docker compose -f local-development/docker-compose.yml up --build` starts four services
-on the `knowgauge-network` bridge:
+app's build context (`..`). The app service is in the `full` compose profile, so a plain `up` starts only the backing
+services, and `docker compose -f local-development/docker-compose.yml --profile full up --build` also starts the app.
+All services join the `knowgauge-network` bridge:
 
 | Service | Image | Ports | Volume |
 |---|---|---|---|
 | `postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` |
 | `postgres-vectors` | `pgvector/pgvector:pg15` | 5433→5432 | `postgres_vectors_data` |
 | `minio` | `minio/minio:latest` | 9000 (S3), 9001 (console) | `minio_data` |
-| app (`knowgauge-service`) | built from `Dockerfile` | 8080, 5005 (JDWP, `suspend=n`) | – |
+| app (`knowgauge-service`, profile `full`) | built from `Dockerfile` | 8080, 5005 (JDWP, `suspend=n`) | – |
 
 Every service has a healthcheck. The app `depends_on` the other three with `condition: service_healthy`, and its own
 healthcheck polls `/actuator/health/readiness`. The app uses `SPRING_PROFILES_ACTIVE=docker`, and the compose file
 sets the datasource URLs and credentials through env vars (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_*`, `KG_STORAGE_*`, `OPENAI_API_KEY`).
 
 For local development in the IDE, run only the backing services
-(`docker compose -f local-development/docker-compose.yml up postgres postgres-vectors minio`) and start the app with `-Dspring.profiles.active=dev` (see `.vscode/launch.json`).
+(`docker compose -f local-development/docker-compose.yml up -d`) and start the app with `-Dspring.profiles.active=dev` (see `.vscode/launch.json`).
 
 ## Build & image
 

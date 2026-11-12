@@ -20,9 +20,9 @@ Java 21 · Spring Boot 3.5.16 · Maven multi-module (no wrapper; use a local `mv
 
 ```bash
 mvn clean install -DskipTests                                    # build all modules
-docker compose -f local-development/docker-compose.yml up -d postgres postgres-vectors minio   # backing services only
+docker compose -f local-development/docker-compose.yml up -d   # backing services only (default)
 mvn -pl knowgauge-service-rest-api spring-boot:run -Dspring-boot.run.profiles=dev   # run app locally
-docker compose -f local-development/docker-compose.yml up --build   # everything in containers (profile: docker)
+docker compose -f local-development/docker-compose.yml --profile full up --build   # app in a container too (Spring profile: docker)
 ```
 
 Compose files and `.env.example` live in [`local-development/`](local-development/README.md).

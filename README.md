@@ -128,11 +128,11 @@ The easiest way to run the application with all dependencies:
 
 ```bash
 export OPENAI_API_KEY=sk-...   # or put it in local-development/.env (optional)
-docker compose -f local-development/docker-compose.yml up --build
+docker compose -f local-development/docker-compose.yml --profile full up --build
 ```
 
-See [local-development/README.md](local-development/README.md) for details, including how to start only the
-backing services and run the app from the IDE.
+Without `--profile full`, compose starts only the backing services. See
+[local-development/README.md](local-development/README.md) for details, including how to run the app from the IDE.
 
 This will start 4 containers:
 - **postgres**: Main PostgreSQL database for storing application domain objects (port 5432)

@@ -1,6 +1,9 @@
 # Local development only. Every variable has a default that matches application-dev.properties, so no
 # .env file is needed. To override a value (or to pass OPENAI_API_KEY), set it in your shell or in
 # local-development/.env (see .env.example).
+#
+# `docker compose up` starts only the backing services (run the app from the IDE with the dev profile).
+# `docker compose --profile full up --build` also builds and starts the app container.
 services:
   postgres:
     image: pgvector/pgvector:pg15
@@ -58,6 +61,7 @@ services:
       retries: 5
 
   knowgauge-service:
+    profiles: [full]
     image: knowgauge-service
     build:
       context: ..
