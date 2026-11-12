@@ -12,7 +12,7 @@ import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.model.enums.TestCoverageMode;
 import com.knowgauge.core.model.enums.TestDifficulty;
 import com.knowgauge.core.model.enums.TestStatus;
-import com.vladmihalcea.hibernate.type.json.JsonType;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

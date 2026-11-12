@@ -8,7 +8,7 @@ import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.Type;
 
 import com.knowgauge.core.model.enums.VersionOrigin;
-import com.vladmihalcea.hibernate.type.json.JsonType;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

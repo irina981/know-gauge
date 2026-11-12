@@ -37,8 +37,10 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>21</java.version>
 		<maven.compiler.release>21</maven.compiler.release>
-		<spring-boot.version>3.2.1</spring-boot.version>
-		<lombok.version>1.18.30</lombok.version>
+		<spring-boot.version>3.5.16</spring-boot.version>
+		<lombok.version>1.18.46</lombok.version>
+		<!-- Must match the Hibernate version managed by Spring Boot (hibernate-vector is not managed by Boot) -->
+		<hibernate.version>6.6.53.Final</hibernate.version>
 	</properties>
 
 	<dependencyManagement>

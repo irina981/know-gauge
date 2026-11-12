@@ -6,7 +6,7 @@ import org.hibernate.annotations.Type;
 
 import com.knowgauge.core.model.enums.GenerationRunPurpose;
 import com.knowgauge.core.model.enums.GenerationRunStatus;
-import com.vladmihalcea.hibernate.type.json.JsonType;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

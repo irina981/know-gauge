@@ -54,10 +54,16 @@
 			<artifactId>flyway-core</artifactId>
 		</dependency>
 
+		<!-- Flyway 10+ ships database support as separate modules -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.hibernate.orm</groupId>
 			<artifactId>hibernate-vector</artifactId>
-			<version>6.4.1.Final</version>
+			<version>${hibernate.version}</version>
 		</dependency>
 
 	</dependencies>
