@@ -29,8 +29,9 @@ Compose files and `.env.example` live in [`local-development/`](local-developmen
 
 - A Spring profile is **required**: `dev` (localhost ports 5432/5433/9000) or `docker`. Without one, no
   `CurrentTenantProvider` bean exists and startup fails.
-- `OPENAI_API_KEY` must be set in the environment (or in `local-development/.env` for compose; copy
-  `local-development/.env.example`).
+- `OPENAI_API_KEY` must be set in the environment (or in `local-development/.env` for compose). Compose is for
+  local development only and needs no `.env`: every other variable defaults to the `application-dev.properties`
+  values. Keep those defaults in sync when changing dev credentials.
 - Swagger UI: http://localhost:8080/swagger-ui.html · health: `/actuator/health`.
 - Unit tests exist for the core (`knowgauge-service-core/src/test/java`: question model, validator, review
   services). Run them with `mvn -pl knowgauge-service-core test`. They also run on newer local JDKs (tested

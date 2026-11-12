@@ -5,19 +5,25 @@ This folder holds the Docker Compose setup for running KnowGauge on your machine
 | File | Purpose |
 |---|---|
 | `docker-compose.yml` | The backing services and the containerised app |
-| `.env.example` | Template for the environment variables that Compose and the app read |
-| `.env` | Your local copy of `.env.example` (gitignored, never commit it) |
+| `.env.example` | Optional overrides for the variables `docker-compose.yml` reads |
+| `.env` | Optional local copy of `.env.example` (gitignored, never commit it) |
 
 ## Setup
 
-Copy the template and fill in your OpenAI key:
+This setup is for local development only, so no `.env` file is required. Every variable in `docker-compose.yml`
+has a default that matches `application-dev.properties`:
 
-```bash
-cp local-development/.env.example local-development/.env
-```
+| Variable | Default |
+|---|---|
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `knowgauge` / `knowgauge_user` / `knowgauge_pass` |
+| `POSTGRES_VECTORS_DB` / `POSTGRES_VECTORS_USER` / `POSTGRES_VECTORS_PASSWORD` | `knowgauge_vectors` / `knowgauge_user` / `knowgauge_pass` |
+| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | `minio` / `minio12345` |
+| `OPENAI_API_KEY` | none (needed for ingestion and test generation) |
 
-Compose reads `.env` from this folder, both for `${...}` substitution in `docker-compose.yml` and through each
-service's `env_file`.
+The only value you need to supply is `OPENAI_API_KEY`, and only when running the app in a container. Set it in your
+shell, or copy `.env.example` to `.env` and put it there. Compose reads `.env` from this folder (if it exists) for
+`${...}` substitution, and shell variables take precedence. If you change a default, change
+`application-dev.properties` too, otherwise the app run from the IDE can't connect.
 
 ## What gets started
 
@@ -31,8 +37,8 @@ named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 | `minio` | `knowgauge-minio` | `minio/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
 | `knowgauge-service` | `knowgauge-service` | built from the root `Dockerfile` | 8080 (HTTP), 5005 (JDWP debugger) | – | The Spring Boot app, run with the `docker` profile. Starts only after the other three are healthy |
 
-The database and MinIO credentials come from `.env` (`POSTGRES_*`, `POSTGRES_VECTORS_*`, `MINIO_ROOT_*`). The
-app also needs `OPENAI_API_KEY` for embeddings and test generation.
+The database and MinIO credentials come from `POSTGRES_*`, `POSTGRES_VECTORS_*` and `MINIO_ROOT_*` (defaults
+above). The app also needs `OPENAI_API_KEY` for embeddings and test generation.
 
 With the `docker` (and `dev`) profile the app seeds a fixed topic tree, creates the MinIO bucket and uploads four
 sample PDFs from `knowgauge-service-rest-api/src/main/resources/devdocs/` at startup.

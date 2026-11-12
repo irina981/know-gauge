@@ -36,15 +36,17 @@ Spring relaxed binding accepts both for `@ConfigurationProperties`, but `@Value`
 
 ## Secrets and environment variables
 
-The `local-development/.env` file is **gitignored**. `local-development/.env.example` is the template:
+Compose is for local development only, so every variable in `docker-compose.yml` has a `${VAR:-default}` fallback
+that matches `application-dev.properties`, and no `.env` file is required. `local-development/.env` (gitignored) is
+an optional override file; `local-development/.env.example` is its template:
 
-| Variable | Used for |
-|---|---|
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Main DB container and app datasource |
-| `POSTGRES_VECTORS_DB`, `POSTGRES_VECTORS_USER`, `POSTGRES_VECTORS_PASSWORD` | Vector DB container and `KG_PGVECTOR_DATASOURCE_*` |
-| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | MinIO container. The docker profile reads them as `kg.storage.accessKey/secretKey` |
-| `MINIO_BUCKET` | Informational (the app uses `kg.storage.bucket`) |
-| `OPENAI_API_KEY` | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
+| Variable | Default | Used for |
+|---|---|---|
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | `knowgauge`, `knowgauge_user`, `knowgauge_pass` | Main DB container and `SPRING_DATASOURCE_*` |
+| `POSTGRES_VECTORS_DB`, `POSTGRES_VECTORS_USER`, `POSTGRES_VECTORS_PASSWORD` | `knowgauge_vectors`, `knowgauge_user`, `knowgauge_pass` | Vector DB container and `KG_PGVECTOR_DATASOURCE_*` |
+| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `minio`, `minio12345` | MinIO container and `KG_STORAGE_ACCESSKEY/SECRETKEY` |
+| `MINIO_BUCKET` | – | Informational (the app uses `kg.storage.bucket`) |
+| `OPENAI_API_KEY` | none | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
 
 The `dev` profile has local credentials hard-coded (`knowgauge_user/knowgauge_pass`, `minio/minio12345`), but
 `OPENAI_API_KEY` must still be set in the environment. The verification model inherits the chat model's API key.
@@ -64,7 +66,7 @@ on the `knowgauge-network` bridge:
 
 Every service has a healthcheck. The app `depends_on` the other three with `condition: service_healthy`, and its own
 healthcheck polls `/actuator/health/readiness`. The app uses `SPRING_PROFILES_ACTIVE=docker`, and the compose file
-sets the datasource URLs and credentials through env vars (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_JDBC_URL`, …).
+sets the datasource URLs and credentials through env vars (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_*`, `KG_STORAGE_*`, `OPENAI_API_KEY`).
 
 For local development in the IDE, run only the backing services
 (`docker compose -f local-development/docker-compose.yml up postgres postgres-vectors minio`) and start the app with `-Dspring.profiles.active=dev` (see `.vscode/launch.json`).

@@ -124,7 +124,7 @@ mvn clean package
 The easiest way to run the application with all dependencies:
 
 ```bash
-cp local-development/.env.example local-development/.env   # then set OPENAI_API_KEY
+export OPENAI_API_KEY=sk-...   # or put it in local-development/.env (optional)
 docker compose -f local-development/docker-compose.yml up --build
 ```
 

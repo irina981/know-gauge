@@ -24,7 +24,6 @@ operability, not effort.
 | 15 | API | Service-level "not found" for topics and documents is mostly `IllegalArgumentException` → 400 (the single-resource GET/PUT endpoints already return 404) | Low | `ContentController`, services |
 | 16 | Startup | No `CurrentTenantProvider` or `CurrentUserProvider` outside the `dev`/`docker` profiles, so the context fails to start | High (prod) | `restapi/context` |
 | 17 | Config | `PgVectorJpaConfig` has `@EntityScan("com.knowgauge.pgvector.repo.jpa.entity")`, a stale package. It is harmless because the EMF sets `packagesToScan` explicitly. `kg.pgvector.jpa.*` properties are not applied | Low | `PgVectorJpaConfig` |
-| 18 | Compose | `APP_STORAGE_ACCESSKEY/SECRETKEY` env vars in `local-development/docker-compose.yml` don't map to any property. It works only because `application-docker.properties` reads `MINIO_ROOT_*` | Low | `local-development/docker-compose.yml` |
 
 ## Structural debt
 
