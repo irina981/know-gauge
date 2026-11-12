@@ -21,6 +21,7 @@ public class TestGenerationDefaultsProperties {
 	private String promptTemplateId;
 	private String generationModel;
 	private Integer chunksPerQuestion;
+	private Integer minChunksPerQuestion;
 	private Integer minChunksPerTest;
 	private Integer questionGenerationBatchSize;
 	private Integer minMultipleCorrectPercentage;
@@ -96,6 +97,14 @@ public class TestGenerationDefaultsProperties {
 
 	public void setChunksPerQuestion(Integer chunksPerQuestion) {
 		this.chunksPerQuestion = chunksPerQuestion;
+	}
+
+	public Integer getMinChunksPerQuestion() {
+		return minChunksPerQuestion;
+	}
+
+	public void setMinChunksPerQuestion(Integer minChunksPerQuestion) {
+		this.minChunksPerQuestion = minChunksPerQuestion;
 	}
 
 	public Integer getMinChunksPerTest() {

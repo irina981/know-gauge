@@ -28,6 +28,7 @@ import com.knowgauge.core.exception.EmbeddingRateLimitedException;
 import com.knowgauge.core.exception.EmbeddingUnavailableException;
 import com.knowgauge.core.exception.EmbeddingUnexpectedException;
 import com.knowgauge.core.exception.LlmResponseParsingException;
+import com.knowgauge.core.exception.InsufficientContextException;
 import com.knowgauge.core.exception.QuestionValidationException;
 import com.knowgauge.core.exception.RegenerationFailedException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
@@ -291,6 +292,14 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.BAD_REQUEST, request, ex);
 		log.warn("Question validation failed: {}", ex.getReasons());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+	}
+
+	@ExceptionHandler(InsufficientContextException.class)
+	public ResponseEntity<Object> handleInsufficientContextException(WebRequest request,
+			InsufficientContextException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.UNPROCESSABLE_ENTITY, request, ex);
+		log.warn("Insufficient context: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.UNPROCESSABLE_ENTITY, request);
 	}
 
 	@ExceptionHandler(RegenerationFailedException.class)

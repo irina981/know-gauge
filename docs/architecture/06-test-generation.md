@@ -32,6 +32,7 @@ sequenceDiagram
     G->>V: validateAndExpandTopicsAndDocuments
     G->>TX: persistTest → CREATED + event TEST_CREATED (actor = user)
     G->>R: retrieveTop(tenant, docIds, limit, coverageMode, avoidRepeats)
+    G->>G: fewer than questionCount × min-chunks-per-question chunks → InsufficientContextException (422)
     G->>CR: findByTenantIdAndIdIn(chunkIds)
     G->>TX: setUsedChunks(testId, chunkIds)
     loop until questionCount reached
@@ -49,7 +50,7 @@ sequenceDiagram
     else
         G->>TX: markTestGenerated + event
     end
-    Note over G,TX: on any exception: markTestFailed + event TEST_FAILED, then rethrow → HTTP 500
+    Note over G,TX: on any exception: markTestFailed + event TEST_FAILED, then rethrow → HTTP 500 (422 for InsufficientContextException)
 ```
 
 ## Step 0 – Defaults and draft validation
@@ -231,7 +232,9 @@ A flagged question passes validation unchanged (flags don't affect correctness),
 - Final status: `REQUIRES_REVIEW` if any question is `NEEDS_REVIEW`, otherwise `GENERATED`, each with an event.
   On failure the status is `FAILED` with `generationFailedAt`, `generationErrorMessage` and a `TEST_FAILED` event.
 - HTTP status: errors raised **before** `persistTest` (draft validation, `IllegalArgumentException`) return
-  **400**. Every error **after** it, including `FOCUSED` mode and `LlmResponseParsingException`, is wrapped by
+  **400**. `InsufficientContextException` (retrieval returned fewer than `questionCount × min-chunks-per-question`
+  chunks, including none) is rethrown as is and returns **422**; the test is still marked `FAILED`. Every other
+  error after `persistTest`, including `FOCUSED` mode and `LlmResponseParsingException`, is wrapped by
   `generate()` in a plain `RuntimeException` and returns **500**. The typed handlers (507/502, 400 for unsupported
   operations) therefore never fire for generation.
 
@@ -242,7 +245,8 @@ A flagged question passes validation unchanged (flags don't affect correctness),
 | `kg.testgen.defaults.question-count` | 10 | Questions per test |
 | `kg.testgen.defaults.question-generation-batch-size` | 5 | Questions per LLM call |
 | `kg.testgen.defaults.chunks-per-question` | 4 | Retrieval limit factor |
-| `kg.testgen.defaults.min-chunks-per-test` | 20 | Retrieval floor |
+| `kg.testgen.defaults.min-chunks-per-test` | 20 | Floor for the retrieval limit (not a minimum on the chunks returned) |
+| `kg.testgen.defaults.min-chunks-per-question` | 1 | Generation fails with 422 when retrieval returns fewer than `questionCount ×` this many chunks |
 | `kg.testgen.defaults.min-multiple-correct-percentage` | 50 | Multi-correct quota |
 | `kg.testgen.defaults.max-consecutive-zero-progress-batches` | 1 | Failure threshold |
 | `kg.testgen.defaults.generation-model` | `gpt-4.1` | Generation model |

@@ -19,7 +19,9 @@ List<ChunkEmbedding> retrieveTop(Long tenantId, Collection<Long> documentIds, in
 - `documentIds` is the expanded scope from `TestDraftValidator`: explicit documents plus the documents of the
   selected topics.
 - `limit = max(kg.testgen.defaults.min-chunks-per-test, questionCount × kg.testgen.defaults.chunks-per-question)`.
-  With the defaults (20, 4), a 10-question test asks for 40 chunks.
+  With the defaults (20, 4), a 10-question test asks for 40 chunks. This is a maximum: smaller documents return
+  fewer. `TestGenerationServiceImpl` then requires at least `questionCount × kg.testgen.defaults.min-chunks-per-question`
+  (default 1) chunks and fails with `InsufficientContextException` (422) otherwise.
 - `avoidRepeats` is passed through but **has no effect** yet (TODO in code and backlog).
 
 ## Algorithm

@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.context.ExecutionContext;
+import com.knowgauge.core.exception.InsufficientContextException;
 import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
@@ -19,7 +20,6 @@ import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.service.retrieving.RetrievingService;
 import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator.BatchRequest;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -103,6 +103,11 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 			log.info("*** Test generation {} - Completed with status {}", ready.getId(), ready.getStatus());
 			return ready;
 
+		} catch (InsufficientContextException ex) {
+			// Bad request rather than a server error: keep the typed exception (422)
+			tx.markTestFailed(tenantId, test.getId(), ex.getMessage());
+			log.info("    Test generation {} - Test marked FAILED, with message: {}.", test.getId(), ex.getMessage());
+			throw ex;
 		} catch (Exception ex) {
 			tx.markTestFailed(tenantId, test.getId(), ex.getMessage());
 			log.info("    Test generation {} - Test marked FAILED, with message: {}.", test.getId(), ex.getMessage());
@@ -116,12 +121,10 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private ChunksContext retrieveAndLoadChunks(Long tenantId, Test test, List<Long> documentIds, List<Long> topicIds) {
 		List<ChunkEmbedding> embeddings = retrievingService.retrieveTop(tenantId, documentIds,
 				recommendedChunkLimit(test), test.getCoverageMode(), Boolean.TRUE.equals(test.getAvoidRepeats()));
-		if (embeddings == null || embeddings.isEmpty()) {
-			throw new IllegalStateException("No relevant context chunks found (tenantId=" + tenantId + ", topicIds="
-					+ topicIds + ", documentIds=" + documentIds + ").");
-		}
-		List<Long> chunkIds = embeddings.stream().map(ChunkEmbedding::getChunkId).distinct().toList();
+		List<Long> chunkIds = embeddings == null ? List.of()
+				: embeddings.stream().map(ChunkEmbedding::getChunkId).distinct().toList();
 		log.info("    Test generation {} - Retrieved {} chunks: [{}]", test.getId(), chunkIds.size(), chunkIds);
+		requireEnoughChunks(test, chunkIds.size());
 
 		List<DocumentChunk> chunks = documentChunkRepository.findByTenantIdAndIdIn(tenantId, chunkIds);
 		if (chunks == null || chunks.isEmpty()) {
@@ -131,6 +134,18 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 		tx.setUsedChunks(tenantId, test.getId(), chunkIds);
 		return new ChunksContext(chunks, chunkIds);
+	}
+
+	/**
+	 * Fails when there are fewer than {@code min-chunks-per-question} chunks per
+	 * requested question.
+	 */
+	private void requireEnoughChunks(Test test, int available) {
+		int perQuestion = defaults.getMinChunksPerQuestion() != null ? defaults.getMinChunksPerQuestion() : 1;
+		int required = Math.max(1, test.getQuestionCount() * perQuestion);
+		if (available < required) {
+			throw new InsufficientContextException(available, required, test.getQuestionCount());
+		}
 	}
 
 	/**

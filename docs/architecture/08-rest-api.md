@@ -117,6 +117,7 @@ serialized as `{timestamp, path, status, error, message}`:
 | `ReviewConflictException` (stale version, test not reviewable, no fix to apply, test not publishable, unpublish with attempts) | 409 |
 | `QuestionValidationException` (manual replace; message lists every reason) | 400 |
 | `RegenerationFailedException` (nothing was changed) | 502 |
+| `InsufficientContextException` (test generation: fewer chunks than `questionCount × min-chunks-per-question`) | 422 |
 | `DataIntegrityViolationException`, `DuplicateDocumentName/ContentException` | 409 |
 | `StorageNotFound` / `StorageAuth` / `StorageBadRequest` / `StorageUnavailable` / `StorageUnexpected` | 404 / 401 / 400 / 503 / 500 |
 | `EmbeddingAuth` / `EmbeddingBadRequest` / `EmbeddingRateLimited` / `EmbeddingUnavailable` / `EmbeddingUnexpected` | 401 / 400 / 429 / 503 / 500 |
