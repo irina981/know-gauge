@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" role="img" aria-label="KnowGauge">
+  <defs>
+    <linearGradient id="kg-tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5c7cfa"/>
+      <stop offset="1" stop-color="#3b5bdb"/>
+    </linearGradient>
+    <linearGradient id="kg-needle" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#40c057"/>
+      <stop offset="1" stop-color="#a9e34b"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#kg-tile)"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 35a18 18 0 0 1 36 0" stroke-width="5"/>
+    <path d="M14 43.5Q24 40 32 45q8-5 18-1.5" stroke-width="3.5"/>
+    <path d="M10 49.5Q21 46 32 51.5q11-5.5 22-2" stroke-width="3.5"/>
+  </g>
+  <g transform="rotate(35 32 40)" fill="url(#kg-needle)">
+    <path d="M29.6 40 31.1 24.6a.9.9 0 0 1 1.8 0L34.4 40z"/>
+    <circle cx="32" cy="40" r="3.6"/>
+  </g>
+  <text x="80" y="43" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="600" letter-spacing="-0.5"><tspan fill="#1a1b1e">Know</tspan><tspan fill="#4c6ef5">Gauge</tspan></text>
+</svg>

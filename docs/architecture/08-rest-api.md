@@ -1,7 +1,7 @@
 # 08 – REST API
 
 The API is served by `knowgauge-service-rest-api`. OpenAPI docs are at `/v3/api-docs` and Swagger UI at
-`/swagger-ui.html`. A static landing page (`static/index.html`, `logo.png`) is served at `/`. Actuator is at
+`/swagger-ui.html`. A static landing page (`static/index.html`, with `logo.svg`, `logo-dark.svg` and `favicon.svg`) is served at `/`. Actuator is at
 `/actuator` (health with liveness/readiness probes, info, metrics, env, beans, loggers).
 
 There is **no authentication**. The tenant and user come from `ExecutionContext` (hard-wired to `1`).
