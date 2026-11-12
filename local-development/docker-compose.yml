@@ -60,7 +60,7 @@ services:
   knowgauge-service:
     image: knowgauge-service
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: knowgauge-service
     env_file: [.env]
