@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.port.repository.TopicRepository;
@@ -14,15 +15,19 @@ import com.knowgauge.core.port.repository.TopicRepository;
 public class TopicServiceImpl implements TopicService {
 
 	private final TopicRepository topicRepository;
+	private final ExecutionContext executionContext;
 
-	public TopicServiceImpl(TopicRepository topicRepository) {
+	public TopicServiceImpl(TopicRepository topicRepository, ExecutionContext executionContext) {
 		this.topicRepository = topicRepository;
+		this.executionContext = executionContext;
 	}
 
 	@Override
 	@Transactional
 	public Topic create(Topic topic) {
 		validateUniqueNameUnderParent(topic.getParentId(), topic.getName());
+
+		topic.setTenantId(executionContext.tenantId());
 
 		Topic created = topicRepository.save(topic);
 
