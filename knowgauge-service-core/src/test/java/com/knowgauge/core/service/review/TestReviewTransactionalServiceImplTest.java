@@ -62,7 +62,7 @@ class TestReviewTransactionalServiceImplTest {
 			return saved;
 		});
 		when(questionRepository.findByTenantIdAndId(TENANT, 7L)).thenReturn(Optional.of(flaggedQuestion));
-		when(testRepository.findByTenantIdAndId(TENANT, TEST_ID)).thenReturn(
+		when(testRepository.findByTenantIdAndIdForUpdate(TENANT, TEST_ID)).thenReturn(
 				Optional.of(QuestionFixtures.test(AnswerCardinality.SINGLE_CORRECT, TestStatus.REQUIRES_REVIEW)));
 	}
 
@@ -120,7 +120,7 @@ class TestReviewTransactionalServiceImplTest {
 
 	@Test
 	void regeneratedFlaggedQuestionReopensReviewedTest() {
-		when(testRepository.findByTenantIdAndId(TENANT, TEST_ID))
+		when(testRepository.findByTenantIdAndIdForUpdate(TENANT, TEST_ID))
 				.thenReturn(Optional.of(QuestionFixtures.test(AnswerCardinality.SINGLE_CORRECT, TestStatus.REVIEWED)));
 		TestQuestionVersion regenerated = QuestionFixtures.defaultVersion();
 		regenerated.getOption(OptionLetter.D).flag("y", "r");
@@ -142,5 +142,64 @@ class TestReviewTransactionalServiceImplTest {
 		assertThatThrownBy(() -> tx.applyNewVersion(TENANT, flaggedQuestion, 70L,
 				flaggedQuestion.getCurrentVersion().toFixedDraft(), fix())).isInstanceOf(ReviewConflictException.class);
 		verify(history, never()).versionChanged(any(), any(), any(), any(), any(), any(), any());
+	}
+
+	// ---------------- publish (ADR005) ----------------
+
+	private void givenLockedTest(TestStatus status) {
+		when(testRepository.findByTenantIdAndIdForUpdate(TENANT, TEST_ID))
+				.thenReturn(Optional.of(QuestionFixtures.test(AnswerCardinality.SINGLE_CORRECT, status)));
+	}
+
+	@Test
+	void reviewActionOnPublishedTestIsRejectedUnderTheLock() {
+		givenLockedTest(TestStatus.PUBLISHED);
+
+		assertThatThrownBy(() -> tx.applyNewVersion(TENANT, flaggedQuestion, 70L,
+				flaggedQuestion.getCurrentVersion().toFixedDraft(), fix()))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("PUBLISHED");
+		verify(questionRepository, never()).insertVersion(any());
+		verify(questionRepository, never()).switchCurrentVersion(anyLong(), anyLong(), anyLong(), anyLong(), any());
+	}
+
+	@Test
+	void reviewedTestIsPublishedWithAnEventByTheActor() {
+		givenLockedTest(TestStatus.REVIEWED);
+		when(questionRepository.findByTenantIdAndTestId(TENANT, TEST_ID)).thenReturn(List.of(
+				QuestionFixtures.persisted(7L, 0, 71L, QuestionFixtures.defaultVersion())));
+
+		var published = tx.publish(TENANT, TEST_ID, 42L, "approved");
+
+		assertThat(published.getStatus()).isEqualTo(TestStatus.PUBLISHED);
+		verify(testRepository).updateStatus(TENANT, TEST_ID, TestStatus.PUBLISHED);
+		verify(history).statusChanged(eq(TENANT), eq(TEST_ID), eq(TestStatus.PUBLISHED), eq(42L), eq("approved"),
+				any());
+	}
+
+	@Test
+	void testRequiringReviewCannotBePublished() {
+		givenLockedTest(TestStatus.REQUIRES_REVIEW);
+
+		assertThatThrownBy(() -> tx.publish(TENANT, TEST_ID, 42L, null))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("REQUIRES_REVIEW");
+		verify(testRepository, never()).updateStatus(anyLong(), anyLong(), any());
+	}
+
+	@Test
+	void flaggedQuestionBlocksPublishEvenIfStatusSaysGenerated() {
+		givenLockedTest(TestStatus.GENERATED);
+		when(questionRepository.findByTenantIdAndTestId(TENANT, TEST_ID)).thenReturn(List.of(flaggedQuestion));
+
+		assertThatThrownBy(() -> tx.publish(TENANT, TEST_ID, 42L, null))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("need review");
+		verify(testRepository, never()).updateStatus(anyLong(), anyLong(), any());
+	}
+
+	@Test
+	void publishingTwiceIsAConflict() {
+		givenLockedTest(TestStatus.PUBLISHED);
+
+		assertThatThrownBy(() -> tx.publish(TENANT, TEST_ID, 42L, null))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("already published");
 	}
 }

@@ -3,6 +3,7 @@ package com.knowgauge.core.service.review;
 import java.util.List;
 
 import com.knowgauge.core.model.GenerationRun;
+import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestEvent;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.TestQuestionVersion;
@@ -13,7 +14,8 @@ import com.knowgauge.core.model.TestQuestionVersion;
  * <p>
  * Every action creates a new immutable version, moves the question to it only if
  * the question is still at {@code expectedCurrentVersionId}, records an event
- * with the acting user, and recomputes the test status.
+ * with the acting user, and recomputes the test status. Once the test is
+ * published, every action is rejected.
  */
 public interface TestReviewService {
 
@@ -33,6 +35,13 @@ public interface TestReviewService {
 	 * Replaces the question with one written by the reviewer. Not LLM-verified.
 	 */
 	TestQuestion manualReplace(Long testId, Long questionId, ManualQuestionDraft draft);
+
+	/**
+	 * Publishes the test (ADR005): its content is frozen, no review action can
+	 * change it any more, and attempts can be started. Allowed only from
+	 * {@code GENERATED} or {@code REVIEWED}, with no question needing review.
+	 */
+	Test publish(Long testId, String comment);
 
 	/**
 	 * @return all versions of the question, oldest first

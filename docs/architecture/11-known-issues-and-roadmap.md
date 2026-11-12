@@ -33,8 +33,8 @@ operability, not effort.
 - **No automated tests** in the repository (`src/test` is absent everywhere). The most valuable first targets are
   `ChunkingServiceImpl`, `RetrievingServiceImpl.calculateMaxChunksPerDocument`, `TestQuestionValidator`, the
   option verdict logic, the response mappers, and Testcontainers for both Flyway schemas.
-- **Schema evolution**: `V1__create_initial_schema.sql` is edited in place. Switch to incremental migrations
-  before any persistent environment exists.
+- **Schema evolution**: schema changes are incremental migrations from `V2__publish_tests.sql` on. Don't edit
+  `V1__create_initial_schema.sql` any more.
 - **Unused model pieces**: `Attempt`/`AttemptAnswer`, `DocumentSection`, `User` and `Tenant` have no services or
   endpoints. `rest-client` is a placeholder.
 - **Per-call `OpenAiChatModel` construction**: simple and flexible, but it rebuilds the HTTP client every call.
@@ -47,7 +47,7 @@ operability, not effort.
 | Retrieval | `FOCUSED` similarity search on the existing IVFFlat index. Avoid-repeats using `test_used_chunks`. Optional re-ranking |
 | Generation | Resilience4j on the LLM adapters (retry, CB, bulkhead, timeouts). More question types (multi-select UX, short answer). Better difficulty and coverage control. A Spring AI adapter to compare with LangChain4j |
 | Review workflow | **Done** ([ADR001](../adr/ADR001-review-process.md)): versions, event log, accept fix / regenerate / manual replace. Next: review UI, optional `DISMISS_FLAG` action, LLM second opinion on manual questions, real user identity in `actorUserId` |
-| Attempts | Start, answer, submit and score attempts using the existing tables |
+| Attempts | Start, answer, submit and score attempts using the existing tables. Only `PUBLISHED` tests accept attempts ([ADR005](../adr/ADR005-publish-tests.md)). Block or archive deletes of tests with attempts. "Clone to draft" to fix a published test |
 | Ingestion | Layout-aware PDF extraction, section detection, semantic Markdown-aware splitter (A/B against the recursive one), async workers |
 | Tenancy & auth | Tenant entity, Keycloak OIDC, roles, tenant-scoped queries everywhere, Spring Data auditing |
 | API quality | Consistent validation and enum error payloads, proper 404s, storage error mapping |

@@ -12,6 +12,13 @@ public interface TestRepository {
 
 	Optional<Test> findByTenantIdAndId(Long tenantId, Long id);
 
+	/**
+	 * Reads the test and locks its row until the caller's transaction ends.
+	 * Serializes status changes (publish) with review actions on the same test.
+	 * Must run inside a transaction.
+	 */
+	Optional<Test> findByTenantIdAndIdForUpdate(Long tenantId, Long id);
+
 	List<Test> findByTenantId(Long tenantId);
 
 	List<Test> findByTenantIdAndStatus(Long tenantId, TestStatus status);

@@ -24,6 +24,8 @@ import com.knowgauge.core.service.history.TestHistoryRecorder;
  * The single write transaction of every review action: insert the new version,
  * switch the slot to it (optimistic check), record events, recompute the test
  * status. A conflict rolls the whole thing back, including the inserted version.
+ * Also publishes tests. Both lock the test row first, so a review action and a
+ * publish of the same test never interleave.
  */
 @Service
 public class TestReviewTransactionalServiceImpl {
@@ -47,6 +49,10 @@ public class TestReviewTransactionalServiceImpl {
 	public TestQuestion applyNewVersion(Long tenantId, TestQuestion question, Long expectedCurrentVersionId,
 			TestQuestionVersion draft, VersionChange change) {
 
+		// Lock the test row so a concurrent publish cannot slip in between this check
+		// and the commit (ADR005).
+		Test test = lockReviewableTest(tenantId, question.getTestId());
+
 		draft.setId(null);
 		draft.setTenantId(tenantId);
 		draft.setQuestionId(question.getId());
@@ -68,9 +74,53 @@ public class TestReviewTransactionalServiceImpl {
 		history.versionChanged(question, change.eventType(), expectedCurrentVersionId, saved, change.actorUserId(),
 				change.comment(), change.payload());
 
-		syncTestStatus(tenantId, question.getTestId(), change.actorUserId());
+		syncTestStatus(tenantId, question.getTestId(), test.getStatus(), change.actorUserId());
 
 		return questionRepository.findByTenantIdAndId(tenantId, question.getId()).orElseThrow();
+	}
+
+	/**
+	 * Freezes the test: moves it to {@code PUBLISHED}, after which no review
+	 * action can change it and attempts can be started (ADR005). Allowed only
+	 * from {@code GENERATED} or {@code REVIEWED}, with every question OK.
+	 */
+	@Transactional
+	public Test publish(Long tenantId, Long testId, Long actorUserId, String comment) {
+		Test test = testRepository.findByTenantIdAndIdForUpdate(tenantId, testId)
+				.orElseThrow(() -> new ResourceNotFoundException("Test not found: " + testId));
+		TestStatus current = test.getStatus();
+		if (current == TestStatus.PUBLISHED) {
+			throw new ReviewConflictException("Test " + testId + " is already published.");
+		}
+		if (current == null || !current.isPublishable()) {
+			throw new ReviewConflictException("Test " + testId + " cannot be published in status " + current
+					+ ". Only GENERATED or REVIEWED tests can be published.");
+		}
+		List<TestQuestion> questions = questionRepository.findByTenantIdAndTestId(tenantId, testId);
+		if (questions.isEmpty()) {
+			throw new ReviewConflictException("Test " + testId + " has no questions and cannot be published.");
+		}
+		long needingReview = questions.stream().filter(TestQuestion::needsReview).count();
+		if (needingReview > 0) {
+			throw new ReviewConflictException("Test " + testId + " has " + needingReview
+					+ " question(s) that need review and cannot be published.");
+		}
+
+		testRepository.updateStatus(tenantId, testId, TestStatus.PUBLISHED);
+		history.statusChanged(tenantId, testId, TestStatus.PUBLISHED, actorUserId, comment,
+				Map.of("previousStatus", current.name(), "questionCount", questions.size()));
+		test.setStatus(TestStatus.PUBLISHED);
+		return test;
+	}
+
+	private Test lockReviewableTest(Long tenantId, Long testId) {
+		Test test = testRepository.findByTenantIdAndIdForUpdate(tenantId, testId)
+				.orElseThrow(() -> new ResourceNotFoundException("Test not found: " + testId));
+		if (test.getStatus() == null || !test.getStatus().isReviewable()) {
+			throw new ReviewConflictException(
+					"Test " + testId + " cannot be reviewed in status " + test.getStatus() + ".");
+		}
+		return test;
 	}
 
 	@Transactional
@@ -84,13 +134,10 @@ public class TestReviewTransactionalServiceImpl {
 	 * that required review becomes REVIEWED. GENERATED and REVIEWED tests stay as
 	 * they are when everything is OK.
 	 */
-	private void syncTestStatus(Long tenantId, Long testId, Long actorUserId) {
-		Test test = testRepository.findByTenantIdAndId(tenantId, testId)
-				.orElseThrow(() -> new ResourceNotFoundException("Test not found: " + testId));
+	private void syncTestStatus(Long tenantId, Long testId, TestStatus current, Long actorUserId) {
 		List<TestQuestion> questions = questionRepository.findByTenantIdAndTestId(tenantId, testId);
 		long needingReview = questions.stream().filter(TestQuestion::needsReview).count();
 
-		TestStatus current = test.getStatus();
 		TestStatus target = needingReview > 0 ? TestStatus.REQUIRES_REVIEW
 				: current == TestStatus.REQUIRES_REVIEW ? TestStatus.REVIEWED : current;
 		if (target != current) {

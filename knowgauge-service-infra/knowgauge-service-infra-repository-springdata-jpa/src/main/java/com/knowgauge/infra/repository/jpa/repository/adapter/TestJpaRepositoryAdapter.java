@@ -40,6 +40,11 @@ public class TestJpaRepositoryAdapter implements TestRepository {
 	}
 
 	@Override
+	public Optional<Test> findByTenantIdAndIdForUpdate(Long tenantId, Long id) {
+		return jpaRepository.findByTenantIdAndIdForUpdate(tenantId, id).map(mapper::toDomain);
+	}
+
+	@Override
 	public List<Test> findByTenantId(Long tenantId) {
 		return jpaRepository.findByTenantId(tenantId).stream().map(mapper::toDomain).toList();
 	}

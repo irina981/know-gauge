@@ -2,11 +2,9 @@ package com.knowgauge.core.service.review;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
@@ -48,9 +46,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class TestReviewServiceImpl implements TestReviewService {
-
-	static final Set<TestStatus> REVIEWABLE = EnumSet.of(TestStatus.GENERATED, TestStatus.REQUIRES_REVIEW,
-			TestStatus.REVIEWED);
 
 	private final TestRepository testRepository;
 	private final TestQuestionRepository questionRepository;
@@ -218,6 +213,16 @@ public class TestReviewServiceImpl implements TestReviewService {
 		return result;
 	}
 
+	@Override
+	public Test publish(Long testId, String comment) {
+		Long tenantId = executionContext.tenantId();
+		var userId = executionContext.userId();
+		Long actorUserId = userId.isPresent() ? userId.getAsLong() : null;
+		Test published = tx.publish(tenantId, testId, actorUserId, comment);
+		log.info("Review: test {} - published by user {}", testId, actorUserId);
+		return published;
+	}
+
 	// ------------------------------------------------------------------
 	// History
 	// ------------------------------------------------------------------
@@ -258,7 +263,8 @@ public class TestReviewServiceImpl implements TestReviewService {
 		}
 		Long tenantId = executionContext.tenantId();
 		Test test = requireTest(tenantId, testId);
-		if (!REVIEWABLE.contains(test.getStatus())) {
+		// Fail fast before any LLM call; applyNewVersion checks again under a row lock.
+		if (test.getStatus() == null || !test.getStatus().isReviewable()) {
 			throw new ReviewConflictException(
 					"Test " + testId + " cannot be reviewed in status " + test.getStatus() + ".");
 		}

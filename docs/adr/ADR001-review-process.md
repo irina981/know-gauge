@@ -333,7 +333,8 @@ Implemented as proposed, with these additions:
 * Should a manually written question optionally be sent through LLM verification as a second opinion
   (flagging it, without blocking)? The proposal says no for now.
 * Should `REVIEWED` tests become read-only once attempts exist? The proposal says no: versioned attempt answers
-  keep old attempts consistent anyway.
+  keep old attempts consistent anyway. (Resolved by [ADR005](ADR005-publish-tests.md): a test becomes read-only
+  when it is explicitly published, and only published tests accept attempts.)
 * Should regeneration use the test's original `test_used_chunks` or retrieve fresh chunks? The proposal uses the
   original chunks, for reproducibility.
 

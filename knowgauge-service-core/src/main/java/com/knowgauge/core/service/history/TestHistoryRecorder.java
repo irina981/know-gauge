@@ -35,14 +35,31 @@ public class TestHistoryRecorder {
 	 */
 	public TestEvent testEvent(Long tenantId, Long testId, TestEventType type, Long actorUserId,
 			Map<String, Object> payload) {
-		return eventRepository.append(base(tenantId, testId, null, type, actorUserId).payload(payload).build());
+		return testEvent(tenantId, testId, type, actorUserId, null, payload);
 	}
 
 	/**
-	 * Records the test status change matching {@code newStatus}, if it has an
-	 * event type.
+	 * Records a test-level event with a comment of the acting user.
+	 */
+	public TestEvent testEvent(Long tenantId, Long testId, TestEventType type, Long actorUserId, String comment,
+			Map<String, Object> payload) {
+		return eventRepository.append(
+				base(tenantId, testId, null, type, actorUserId).comment(comment).payload(payload).build());
+	}
+
+	/**
+	 * Records the test status change matching {@code newStatus}.
 	 */
 	public void statusChanged(Long tenantId, Long testId, TestStatus newStatus, Long actorUserId,
+			Map<String, Object> payload) {
+		statusChanged(tenantId, testId, newStatus, actorUserId, null, payload);
+	}
+
+	/**
+	 * Records the test status change matching {@code newStatus}, with a comment
+	 * of the acting user.
+	 */
+	public void statusChanged(Long tenantId, Long testId, TestStatus newStatus, Long actorUserId, String comment,
 			Map<String, Object> payload) {
 		TestEventType type = switch (newStatus) {
 		case GENERATED -> TestEventType.TEST_GENERATED;
@@ -50,8 +67,9 @@ public class TestHistoryRecorder {
 		case REVIEWED -> TestEventType.TEST_REVIEWED;
 		case FAILED -> TestEventType.TEST_FAILED;
 		case CREATED -> TestEventType.TEST_CREATED;
+		case PUBLISHED -> TestEventType.TEST_PUBLISHED;
 		};
-		testEvent(tenantId, testId, type, actorUserId, payload);
+		testEvent(tenantId, testId, type, actorUserId, comment, payload);
 	}
 
 	/**

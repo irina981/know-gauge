@@ -177,7 +177,7 @@ The application uses PostgreSQL with pgvector extension (main DB) and a separate
 - **document_sections**: Optional document structure for better chunking with page ranges
 - **document_chunks**: Logical text chunks with checksums for deduplication and ordering
 - **tests**: Generated MCQ tests with reproducibility tracking and generation audit
-  - Tracks difficulty (EASY, MEDIUM, HARD), status (CREATED, GENERATED, REQUIRES_REVIEW, REVIEWED, FAILED)
+  - Tracks difficulty (EASY, MEDIUM, HARD), status (CREATED, GENERATED, REQUIRES_REVIEW, REVIEWED, FAILED, PUBLISHED)
   - Records generation model, parameters, and lifecycle timestamps
 - **test_questions**: Question slots (position, status OK / NEEDS_REVIEW, pointer to the current version)
 - **test_question_versions**: Immutable question content (origin GENERATED, REGENERATED, FIX_ACCEPTED or MANUAL; author; generation and verification run)

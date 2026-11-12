@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,9 +14,20 @@ import org.springframework.stereotype.Repository;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.infra.repository.jpa.entity.TestEntity;
 
+import jakarta.persistence.LockModeType;
+
 @Repository
 public interface TestJpaRepository extends JpaRepository<TestEntity, Long> {
 	Optional<TestEntity> findByTenantIdAndId(Long tenentId, Long testId);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("""
+			    select t
+			      from TestEntity t
+			     where t.tenantId = :tenantId
+			       and t.id = :testId
+			""")
+	Optional<TestEntity> findByTenantIdAndIdForUpdate(@Param("tenantId") Long tenantId, @Param("testId") Long testId);
 
 	List<TestEntity> findByTenantId(Long tenantId);
 

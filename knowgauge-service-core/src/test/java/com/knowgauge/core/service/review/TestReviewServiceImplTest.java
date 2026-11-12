@@ -138,6 +138,23 @@ class TestReviewServiceImplTest {
 				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("CREATED");
 	}
 
+	@Test
+	void publishedTestCannotBeRegeneratedAndNoLlmCallIsMade() {
+		givenTest(TestStatus.PUBLISHED, AnswerCardinality.SINGLE_CORRECT);
+
+		assertThatThrownBy(() -> service.regenerate(QuestionFixtures.TEST_ID, QUESTION_ID, VERSION_ID, null))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("PUBLISHED");
+		verify(batchGenerator, never()).generateBatch(any());
+		verify(tx, never()).applyNewVersion(anyLong(), any(), anyLong(), any(), any());
+	}
+
+	@Test
+	void publishRunsAsTheCurrentUser() {
+		service.publish(QuestionFixtures.TEST_ID, "approved");
+
+		verify(tx).publish(QuestionFixtures.TENANT, QuestionFixtures.TEST_ID, USER, "approved");
+	}
+
 	// ---------------- manual replace ----------------
 
 	private ManualQuestionDraft manual(String text, Set<OptionLetter> correct, String... options) {

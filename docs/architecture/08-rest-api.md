@@ -45,11 +45,13 @@ at (`currentVersionId` from the question DTO). It returns the question with its 
 | POST | `/questions/{questionId}/accept-fix` | `ReviewActionInput {expectedCurrentVersionId, comment?}` | `200 TestQuestionDto`. `409` if the version is stale, the test is not reviewable, or there is no applicable fix |
 | POST | `/questions/{questionId}/regenerate` | `ReviewActionInput` | `200 TestQuestionDto` (the new version may itself be `NEEDS_REVIEW`). `409` as above. `502` if the LLM could not produce a valid, non-duplicate question (nothing changed, `REGENERATION_FAILED` recorded) |
 | POST | `/questions/{questionId}/manual-replace` | `ManualQuestionInput {expectedCurrentVersionId, questionText, options: {A..D: {text, correct}}, explanation?, comment?}` | `200 TestQuestionDto`. `400` listing every validation reason. `409` as above |
+| POST | `/publish` | `PublishTestInput {comment?}` (body optional) | `200 TestDto` with status `PUBLISHED` ([ADR005](../adr/ADR005-publish-tests.md)). `409` if already published, not `GENERATED`/`REVIEWED`, or a question needs review |
 | GET | `/questions/{questionId}/versions` | – | `200 List<TestQuestionVersionDto>`, oldest first |
 | GET | `/events` | `questionId` (optional) | `200 List<TestEventDto>`, the history trail, oldest first |
 | GET | `/generation-runs` | – | `200 List<GenerationRunDto>`: every LLM call with raw response and tokens |
 
-Review actions are allowed while the test is `GENERATED`, `REQUIRES_REVIEW` or `REVIEWED`.
+Review actions are allowed while the test is `GENERATED`, `REQUIRES_REVIEW` or `REVIEWED`. A `PUBLISHED` test is
+frozen: every review action returns 409.
 
 ### `TestInput`
 
@@ -111,7 +113,7 @@ serialized as `{timestamp, path, status, error, message}`:
 | `IllegalArgumentException` (the domain's "not found", "duplicate" and "invalid state" errors) | 400 |
 | `UnsupportedOperationException` | 400 |
 | `EntityNotFoundException`, `ResourceNotFoundException` (review: test/question not found) | 404 |
-| `ReviewConflictException` (stale version, test not reviewable, no fix to apply) | 409 |
+| `ReviewConflictException` (stale version, test not reviewable, no fix to apply, test not publishable) | 409 |
 | `QuestionValidationException` (manual replace; message lists every reason) | 400 |
 | `RegenerationFailedException` (nothing was changed) | 502 |
 | `DataIntegrityViolationException`, `DuplicateDocumentName/ContentException` | 409 |

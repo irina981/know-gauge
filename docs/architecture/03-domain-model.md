@@ -74,7 +74,7 @@ erDiagram
 | Enum | Values | Used by |
 |---|---|---|
 | `DocumentStatus` | `UPLOADED`, `INGESTING`, `INGESTED`, `FAILED` | Document lifecycle |
-| `TestStatus` | `CREATED`, `GENERATED`, `REQUIRES_REVIEW`, `REVIEWED`, `FAILED` | Test lifecycle |
+| `TestStatus` | `CREATED`, `GENERATED`, `REQUIRES_REVIEW`, `REVIEWED`, `FAILED`, `PUBLISHED` | Test lifecycle |
 | `TestDifficulty` | `EASY`, `MEDIUM`, `HARD` | Prompt variable |
 | `TestCoverageMode` | `BALANCED_PER_DOCS`, `BALANCED_PER_DOC_CHUNKS`, `FOCUSED` | Retrieval strategy (`FOCUSED` is not implemented) |
 | `AnswerCardinality` | `SINGLE_CORRECT`, `MULTIPLE_CORRECT` | Prompt template selection, validation |
@@ -82,7 +82,7 @@ erDiagram
 | `OptionLetter` | `A`, `B`, `C`, `D` | Option keys (exactly 4 options) |
 | `QuestionStatus` | `OK`, `NEEDS_REVIEW` | Question slot status, derived from flags on the current version |
 | `VersionOrigin` | `GENERATED`, `REGENERATED`, `FIX_ACCEPTED`, `MANUAL` | How a question version was created |
-| `TestEventType` | `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`, `TEST_FAILED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`, `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED` | History trail |
+| `TestEventType` | `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`, `TEST_FAILED`, `TEST_PUBLISHED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`, `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED` | History trail |
 | `GenerationRunPurpose` | `TEST_GENERATION`, `REGENERATION`, `VERIFICATION` | Why an LLM call was made |
 | `AttemptStatus` | `STARTED`, `SUBMITTED`, `SCORED` | Attempts (not wired) |
 | `GenerationRunStatus` | `SUCCESS`, `FAILED` | Outcome of an LLM call |
@@ -118,9 +118,15 @@ stateDiagram-v2
     REQUIRES_REVIEW --> REVIEWED: last flagged question resolved by a review action
     GENERATED --> REQUIRES_REVIEW: a regenerated question comes back flagged
     REVIEWED --> REQUIRES_REVIEW: a regenerated question comes back flagged
+    GENERATED --> PUBLISHED: publish (no question needs review)
+    REVIEWED --> PUBLISHED: publish (no question needs review)
 ```
 
-Every transition is also recorded as a `TestEvent` (`TEST_CREATED`, `TEST_GENERATED`, …).
+Every transition is also recorded as a `TestEvent` (`TEST_CREATED`, `TEST_GENERATED`, …, `TEST_PUBLISHED`).
+
+`PUBLISHED` is final ([ADR005](../adr/ADR005-publish-tests.md)): no review action can change the test, and only
+published tests accept attempts. `TestStatus.isReviewable()`, `isPublishable()` and `acceptsAttempts()` encode the
+rules.
 
 ## Questions, versions and review (ADR001)
 
@@ -192,7 +198,9 @@ review**. It is no longer dropped.
 
 Common to all actions:
 
-- The test must be `GENERATED`, `REQUIRES_REVIEW` or `REVIEWED`, otherwise 409.
+- The test must be `GENERATED`, `REQUIRES_REVIEW` or `REVIEWED`, otherwise 409 (in particular once it is
+  `PUBLISHED`). The status is checked before any LLM call and again in the write transaction, after locking the
+  test row (`findByTenantIdAndIdForUpdate`), so a concurrent publish cannot interleave.
 - The request carries `expectedCurrentVersionId`. The slot switch is a conditional update
   (`… WHERE current_version_id = :expected`), so a concurrent change returns 409 and the whole transaction,
   including the inserted version, is rolled back.

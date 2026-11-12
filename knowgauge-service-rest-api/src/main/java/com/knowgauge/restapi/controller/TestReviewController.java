@@ -13,11 +13,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.knowgauge.contract.dto.GenerationRunDto;
 import com.knowgauge.contract.dto.ManualQuestionInput;
+import com.knowgauge.contract.dto.PublishTestInput;
 import com.knowgauge.contract.dto.ReviewActionInput;
+import com.knowgauge.contract.dto.TestDto;
 import com.knowgauge.contract.dto.TestEventDto;
 import com.knowgauge.contract.dto.TestQuestionDto;
 import com.knowgauge.contract.dto.TestQuestionVersionDto;
 import com.knowgauge.core.service.review.TestReviewService;
+import com.knowgauge.restapi.mapper.TestMapper;
 import com.knowgauge.restapi.mapper.TestQuestionMapper;
 import com.knowgauge.restapi.mapper.TestReviewMapper;
 
@@ -39,12 +42,14 @@ public class TestReviewController {
 	private final TestReviewService reviewService;
 	private final TestQuestionMapper questionMapper;
 	private final TestReviewMapper reviewMapper;
+	private final TestMapper testMapper;
 
 	public TestReviewController(TestReviewService reviewService, TestQuestionMapper questionMapper,
-			TestReviewMapper reviewMapper) {
+			TestReviewMapper reviewMapper, TestMapper testMapper) {
 		this.reviewService = reviewService;
 		this.questionMapper = questionMapper;
 		this.reviewMapper = reviewMapper;
+		this.testMapper = testMapper;
 	}
 
 	// ---------------- actions ----------------
@@ -82,6 +87,17 @@ public class TestReviewController {
 			@RequestBody @Valid ManualQuestionInput input) {
 		return ResponseEntity
 				.ok(questionMapper.toDto(reviewService.manualReplace(testId, questionId, reviewMapper.toDraft(input))));
+	}
+
+	@PostMapping("/publish")
+	@Operation(summary = "Publish the test", description = "Freezes the test: no review action can change its questions any more, and attempts can be started. Allowed only for GENERATED or REVIEWED tests with no question needing review.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Test published; returns the test with status PUBLISHED"),
+			@ApiResponse(responseCode = "404", description = "Test not found"),
+			@ApiResponse(responseCode = "409", description = "Test already published, not in GENERATED or REVIEWED, or has questions needing review") })
+	public ResponseEntity<TestDto> publish(@PathVariable Long testId,
+			@RequestBody(required = false) @Valid PublishTestInput input) {
+		return ResponseEntity
+				.ok(testMapper.toDto(reviewService.publish(testId, input != null ? input.comment() : null)));
 	}
 
 	// ---------------- history ----------------
