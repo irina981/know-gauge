@@ -45,7 +45,7 @@ named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 The database and MinIO credentials come from `POSTGRES_*`, `POSTGRES_VECTORS_*` and `MINIO_ROOT_*` (defaults
 above). The app also needs `OPENAI_API_KEY` for embeddings and test generation.
 
-With the `local` profile the app seeds a fixed topic tree (root "Knowledge Library" with "Programming"
+With the `local` profile the app seeds a fixed topic tree (two root topics, "Programming"
 and "Employee Onboarding & Compliance"), creates the MinIO bucket and uploads the sample PDFs from
 `knowgauge-service-rest-api/src/main/resources/devdocs/` at startup. The uploads are not ingested automatically; call
 the ingestion endpoint for each document before generating tests. The onboarding policy PDFs are generated from

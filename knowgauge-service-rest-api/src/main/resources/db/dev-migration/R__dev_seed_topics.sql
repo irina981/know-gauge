@@ -2,11 +2,11 @@
 -- Dev / demo seed: topic tree for tenant 1 (rerunnable). Every leaf topic gets documents from DevDocumentSeeder,
 -- so the tree has no empty topics.
 --
--- Knowledge Library (1000)
--- ├── Programming (1100)
--- │   ├── Java (2000): Core Java (2100), Multithreading (2200)
--- │   └── Spring & Spring Boot (4000)
--- └── Employee Onboarding & Compliance (7000): fictional "Corvane Systems" policy pack (7100-7600)
+-- Two root topics:
+-- Programming (1100)
+-- ├── Java (2000): Core Java (2100), Multithreading (2200)
+-- └── Spring & Spring Boot (4000)
+-- Employee Onboarding & Compliance (7000): fictional "Corvane Systems" policy pack (7100-7600)
 --
 -- Notes:
 --  - Fixed ids keep the references in DevDocumentSeeder stable.
@@ -26,24 +26,21 @@ INSERT INTO topics (
   updated_at
 )
 VALUES
-  -- Root
-  (1000, NULL, 1, 'Knowledge Library', 'Sample learning content for trying out KnowGauge', '/1000', 1, 1, now(), now()),
+  -- Programming (root)
+  (1100, NULL, 1, 'Programming', 'Software development languages and frameworks', '/1100', 1, 1, now(), now()),
+  (2000, 1100, 1, 'Java', 'The Java language and platform', '/1100/2000', 1, 1, now(), now()),
+  (2100, 2000, 1, 'Core Java', 'Language fundamentals and object-oriented programming', '/1100/2000/2100', 1, 1, now(), now()),
+  (2200, 2000, 1, 'Multithreading', 'Processes, threads and concurrency in Java', '/1100/2000/2200', 1, 1, now(), now()),
+  (4000, 1100, 1, 'Spring & Spring Boot', 'Dependency injection and bean configuration in Spring', '/1100/4000', 1, 1, now(), now()),
 
-  -- Programming
-  (1100, 1000, 1, 'Programming', 'Software development languages and frameworks', '/1000/1100', 1, 1, now(), now()),
-  (2000, 1100, 1, 'Java', 'The Java language and platform', '/1000/1100/2000', 1, 1, now(), now()),
-  (2100, 2000, 1, 'Core Java', 'Language fundamentals and object-oriented programming', '/1000/1100/2000/2100', 1, 1, now(), now()),
-  (2200, 2000, 1, 'Multithreading', 'Processes, threads and concurrency in Java', '/1000/1100/2000/2200', 1, 1, now(), now()),
-  (4000, 1100, 1, 'Spring & Spring Boot', 'Dependency injection and bean configuration in Spring', '/1000/1100/4000', 1, 1, now(), now()),
-
-  -- Employee Onboarding & Compliance (fictional company: Corvane Systems)
-  (7000, 1000, 1, 'Employee Onboarding & Compliance', 'Workplace policy training for new and existing employees of the fictional company Corvane Systems', '/1000/7000', 1, 1, now(), now()),
-  (7100, 7000, 1, 'Code of Conduct & Ethics', 'Code of Conduct, conflicts of interest, gifts, hospitality and anti-bribery', '/1000/7000/7100', 1, 1, now(), now()),
-  (7200, 7000, 1, 'Information Security', 'Acceptable use, passwords and MFA, phishing, data classification', '/1000/7000/7200', 1, 1, now(), now()),
-  (7300, 7000, 1, 'Data Privacy (GDPR Basics)', 'Personal data, GDPR principles, data subject rights and breach response', '/1000/7000/7300', 1, 1, now(), now()),
-  (7400, 7000, 1, 'Respect at Work', 'Anti-harassment, equal opportunity and speaking up', '/1000/7000/7400', 1, 1, now(), now()),
-  (7500, 7000, 1, 'Health & Safety', 'Fire evacuation, office safety, ergonomics and home workstations', '/1000/7000/7500', 1, 1, now(), now()),
-  (7600, 7000, 1, 'Working at Corvane', 'Remote and hybrid work, travel and expenses, leave and time off', '/1000/7000/7600', 1, 1, now(), now())
+  -- Employee Onboarding & Compliance (root; fictional company: Corvane Systems)
+  (7000, NULL, 1, 'Employee Onboarding & Compliance', 'Workplace policy training for new and existing employees of the fictional company Corvane Systems', '/7000', 1, 1, now(), now()),
+  (7100, 7000, 1, 'Code of Conduct & Ethics', 'Code of Conduct, conflicts of interest, gifts, hospitality and anti-bribery', '/7000/7100', 1, 1, now(), now()),
+  (7200, 7000, 1, 'Information Security', 'Acceptable use, passwords and MFA, phishing, data classification', '/7000/7200', 1, 1, now(), now()),
+  (7300, 7000, 1, 'Data Privacy (GDPR Basics)', 'Personal data, GDPR principles, data subject rights and breach response', '/7000/7300', 1, 1, now(), now()),
+  (7400, 7000, 1, 'Respect at Work', 'Anti-harassment, equal opportunity and speaking up', '/7000/7400', 1, 1, now(), now()),
+  (7500, 7000, 1, 'Health & Safety', 'Fire evacuation, office safety, ergonomics and home workstations', '/7000/7500', 1, 1, now(), now()),
+  (7600, 7000, 1, 'Working at Corvane', 'Remote and hybrid work, travel and expenses, leave and time off', '/7000/7600', 1, 1, now(), now())
 ON CONFLICT (id) DO UPDATE
 SET parent_id   = EXCLUDED.parent_id,
     name        = EXCLUDED.name,
@@ -95,6 +92,14 @@ WHERE t.id IN (2300, 3000, 5000, 6100, 6200)
 
 DELETE FROM topics t
 WHERE t.id = 6000
+  AND NOT EXISTS (SELECT 1 FROM topics c WHERE c.parent_id = t.id)
+  AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.topic_id = t.id)
+  AND NOT EXISTS (SELECT 1 FROM test_covered_topics tc WHERE tc.topic_id = t.id);
+
+-- The former root "Knowledge Library" (1000). Programming and Employee Onboarding & Compliance were moved to the
+-- top level above, so it is empty unless a user added topics, documents or tests to it; then it stays.
+DELETE FROM topics t
+WHERE t.id = 1000
   AND NOT EXISTS (SELECT 1 FROM topics c WHERE c.parent_id = t.id)
   AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.topic_id = t.id)
   AND NOT EXISTS (SELECT 1 FROM test_covered_topics tc WHERE tc.topic_id = t.id);
