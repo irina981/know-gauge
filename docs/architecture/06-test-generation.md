@@ -268,7 +268,7 @@ A flagged question passes validation unchanged (flags don't affect correctness),
 | `kg.testgen.defaults.min-chunks-per-question` | 1 | Generation fails with 422 when retrieval returns fewer than `questionCount ×` this many chunks |
 | `kg.testgen.defaults.min-multiple-correct-percentage` | 50 | Multi-correct quota |
 | `kg.testgen.defaults.max-consecutive-zero-progress-batches` | 1 | Failure threshold |
-| `kg.testgen.defaults.generation-model` | `gpt-4.1` | Generation model |
+| `kg.testgen.defaults.generation-model` | `gpt-5-mini` | Generation model (a reasoning model, see `OpenAiReasoningModels`) |
 | `kg.testgen.chat-model.openai.temperature` / `max-output-tokens` / `timeout-seconds` | 0.2 / 1200 / 60 | Generation call |
 | `kg.testgen.verification.provider` | `openai` (all profiles; `ollama` is opt-in) | Verifier adapter |
 | `kg.testgen.verification.chat-model.openai.model` / `temperature` / `max-output-tokens` / `timeout-seconds` | `gpt-4.1` / 0 / 2000 / 60 | Verification call (OpenAI) |

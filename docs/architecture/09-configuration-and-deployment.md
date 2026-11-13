@@ -32,7 +32,7 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `OPENAI_API_KEY` | yes | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
 | `KG_TENANT_ID` | yes | `kg.context.tenant-id` |
 | `KG_USER_ID` | no (empty: no user) | `kg.context.user-id` |
-| `KG_GENERATION_MODEL`, `KG_VERIFICATION_MODEL` | no (`gpt-4.1`) | `kg.testgen.defaults.generation-model`, `kg.testgen.verification.chat-model.openai.model` |
+| `KG_GENERATION_MODEL`, `KG_VERIFICATION_MODEL` | no (`gpt-5-mini`, `gpt-4.1`) | `kg.testgen.defaults.generation-model`, `kg.testgen.verification.chat-model.openai.model` |
 | `KG_VERIFICATION_PROVIDER`, `KG_OLLAMA_BASE_URL` | no (`openai`, `http://localhost:11434`) | `kg.testgen.verification.provider`, `chat-model.ollama.base-url` |
 | `KG_INGESTION_JOB_ENABLED`, `KG_INGESTION_JOB_CRON`, `KG_INGESTION_JOB_BATCH_SIZE` | no (`true`, `0 */5 * * * *`, `5`) | `kg.ingestion.job.*` (see [04](04-document-ingestion.md#scheduled-ingestion-job)) |
 | `KG_LOG_LEVEL` | no (`INFO`) | `logging.level.com.knowgauge` |
