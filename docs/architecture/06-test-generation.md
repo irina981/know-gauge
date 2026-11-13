@@ -125,10 +125,10 @@ them.
 
 The generator answers **only from the sources**. `VerificationPromptBuilder` puts the input JSON in `{{input}}`:
 `sources` (each chunk the questions cite, once, as `{chunkId, text}`) and `questions`
-(`{questionIndex, questionText, sourceChunkIds, correctAnswers, answers}`). `correctAnswers` is the answer key;
-`answers` holds the distractors to judge. The restored verification prompt
+(`{questionIndex, questionText, sourceChunkIds, answers}`). `answers` holds only the distractors to judge; the
+answer key is not sent (removed Nov 13, 2026, see ADR006). The restored verification prompt
 ([ADR006](../adr/ADR006-restore-original-verification-prompt.md)) describes only `questionIndex`, `questionText`
-and `answers`; the model still receives the sources and the answer key, without instructions on how to use them.
+and `answers`; the model still receives the sources, without instructions on how to use them.
 The `context` block joins the chunks with `\n\n---\n\n`. Each chunk gets a header
 `[SOURCE: topicId=… docId=… chunkId=…]` so the model can cite chunk IDs.
 

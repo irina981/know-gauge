@@ -90,11 +90,6 @@ public class VerificationPromptBuilder {
 		@JsonProperty("sourceChunkIds")
 		public List<Long> sourceChunkIds;
 
-		// The answer key, as context only: it shows how the question is meant and
-		// keeps replacements from repeating a correct answer. It is not judged.
-		@JsonProperty("correctAnswers")
-		public List<String> correctAnswers;
-
 		@JsonProperty("answers")
 		public Map<String, String> answers;
 	}
@@ -149,17 +144,11 @@ public class VerificationPromptBuilder {
 			input.questionIndex = i;
 			input.questionText = q.getQuestionText();
 			input.sourceChunkIds = q.getSourceChunkIds() != null ? q.getSourceChunkIds() : List.of();
-			input.correctAnswers = new ArrayList<>();
 			input.answers = new TreeMap<>();
-			// Only distractors (options not in the answer key) are verified
+			// Only distractors are sent; the answer key is not part of the input
 			for (OptionLetter letter : OptionLetter.values()) {
 				TestQuestionOption option = q.getOption(letter);
-				if (option == null) {
-					continue;
-				}
-				if (option.isCorrect()) {
-					input.correctAnswers.add(option.getText());
-				} else {
+				if (option != null && !option.isCorrect()) {
 					input.answers.put(letter.toString(), option.getText());
 				}
 			}

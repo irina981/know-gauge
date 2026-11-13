@@ -55,7 +55,8 @@ class VerificationPromptBuilderTest {
 		JsonNode q1 = input.get("questions").get(0);
 		assertThat(q1.get("sourceChunkIds").toString()).isEqualTo("[11,12]");
 		assertThat(new ObjectMapper().convertValue(q1.get("answers"), Map.class)).containsOnlyKeys("B", "C", "D");
-		assertThat(q1.get("correctAnswers").toString()).isEqualTo("[\"LinkedHashMap\"]");
+		assertThat(q1.has("correctAnswers")).isFalse();
+		assertThat(q1.toString()).doesNotContain("LinkedHashMap");
 		assertThat(input.get("questions").get(1).get("answers").has("C")).isFalse();
 	}
 

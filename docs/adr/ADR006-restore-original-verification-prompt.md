@@ -21,6 +21,10 @@ restored prompt does not mention those input fields; the model sees them without
 
 This supersedes the prompt and output template parts of [ADR003](ADR003-grounded-reason-first-verification.md).
 
+Update, Nov 13, 2026: `correctAnswers` is no longer sent. On "What is a disadvantage of setter injection in Spring
+Boot?" the verifier flagged two distractors that the sources list as advantages of constructor injection. The
+verifier input is now only the question, the distractors and the sources.
+
 ## Context
 
 Test 3 (two Spring PDFs) asked "What is a disadvantage of using field injection in Spring Boot?". The ADR003
