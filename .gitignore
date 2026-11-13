@@ -49,3 +49,7 @@ buildNumber.properties
 .project
 .classpath
 .settings/
+
+# Deployment: Dozzle users and settings (deploy/dozzle/users.yml holds password hashes)
+deploy/dozzle/*
+!deploy/dozzle/.gitkeep

@@ -27,7 +27,8 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `KG_DB_URL`, `KG_DB_USERNAME`, `KG_DB_PASSWORD` | yes | `spring.datasource.*` |
 | `KG_VECTOR_DB_URL`, `KG_VECTOR_DB_USERNAME`, `KG_VECTOR_DB_PASSWORD` | yes | `kg.pgvector.datasource.*` |
 | `KG_STORAGE_ENDPOINT`, `KG_STORAGE_ACCESS_KEY`, `KG_STORAGE_SECRET_KEY` | yes | `kg.storage.endpoint`, `accessKey`, `secretKey` |
-| `KG_STORAGE_BUCKET` | no (`knowgauge-content`) | `kg.storage.bucket`. The bucket must exist; prod does not create it |
+| `KG_STORAGE_BUCKET` | no (`knowgauge-content`) | `kg.storage.bucket`. The bucket must exist unless `KG_STORAGE_CREATE_BUCKET=true` |
+| `KG_STORAGE_CREATE_BUCKET` | no (`false`) | `kg.storage.create-bucket-on-startup`: create the bucket at startup if missing (`StartupConfig`); startup fails if storage is unreachable |
 | `OPENAI_API_KEY` | yes | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
 | `KG_TENANT_ID` | yes | `kg.context.tenant-id` |
 | `KG_USER_ID` | no (empty: no user) | `kg.context.user-id` |
@@ -35,6 +36,8 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `KG_VERIFICATION_PROVIDER`, `KG_OLLAMA_BASE_URL` | no (`openai`, `http://localhost:11434`) | `kg.testgen.verification.provider`, `chat-model.ollama.base-url` |
 | `KG_INGESTION_JOB_ENABLED`, `KG_INGESTION_JOB_CRON`, `KG_INGESTION_JOB_BATCH_SIZE` | no (`true`, `0 */5 * * * *`, `5`) | `kg.ingestion.job.*` (see [04](04-document-ingestion.md#scheduled-ingestion-job)) |
 | `KG_LOG_LEVEL` | no (`INFO`) | `logging.level.com.knowgauge` |
+| `KG_LOG_FORMAT` | no (`ecs`) | `logging.structured.format.console`: JSON log lines (`ecs`, `logstash` or `gelf`) |
+| `KG_ENVIRONMENT` | no (`prod`) | `logging.structured.ecs.service.environment` |
 | `KG_ACTUATOR_ENDPOINTS` | no (`health,info,metrics`) | `management.endpoints.web.exposure.include` |
 | `KG_SWAGGER_ENABLED` | no (`false`) | `springdoc.api-docs.enabled`, `springdoc.swagger-ui.enabled` |
 
@@ -95,16 +98,25 @@ All services join the `knowgauge-network` bridge:
 | `minio` | `cgr.dev/chainguard/minio:latest` | 9000 (S3), 9001 (console) | `minio_data` |
 | `ollama` (profile `ollama`) | `ollama/ollama:latest` | 11434 | `ollama_data` |
 | `ollama-pull` (profile `ollama`, one-shot) | `ollama/ollama:latest` | – | – (pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits) |
+| `dozzle` | `amir20/dozzle:latest` | 8888→8080 on `127.0.0.1` (log viewer, no login) | – (reads the Docker socket) |
 | app (`knowgauge-service`, profile `full`) | built from `Dockerfile` | 8080, 5005 (JDWP, `suspend=n`) | – |
 
-Every long-running service has a healthcheck. The app `depends_on` the databases and MinIO with
-`condition: service_healthy`. Its own healthcheck polls `/actuator/health/readiness`. The app uses
+The databases and the app have healthchecks; MinIO has none (its image has no shell or curl). The app `depends_on`
+the databases with `condition: service_healthy` and on MinIO with `condition: service_started`. Its own healthcheck polls `/actuator/health/readiness`. The app uses
 `SPRING_PROFILES_ACTIVE=local`, and the compose file overrides the `localhost` values with the service hostnames
 through env vars, which take precedence over properties files (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_*`,
 `KG_STORAGE_ENDPOINT`/`ACCESSKEY`/`SECRETKEY`, `OPENAI_API_KEY`, `KG_TESTGEN_VERIFICATION_*`).
 
 For local development in the IDE, run only the backing services
 (`docker compose -f local-development/docker-compose.yml up -d`) and start the app with `-Dspring.profiles.active=local` (see `.vscode/launch.json`).
+
+### Deployment compose
+
+[`deploy/docker-compose.yml`](../../deploy/README.md) runs the same stack on one server with the `prod` profile:
+the app (all settings from `deploy/.env`, `KG_STORAGE_CREATE_BUCKET=true`), both databases, MinIO, the UI built
+from a `know-gauge-ui` clone (the only published port, `KG_HTTP_PORT`, default 80) and Dozzle on `127.0.0.1:8888`
+with a login from `deploy/dozzle/users.yml`. Every container restarts `unless-stopped` and rotates its Docker log
+(3 × 20 MB). The compose project is named `knowgauge`. See [ADR007](../adr/ADR007-json-logs-and-dozzle.md).
 
 ## Build & image
 
@@ -120,7 +132,11 @@ For local development in the IDE, run only the backing services
 
 ## Observability
 
-- Logs: SLF4J/Logback. `com.knowgauge` logs at DEBUG in `local` and `test`, `KG_LOG_LEVEL` (default INFO) in `prod`. Ingestion and generation steps log progress
+- Logs: SLF4J/Logback, to the console. `local` and `test` log plain text; `prod` logs one JSON object per line in the
+  Elastic Common Schema (`logging.structured.format.console`, `KG_LOG_FORMAT`), with the MDC keys `documentId`
+  (ingestion) and `testId` (test generation, from the moment the test is persisted) as fields. Both compose files
+  include Dozzle to browse and filter container logs ([ADR007](../adr/ADR007-json-logs-and-dozzle.md)).
+  `com.knowgauge` logs at DEBUG in `local` and `test`, `KG_LOG_LEVEL` (default INFO) in `prod`. Ingestion and generation steps log progress
   lines prefixed with `***` (start and end) and indented step messages. Validators log each rejection with its
   reason. LLM calls log token usage and finish reason.
 - Actuator: health (liveness/readiness), metrics, env, beans, loggers. `env` and `beans` are exposed with no auth,

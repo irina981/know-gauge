@@ -1,0 +1,164 @@
+# Production-style deployment on a single server: the app (prod profile), its databases, MinIO, the web UI and the
+# Dozzle log viewer. See deploy/README.md for the first-time setup.
+#
+#   cp .env.example .env        # then fill in the secrets
+#   docker compose up -d --build
+#
+# Only the UI is published on the network (KG_HTTP_PORT, default 80); it forwards /api to the app. The databases,
+# MinIO and the app are reachable only inside the compose network. Dozzle listens on 127.0.0.1 and needs a login.
+name: knowgauge
+
+# Every container rotates its Docker log: at most 3 files of 20 MB. This is also how far back Dozzle can show.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: knowgauge-postgres
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-knowgauge}
+      POSTGRES_USER: ${POSTGRES_USER:-knowgauge_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [knowgauge-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-vectors:
+    image: pgvector/pgvector:pg15
+    container_name: knowgauge-postgres-vectors
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${POSTGRES_VECTORS_DB:-knowgauge_vectors}
+      POSTGRES_USER: ${POSTGRES_VECTORS_USER:-knowgauge_user}
+      POSTGRES_PASSWORD: ${POSTGRES_VECTORS_PASSWORD:?Set POSTGRES_VECTORS_PASSWORD in deploy/.env}
+    volumes:
+      - postgres_vectors_data:/var/lib/postgresql/data
+    networks: [knowgauge-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    # Same image and settings as local-development (minio/minio is no longer published). Runs as root so it can
+    # write to the named volume. No healthcheck: the image has no shell or curl.
+    image: cgr.dev/chainguard/minio:latest
+    container_name: knowgauge-minio
+    restart: unless-stopped
+    logging: *default-logging
+    user: "0:0"
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-knowgauge}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/.env (at least 8 characters)}
+    volumes:
+      - minio_data:/data
+    networks: [knowgauge-network]
+
+  knowgauge-service:
+    image: knowgauge-service
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: knowgauge-service
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      # The image defaults to the prod profile: every setting comes from these variables
+      # (see knowgauge-service-rest-api/src/main/resources/application-prod.properties).
+      SPRING_PROFILES_ACTIVE: prod
+
+      KG_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}
+      KG_DB_USERNAME: ${POSTGRES_USER:-knowgauge_user}
+      KG_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+      KG_VECTOR_DB_URL: jdbc:postgresql://postgres-vectors:5432/${POSTGRES_VECTORS_DB:-knowgauge_vectors}
+      KG_VECTOR_DB_USERNAME: ${POSTGRES_VECTORS_USER:-knowgauge_user}
+      KG_VECTOR_DB_PASSWORD: ${POSTGRES_VECTORS_PASSWORD}
+
+      KG_STORAGE_ENDPOINT: http://minio:9000
+      KG_STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:-knowgauge}
+      KG_STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      KG_STORAGE_BUCKET: ${KG_STORAGE_BUCKET:-knowgauge-content}
+      KG_STORAGE_CREATE_BUCKET: "true"
+
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in deploy/.env}
+
+      KG_TENANT_ID: ${KG_TENANT_ID:-1}
+      KG_USER_ID: ${KG_USER_ID:-}
+
+      # JSON logs (ECS); Dozzle shows them as fields. KG_LOG_LEVEL applies to com.knowgauge.
+      KG_LOG_FORMAT: ${KG_LOG_FORMAT:-ecs}
+      KG_LOG_LEVEL: ${KG_LOG_LEVEL:-INFO}
+      KG_ENVIRONMENT: ${KG_ENVIRONMENT:-prod}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-vectors:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks: [knowgauge-network]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  knowgauge-ui:
+    image: knowgauge-ui
+    # Built from a clone of know-gauge-ui. The default expects it next to this repository.
+    build:
+      context: ${KG_UI_SOURCE:-../../know-gauge-ui}
+    container_name: knowgauge-ui
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      BACKEND_URL: http://knowgauge-service:8080
+    ports:
+      - "${KG_HTTP_PORT:-80}:80"
+    depends_on:
+      knowgauge-service:
+        condition: service_healthy
+    networks: [knowgauge-network]
+
+  dozzle:
+    # Log viewer. Login from dozzle/users.yml (see deploy/README.md). It can read every container's logs, so it
+    # listens on 127.0.0.1 only: open it through an SSH tunnel or a reverse proxy with HTTPS.
+    image: amir20/dozzle:latest
+    container_name: knowgauge-dozzle
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      DOZZLE_AUTH_PROVIDER: simple
+      DOZZLE_AUTH_TTL: 48h
+      DOZZLE_NO_ANALYTICS: "true"
+    ports:
+      - "127.0.0.1:${DOZZLE_PORT:-8888}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dozzle:/data
+    networks: [knowgauge-network]
+
+volumes:
+  postgres_data:
+  postgres_vectors_data:
+  minio_data:
+
+networks:
+  knowgauge-network:
+    driver: bridge

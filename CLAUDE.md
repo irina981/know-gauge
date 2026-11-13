@@ -25,7 +25,8 @@ mvn -pl knowgauge-service-rest-api spring-boot:run -Dspring-boot.run.profiles=lo
 docker compose -f local-development/docker-compose.yml --profile full up --build   # app in a container too (Spring profile: local)
 ```
 
-Compose files and `.env.example` live in [`local-development/`](local-development/README.md).
+Compose files and `.env.example` live in [`local-development/`](local-development/README.md). The single-server
+production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/README.md).
 
 - Spring profiles: `local` (development; localhost ports 5432/5433/9000, also used by the compose app container with
   env-var host overrides), `test` (automated tests only) and `prod` (every environment-specific value from env vars,
@@ -38,7 +39,9 @@ Compose files and `.env.example` live in [`local-development/`](local-developmen
 - `OPENAI_API_KEY` must be set in the environment (or in `local-development/.env` for compose). Compose is for
   local development only and needs no `.env`: every other variable defaults to the `application-local.properties`
   values. Keep those defaults in sync when changing dev credentials.
-- Swagger UI: http://localhost:8080/swagger-ui.html · health: `/actuator/health`.
+- Swagger UI: http://localhost:8080/swagger-ui.html · health: `/actuator/health` · logs (Dozzle): http://localhost:8888.
+- Logs are plain text in `local`/`test` and JSON (ECS) in `prod`, with `documentId`/`testId` as MDC fields
+  ([ADR007](docs/adr/ADR007-json-logs-and-dozzle.md)).
 - Unit tests exist for the core (`knowgauge-service-core/src/test/java`: question model, validator, review
   services). Run them with `mvn -pl knowgauge-service-core test`. They also run on newer local JDKs (tested
   on 23). There are no integration tests yet.
@@ -135,6 +138,6 @@ Compose files and `.env.example` live in [`local-development/`](local-developmen
   typed handler would map.
 - The `local` profile seeds a fixed topic tree (`R__dev_seed_topics.sql`, tenant 1) and uploads the sample PDFs from
   `resources/devdocs/` at startup (`kg.dev.seed.enabled=true`). The seeder also creates the MinIO bucket. Other
-  profiles must create it beforehand.
+  profiles must create it beforehand, or set `KG_STORAGE_CREATE_BUCKET=true` (`deploy/` does).
 - Audit `createdBy`/`updatedBy` are hard-coded to `1` in `AuditableEntity` (`@PrePersist`).
 - Known issues and backlog: [`docs/architecture/11-known-issues-and-roadmap.md`](docs/architecture/11-known-issues-and-roadmap.md), [`TODO.md`](TODO.md).
