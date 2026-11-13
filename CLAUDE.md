@@ -13,7 +13,7 @@ before changing ingestion, retrieval, test generation or persistence wiring.
 
 ## Tech stack
 
-Java 21 · Spring Boot 3.5.16 · Maven multi-module (no wrapper; use a local `mvn`) · LangChain4j 1.1.0 (OpenAI, Ollama)
+Java 21 · Spring Boot 3.5.16 · Maven multi-module (no wrapper; use a local `mvn`) · LangChain4j 1.23.0 (OpenAI, Ollama)
 · PostgreSQL 15 + pgvector · Flyway · MinIO · Resilience4j 2.2 · MapStruct 1.5.5 · Lombok 1.18.46 · springdoc.
 
 ## Build & run

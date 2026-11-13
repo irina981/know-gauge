@@ -121,7 +121,7 @@ with a login from `deploy/dozzle/users.yml`. Every container restarts `unless-st
 ## Build & image
 
 - Maven reactor from the root `pom.xml`: `mvn clean install` (or `-DskipTests`; there are no tests yet).
-- The parent POM imports the BOMs for Spring Boot 3.5.16, LangChain4j 1.1.0 and Resilience4j 2.2.0, and configures
+- The parent POM imports the BOMs for Spring Boot 3.5.16, LangChain4j 1.23.0 and Resilience4j 2.2.0, and configures
   the annotation processors **Lombok, then MapStruct** in that order. The order matters for MapStruct to see the
   Lombok-generated accessors.
 - Multi-stage `Dockerfile`: copy all module POMs and run `mvn validate` to warm the cache layer, copy the sources,

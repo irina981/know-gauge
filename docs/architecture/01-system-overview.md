@@ -66,7 +66,7 @@ backing services to report healthy before it starts. See [09](09-configuration-a
 | Language / runtime | Java 21 (Temurin) |
 | Framework | Spring Boot 3.5.16 (Web MVC, Data JPA, Actuator, Validation) |
 | Build | Maven multi-module reactor (no wrapper committed) |
-| LLM / embeddings | LangChain4j 1.1.0 (`OpenAiChatModel`, `OpenAiEmbeddingModel`, recursive splitter) |
+| LLM / embeddings | LangChain4j 1.23.0 (`OpenAiChatModel`, `OpenAiEmbeddingModel`, recursive splitter) |
 | PDF parsing | Apache PDFBox 3 (`Loader`, `PDFTextStripper`) |
 | Relational persistence | Hibernate 6.6 / Spring Data JPA, PostgreSQL 15, Hypersistence Utils (`hypersistence-utils-hibernate-63`) `JsonType` for JSONB |
 | Vector store | pgvector (`vector(1536)`, IVFFlat cosine index), Hibernate `SqlTypes.VECTOR` |
