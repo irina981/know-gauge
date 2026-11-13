@@ -2,7 +2,8 @@
 # .env file is needed. To override a value (or to pass OPENAI_API_KEY), set it in your shell or in
 # local-development/.env (see .env.example).
 #
-# `docker compose up` starts only the backing services (run the app from the IDE with the local profile).
+# `docker compose up` starts only the backing services and the Dozzle log viewer (run the app from the IDE with
+# the local profile).
 # `docker compose --profile full up --build` also builds and starts the app container (local profile).
 # `--profile ollama` also starts Ollama and pulls the model (about 4.7 GB) for the opt-in local verifier.
 services:
@@ -58,6 +59,19 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
+    networks: [knowgauge-network]
+
+  # Log viewer for every container on this Docker host: http://localhost:8888 (live tail, search, level filters,
+  # JSON shown as fields). No login, so it listens on localhost only. Reads the Docker socket and stores nothing.
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: knowgauge-dozzle
+    environment:
+      DOZZLE_NO_ANALYTICS: "true"
+    ports:
+      - "127.0.0.1:8888:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks: [knowgauge-network]
 
   # Opt-in local LLM for distractor verification (kg.testgen.verification.provider=ollama). Not started by default.
@@ -123,6 +137,9 @@ services:
       KG_TESTGEN_VERIFICATION_PROVIDER: ${KG_TESTGEN_VERIFICATION_PROVIDER:-openai}
       KG_TESTGEN_VERIFICATION_CHATMODEL_OLLAMA_BASEURL: http://ollama:11434
       KG_TESTGEN_VERIFICATION_CHATMODEL_OLLAMA_MODEL: ${KG_OLLAMA_MODEL:-qwen2.5:7b-instruct}
+
+      # Uncomment for JSON logs (as in prod) instead of plain text, e.g. to try field filters in Dozzle
+      # LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
 
       # Optional debug
       JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005

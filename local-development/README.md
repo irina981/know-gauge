@@ -29,7 +29,7 @@ shell, or copy `.env.example` to `.env` and put it there. Compose reads `.env` f
 
 ## What gets started
 
-All containers join the `knowgauge-network` bridge network. Each service has a healthcheck, and data is kept in
+All containers join the `knowgauge-network` bridge network. The databases and the app have healthchecks, and data is kept in
 named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 
 | Service | Container | Image | Host ports | Volume | What it is for |
@@ -37,6 +37,7 @@ named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 | `postgres` | `knowgauge-postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` | Main database: topics, documents, chunks, tests, questions, attempts, generation runs. Schema created by Flyway on app startup |
 | `postgres-vectors` | `knowgauge-postgres-vectors` | `pgvector/pgvector:pg15` | 5433 → 5432 | `postgres_vectors_data` | Vector database: chunk embeddings (`vector(1536)`) used for retrieval |
 | `minio` | `knowgauge-minio` | `cgr.dev/chainguard/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
+| `dozzle` | `knowgauge-dozzle` | `amir20/dozzle:latest` | 8888 → 8080 (localhost only) | – | Web log viewer for all containers on this Docker host (see [Logs](#logs)) |
 | `ollama` | `knowgauge-ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` | Opt-in (`--profile ollama`). Local LLM server for the optional local distractor verifier |
 | `ollama-pull` | `knowgauge-ollama-pull` | `ollama/ollama:latest` | – | – | Opt-in (`--profile ollama`). One-shot: pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits. The first pull downloads about 4.7 GB |
 | `knowgauge-service` | `knowgauge-service` | built from the root `Dockerfile` | 8080 (HTTP), 5005 (JDWP debugger) | – | The Spring Boot app, run with the `local` profile (hostnames overridden through env vars). Only in the `full` compose profile (see option 2). Starts only after the other services are healthy |
@@ -55,7 +56,7 @@ the ingestion endpoint for each document before generating tests. The onboarding
 This is the usual setup while coding. Start the databases and MinIO in Docker, then run the app locally with the
 `local` profile, which points at `localhost:5432`, `localhost:5433` and `localhost:9000`.
 
-A plain `up` starts only these backing services. The app sits in the `full` compose profile and Ollama in the
+A plain `up` starts only these backing services and Dozzle. The app sits in the `full` compose profile and Ollama in the
 `ollama` compose profile. From the repository root:
 
 ```bash
@@ -94,7 +95,20 @@ healthcheck (`/actuator/health/readiness`) reports `UP`. To debug, attach a remo
 | Swagger UI | http://localhost:8080/swagger-ui.html |
 | OpenAPI JSON | http://localhost:8080/v3/api-docs |
 | Health | http://localhost:8080/actuator/health |
+| Logs (Dozzle) | http://localhost:8888 |
 | MinIO console | http://localhost:9001 (log in with `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`) |
+
+## Logs
+
+Dozzle shows the logs of every container on your Docker host at **http://localhost:8888**: live tail, search
+(plain text or regex), level filters, several containers side by side, and download. It reads the Docker socket
+and stores nothing, so it shows what Docker still keeps for each container. It has no login and listens on
+`localhost` only.
+
+The app run from the IDE logs to your IDE console, not to Docker, so Dozzle only shows it when the app runs in a
+container (option 2). The `local` profile logs plain text. To see the JSON format used in production, uncomment
+`LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs` under `knowgauge-service` in `docker-compose.yml`: Dozzle then shows each
+line as fields, including `documentId` during ingestion and `testId` during test generation.
 
 ## Common commands
 
