@@ -4,8 +4,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import com.knowgauge.core.model.enums.OptionLetter;
 import com.knowgauge.core.model.enums.VersionOrigin;
@@ -154,15 +157,44 @@ public class TestQuestionVersion extends PersistedObject {
 	}
 
 	/**
-	 * @return true when there is at least one flag and every flagged option has a
-	 *         usable suggestion (precondition for accepting the fix).
+	 * @return true when there is at least one flag, every flagged option has a
+	 *         usable suggestion, and applying them would not create duplicate
+	 *         options (precondition for accepting the fix).
 	 */
 	public boolean isFixApplicable() {
 		if (!hasFlags()) {
 			return false;
 		}
 		return options.values().stream().filter(o -> o != null && o.isFlagged())
-				.allMatch(TestQuestionOption::hasUsableSuggestion);
+				.allMatch(TestQuestionOption::hasUsableSuggestion) && !suggestionsRepeatOptions();
+	}
+
+	/**
+	 * @return true when a suggestion matches the text of any option (its own
+	 *         included) or another suggestion, ignoring case and extra spaces.
+	 *         Such a fix would leave the question with duplicate options.
+	 */
+	public boolean suggestionsRepeatOptions() {
+		if (options == null) {
+			return false;
+		}
+		Set<String> taken = new HashSet<>();
+		for (TestQuestionOption option : options.values()) {
+			if (option != null && option.getText() != null) {
+				taken.add(textKey(option.getText()));
+			}
+		}
+		for (OptionLetter letter : OptionLetter.values()) {
+			TestQuestionOption option = options.get(letter);
+			if (option != null && option.hasUsableSuggestion() && !taken.add(textKey(option.getSuggestedText()))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static String textKey(String text) {
+		return text.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
 	}
 
 	/**

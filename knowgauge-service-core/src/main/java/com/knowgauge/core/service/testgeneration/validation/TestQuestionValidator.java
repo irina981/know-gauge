@@ -256,7 +256,7 @@ public class TestQuestionValidator {
 			}
 		}
 		if (s.contains(ValidationStrategy.DUPLICATE_SUGGESTIONS)) {
-			dropDuplicateSuggestions(question, test);
+			logDuplicateSuggestions(question, test);
 		}
 		if (s.contains(ValidationStrategy.SHUFFLE_AND_REMAP)) {
 			shuffleOptions(question);
@@ -406,12 +406,13 @@ public class TestQuestionValidator {
 	}
 
 	/**
-	 * Removes a flagged option's suggestion when it matches the text of any option
-	 * of the question (its own included) or a suggestion already kept for an
-	 * earlier option. Accepting such a fix would create duplicate options. The flag
-	 * and its reason stay, so the question still needs review (regenerate or edit).
+	 * Logs a flagged option's suggestion that matches the text of any option of the
+	 * question (its own included) or a suggestion of an earlier option. The
+	 * suggestion is kept so the reviewer sees it, but Accept fix is unavailable for
+	 * the question (TestQuestionVersion.isFixApplicable), because it would create
+	 * duplicate options; the reviewer edits or regenerates instead.
 	 */
-	private void dropDuplicateSuggestions(TestQuestion q, Test test) {
+	private void logDuplicateSuggestions(TestQuestion q, Test test) {
 		Set<String> taken = new HashSet<>();
 		for (OptionLetter letter : OptionLetter.values()) {
 			String text = optionText(q, letter);
@@ -425,9 +426,9 @@ public class TestQuestionValidator {
 				continue;
 			}
 			if (!taken.add(normKey(option.getSuggestedText()))) {
-				log.warn("Test {} - Dropped duplicate suggestion '{}' for flagged option {} in question '{}'",
-						test.getId(), option.getSuggestedText(), letter, preview(q.getQuestionText()));
-				option.setSuggestedText(null);
+				log.warn("Test {} - Suggestion '{}' for flagged option {} repeats an existing option in question '{}';"
+						+ " Accept fix will be unavailable", test.getId(), option.getSuggestedText(), letter,
+						preview(q.getQuestionText()));
 			}
 		}
 	}

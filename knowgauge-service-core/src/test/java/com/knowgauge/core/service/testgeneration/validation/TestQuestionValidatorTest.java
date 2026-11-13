@@ -57,7 +57,7 @@ class TestQuestionValidatorTest {
 	}
 
 	@Test
-	void suggestionRepeatingAnExistingOptionIsDroppedButFlagKept() {
+	void suggestionRepeatingAnExistingOptionIsKeptButFixIsNotApplicable() {
 		TestQuestionVersion v = QuestionFixtures.defaultVersion();
 		v.getOption(OptionLetter.B).flag(" treeset ", "r"); // C is "TreeSet"
 		TestQuestion q = QuestionFixtures.draft(v);
@@ -68,13 +68,14 @@ class TestQuestionValidatorTest {
 		assertThat(valid).hasSize(1);
 		TestQuestionOption flagged = q.getOption(q.getFlaggedOptions().get(0));
 		assertThat(flagged.getText()).isEqualTo("HashMap");
-		assertThat(flagged.getSuggestedText()).isNull();
+		assertThat(flagged.getSuggestedText()).isEqualTo(" treeset ");
 		assertThat(flagged.getFlagReason()).isEqualTo("r");
+		assertThat(v.suggestionsRepeatOptions()).isTrue();
 		assertThat(v.isFixApplicable()).isFalse();
 	}
 
 	@Test
-	void suggestionEqualToOwnTextOrAnotherSuggestionIsDropped() {
+	void suggestionEqualToOwnTextOrAnotherSuggestionIsKeptButFixIsNotApplicable() {
 		TestQuestionVersion v = QuestionFixtures.defaultVersion();
 		v.getOption(OptionLetter.B).flag("HashMap", "r"); // same as its own text
 		v.getOption(OptionLetter.C).flag("ArrayDeque", "r");
@@ -86,8 +87,9 @@ class TestQuestionValidatorTest {
 
 		List<String> kept = q.getOptions().values().stream().map(TestQuestionOption::getSuggestedText)
 				.filter(s -> s != null).toList();
-		assertThat(kept).containsExactly("ArrayDeque");
+		assertThat(kept).containsExactlyInAnyOrder("HashMap", "ArrayDeque", "arraydeque");
 		assertThat(q.getFlaggedOptions()).hasSize(3);
+		assertThat(v.isFixApplicable()).isFalse();
 	}
 
 	@Test

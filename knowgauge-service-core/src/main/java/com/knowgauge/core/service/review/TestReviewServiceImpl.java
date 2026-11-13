@@ -88,9 +88,13 @@ public class TestReviewServiceImpl implements TestReviewService {
 		ReviewContext ctx = loadForAction(testId, questionId, expectedCurrentVersionId);
 		TestQuestionVersion current = ctx.current();
 		if (!current.isFixApplicable()) {
-			throw new ReviewConflictException(current.hasFlags()
-					? "Question " + questionId + " has flagged options without a suggested replacement. Regenerate or replace it manually."
-					: "Question " + questionId + " has no flagged options to fix.");
+			throw new ReviewConflictException(!current.hasFlags()
+					? "Question " + questionId + " has no flagged options to fix."
+					: current.suggestionsRepeatOptions()
+							? "The suggested replacement for question " + questionId
+									+ " repeats an existing option. Regenerate or replace it manually."
+							: "Question " + questionId
+									+ " has flagged options without a suggested replacement. Regenerate or replace it manually.");
 		}
 
 		Map<String, Object> replaced = new LinkedHashMap<>();
