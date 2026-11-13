@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.context.ExecutionContext;
@@ -41,6 +42,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TestGenerationServiceImpl implements TestGenerationService {
 
+	static final String MDC_TEST_ID = "testId";
+
 	private final RetrievingService retrievingService;
 	private final QuestionBatchGenerator batchGenerator;
 	private final TestDraftValidator testDraftValidator;
@@ -71,6 +74,15 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	@Override
 	public Test generate(Test testDraft) {
+		// testId is added to the log context (MDC) once the test is persisted, so structured logs can be filtered by it
+		try {
+			return doGenerate(testDraft);
+		} finally {
+			MDC.remove(MDC_TEST_ID);
+		}
+	}
+
+	private Test doGenerate(Test testDraft) {
 		Long tenantId = executionContext.tenantId();
 		Long actorUserId = currentUserId();
 		applyDefaults(testDraft);
@@ -86,6 +98,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 		// 1) Persist test (CREATED) + TEST_CREATED event
 		Test test = tx.persistTest(tenantId, testDraft, actorUserId);
+		MDC.put(MDC_TEST_ID, String.valueOf(test.getId()));
 		test.setMinMultipleCorrectQuestionsCount(batchGenerator
 				.computeMinMultipleCorrectQuestionsCount(test.getQuestionCount(), test.getAnswerCardinality()));
 		log.info("    Test generation {} - Test persisted", test.getId());

@@ -90,6 +90,9 @@ For the HTTP mapping and its quirks, see [08 – Error model](08-rest-api.md#err
 ## Logging conventions
 
 - Lombok `@Slf4j`. Messages include the `testId` or `documentId`, plus a batch number for generation.
+- `IngestionServiceImpl.ingest` puts `documentId` and `TestGenerationServiceImpl.generate` puts `testId` into the
+  MDC for the duration of the call, so JSON logs carry them as fields. Keep them in the message text as well:
+  the `local` profile logs plain text. Work started on another thread does not inherit the MDC.
 - Rejected questions are logged at WARN with a reason string. Flagged options are logged at INFO with the
   verifier's explanation.
 - Full prompts are logged at DEBUG. With DEBUG on (the dev and docker default), document content and LLM output

@@ -3,6 +3,7 @@ package com.knowgauge.core.service.ingestion;
 import java.io.InputStream;
 import java.util.List;
 
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.exception.DocumentIngestionConflictException;
@@ -20,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class IngestionServiceImpl implements IngestionService {
+
+	static final String MDC_DOCUMENT_ID = "documentId";
 
 	private final List<DocumentParser> pageExtractionServices;
 	private final ChunkingService chunkingService;
@@ -43,6 +46,13 @@ public class IngestionServiceImpl implements IngestionService {
 
 	@Override
 	public void ingest(Long documentId) {
+		// documentId in the log context (MDC), so structured logs can be filtered by it
+		try (MDC.MDCCloseable mdc = MDC.putCloseable(MDC_DOCUMENT_ID, String.valueOf(documentId))) {
+			doIngest(documentId);
+		}
+	}
+
+	private void doIngest(Long documentId) {
 		log.info("*** Ingestion started for document: {}", documentId);
 		
 		// 1) Check if document exists and is in state of UPLADED
