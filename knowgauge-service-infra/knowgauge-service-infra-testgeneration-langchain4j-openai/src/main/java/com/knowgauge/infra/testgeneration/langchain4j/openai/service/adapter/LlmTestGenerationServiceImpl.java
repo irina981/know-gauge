@@ -15,6 +15,7 @@ import com.knowgauge.core.port.testgeneration.LlmGenerationResult;
 import com.knowgauge.core.port.testgeneration.LlmTestGenerationService;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.LlmCallMetadataMapper;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiChatModelProperties;
+import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiReasoningModels;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.TestGenerationResponseMapper;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.service.OpenAiClient;
 
@@ -28,13 +29,15 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 	private final OpenAiClient openAiClient;
 	private final OpenAiChatModelProperties chatModelProperties;
 	private final TestGenerationResponseMapper responseMapper;
+	private final OpenAiReasoningModels reasoningModels;
 
 	public LlmTestGenerationServiceImpl(@Qualifier("testGenerationOpenAiClient") OpenAiClient openAiClient, 
 			OpenAiChatModelProperties chatModelProperties,
-			TestGenerationResponseMapper responseMapper) {
+			TestGenerationResponseMapper responseMapper, OpenAiReasoningModels reasoningModels) {
 		this.openAiClient = openAiClient;
 		this.chatModelProperties = chatModelProperties;
 		this.responseMapper = responseMapper;
+		this.reasoningModels = reasoningModels;
 	}
 
 	@Override
@@ -56,8 +59,7 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 	/** Settings recorded with the generation run. Mirrors {@link #buildChatModel}. */
 	private Map<String, Object> requestParams(Test test, String model) {
 		Map<String, Object> params = new LinkedHashMap<>();
-		params.put("temperature", resolveTemperature(test));
-		params.put("maxOutputTokens", resolveMaxOutputTokens(test));
+		params.putAll(reasoningModels.requestParams(model, resolveTemperature(test), resolveMaxOutputTokens(test)));
 		params.put("strictJsonSchema", openAiClient.supportsStructuredOutputResponseFormat(model));
 		params.putAll(openAiClient.responseFormatParams(model));
 		return params;
@@ -84,13 +86,8 @@ public class LlmTestGenerationServiceImpl implements LlmTestGenerationService {
 		OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder()
 				.apiKey(chatModelProperties.getApiKey()).modelName(model).strictJsonSchema(supportsStructuredOutput);
 
-		if (temperature != null) {
-			builder.temperature(temperature);
-		}
-
-		if (maxOutputTokens != null) {
-			builder.maxTokens(maxOutputTokens);
-		}
+		// Temperature and output limit, or the reasoning settings for e.g. the GPT-5 family
+		reasoningModels.configure(builder, model, temperature, maxOutputTokens);
 
 		if (chatModelProperties.getTimeoutSeconds() != null) {
 			builder.timeout(Duration.ofSeconds(chatModelProperties.getTimeoutSeconds()));

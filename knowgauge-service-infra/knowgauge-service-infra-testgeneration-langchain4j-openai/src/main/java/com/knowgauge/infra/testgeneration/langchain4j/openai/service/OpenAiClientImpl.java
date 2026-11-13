@@ -40,7 +40,7 @@ public class OpenAiClientImpl implements OpenAiClient {
 	protected final List<String> structuredOutputModelPrefixes;
 
 	public OpenAiClientImpl(SchemaProvider schemaProvider,
-			@Value("${kg.testgen.chat-model.openai.structured-output-model-prefixes:gpt-4.1,gpt-4o,o1,o3,o4}") List<String> structuredOutputModelPrefixes) {
+			@Value("${kg.testgen.chat-model.openai.structured-output-model-prefixes:gpt-4.1,gpt-4o,gpt-5,o1,o3,o4}") List<String> structuredOutputModelPrefixes) {
 		this.structuredOutputModelPrefixes = structuredOutputModelPrefixes;
 		this.objectMapper = new ObjectMapper();
 		this.schemaProvider = schemaProvider;
@@ -194,7 +194,7 @@ public class OpenAiClientImpl implements OpenAiClient {
 
 		List<String> prefixes = structuredOutputModelPrefixes;
 		if (prefixes == null || prefixes.isEmpty()) {
-			prefixes = List.of("gpt-4.1", "gpt-4o", "o1", "o3", "o4");
+			prefixes = List.of("gpt-4.1", "gpt-4o", "gpt-5", "o1", "o3", "o4");
 		}
 
 		String lowerModelName = modelName.toLowerCase(Locale.ROOT);

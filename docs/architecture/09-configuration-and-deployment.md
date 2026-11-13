@@ -51,7 +51,7 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `kg.embedding.*` | `OpenAiEmbeddingConfig`, `OpenAiEmbeddingServiceImpl` | `dimension`, `provider`, `openai.api-key`, `openai.model`, `openai.base-url`, `openai.timeout` |
 | `kg.testgen.defaults.*` | `TestGenerationDefaultsProperties` | See [06 – tunables](06-test-generation.md#tunables-defaults) |
 | `kg.testgen.prompt.templates.*` | `ClasspathPromptTemplateLoader`, `SchemaProvidersConfig` | `classpathBase`, `output-schema-file` |
-| `kg.testgen.chat-model.openai.*` | `OpenAiChatModelProperties`, `OpenAiConfig` | `api-key`, `model`, `temperature`, `max-output-tokens`, `timeout-seconds`, `structured-output-model-prefixes` |
+| `kg.testgen.chat-model.openai.*` | `OpenAiChatModelProperties`, `OpenAiConfig` | `api-key`, `model`, `temperature`, `max-output-tokens`, `timeout-seconds`, `structured-output-model-prefixes`, `reasoning-model-prefixes` (`gpt-5`), `reasoning-effort` (`low`), `reasoning-max-completion-tokens` (`8000`); see `OpenAiReasoningModels` |
 | `kg.testgen.verification.*` | `OpenAiVerificationModelProperties`, `OllamaVerificationModelProperties`, `VerificationPromptBuilder`, `SchemaProvidersConfig` | `provider` (`openai`/`ollama`), `chat-model.openai.*`, `chat-model.ollama.*` (`base-url`, `model`, `temperature`, `max-output-tokens`, `timeout-seconds`), `prompt.templates.*`, `defaults.prompt-template-id` |
 | `kg.pgvector.datasource.*` | `PgVectorJpaConfig` | `url` / `jdbc-url`, `username`, `password`, `driver-class-name` |
 | `kg.pgvector.flyway.*` | `PgVectorFlywayConfig` | `enabled`, `locations`, `schemas` |

@@ -17,14 +17,14 @@ public class OpenAiConfig {
 	@Bean(name = "testGenerationOpenAiClient")
 	public OpenAiClient testGenerationOpenAiClient(
 			@Qualifier("testGenerationOutputSchemaProvider") SchemaProvider schemaProvider,
-			@Value("${kg.testgen.chat-model.openai.structured-output-model-prefixes:gpt-4.1,gpt-4o,o1,o3,o4}") List<String> structuredOutputModelPrefixes) {
+			@Value("${kg.testgen.chat-model.openai.structured-output-model-prefixes:gpt-4.1,gpt-4o,gpt-5,o1,o3,o4}") List<String> structuredOutputModelPrefixes) {
 		return new OpenAiClientImpl(schemaProvider, structuredOutputModelPrefixes);
 	}
 
 	@Bean(name = "verificationOpenAiClient")
 	public OpenAiClient verificationOpenAiClient(
 			@Qualifier("verificationOutputSchemaProvider") SchemaProvider schemaProvider,
-			@Value("${kg.testgen.chat-model.openai.structured-output-model-prefixes:gpt-4.1,gpt-4o,o1,o3,o4}") List<String> structuredOutputModelPrefixes) {
+			@Value("${kg.testgen.chat-model.openai.structured-output-model-prefixes:gpt-4.1,gpt-4o,gpt-5,o1,o3,o4}") List<String> structuredOutputModelPrefixes) {
 		return new OpenAiClientImpl(schemaProvider, structuredOutputModelPrefixes);
 	}
 }

@@ -16,6 +16,7 @@ import com.knowgauge.core.port.testgeneration.LlmIncorrectOptionsVerificationSer
 import com.knowgauge.core.port.testgeneration.LlmVerificationResult;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.LlmCallMetadataMapper;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiChatModelProperties;
+import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiReasoningModels;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.config.OpenAiVerificationModelProperties;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.mapper.VerificationResponseMapper;
 import com.knowgauge.infra.testgeneration.langchain4j.openai.service.OpenAiClient;
@@ -33,14 +34,17 @@ public class LlmIncorrectOptionsVerificationServiceImpl implements LlmIncorrectO
 	private final OpenAiVerificationModelProperties verificationModelProperties;
 	private final OpenAiVerificationModelProperties fallbackProperties;
 	private final VerificationResponseMapper responseMapper;
+	private final OpenAiReasoningModels reasoningModels;
 
 	public LlmIncorrectOptionsVerificationServiceImpl(@Qualifier("verificationOpenAiClient") OpenAiClient openAiClient,
 			OpenAiVerificationModelProperties verificationModelProperties,
-			OpenAiChatModelProperties chatModelProperties, VerificationResponseMapper responseMapper) {
+			OpenAiChatModelProperties chatModelProperties, VerificationResponseMapper responseMapper,
+			OpenAiReasoningModels reasoningModels) {
 
 		this.openAiClient = openAiClient;
 		this.verificationModelProperties = verificationModelProperties;
 		this.responseMapper = responseMapper;
+		this.reasoningModels = reasoningModels;
 
 		// Create fallback properties from main chat model properties
 		this.fallbackProperties = new OpenAiVerificationModelProperties();
@@ -87,8 +91,7 @@ public class LlmIncorrectOptionsVerificationServiceImpl implements LlmIncorrectO
 	/** Settings recorded with the verification run. Mirrors {@link #buildChatModel}. */
 	private Map<String, Object> requestParams(Test test, String model) {
 		Map<String, Object> params = new LinkedHashMap<>();
-		params.put("temperature", resolveTemperature(test));
-		params.put("maxOutputTokens", resolveMaxOutputTokens(test));
+		params.putAll(reasoningModels.requestParams(model, resolveTemperature(test), resolveMaxOutputTokens(test)));
 		params.putAll(openAiClient.responseFormatParams(model));
 		return params;
 	}
@@ -103,13 +106,8 @@ public class LlmIncorrectOptionsVerificationServiceImpl implements LlmIncorrectO
 
 		OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder().apiKey(apiKey).modelName(model);
 
-		if (temperature != null) {
-			builder.temperature(temperature);
-		}
-
-		if (maxOutputTokens != null) {
-			builder.maxTokens(maxOutputTokens);
-		}
+		// Temperature and output limit, or the reasoning settings for e.g. the GPT-5 family
+		reasoningModels.configure(builder, model, temperature, maxOutputTokens);
 
 		if (timeoutSeconds != null) {
 			builder.timeout(Duration.ofSeconds(timeoutSeconds));

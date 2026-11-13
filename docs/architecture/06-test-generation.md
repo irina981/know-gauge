@@ -173,9 +173,14 @@ flowchart LR
   → `kg.testgen.verification.chat-model.openai.*` → main chat-model properties. The Ollama verifier uses the same
   `generationParams` overrides, then `kg.testgen.verification.chat-model.ollama.*`.
 - **Structured output** is turned on when the model name starts with one of
-  `kg.testgen.chat-model.openai.structured-output-model-prefixes` (`gpt-4.1,gpt-4o,o1,o3,o4`). Then
+  `kg.testgen.chat-model.openai.structured-output-model-prefixes` (`gpt-4.1,gpt-4o,gpt-5,o1,o3,o4`). Then
   `strictJsonSchema(true)` is set and the `responseFormat` is attached. In every case the prompt gets the suffix
   "Return ONLY a valid JSON …".
+- **Reasoning models** (name starts with one of `kg.testgen.chat-model.openai.reasoning-model-prefixes`, default
+  `gpt-5`) reject a custom temperature and `max_tokens`. For them `OpenAiReasoningModels` sends no temperature,
+  `max_completion_tokens` from `reasoning-max-completion-tokens` (default 8000, which also covers the hidden reasoning
+  tokens) and `reasoning-effort` (default `low`), for generation and verification alike. The recorded
+  `requestParams` show these instead of temperature and max output tokens. Other models are unchanged.
 - Token usage and finish reason are logged per call and returned as `LlmCallMetadata` in `LlmGenerationResult` /
   `LlmVerificationResult`, so the core can record the run. It carries the request side (the prompt with the
   adapter's JSON-only suffix, and `requestParams`: temperature, max output tokens, response format, the output
