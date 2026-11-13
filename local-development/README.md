@@ -36,7 +36,7 @@ named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 |---|---|---|---|---|---|
 | `postgres` | `knowgauge-postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` | Main database: topics, documents, chunks, tests, questions, attempts, generation runs. Schema created by Flyway on app startup |
 | `postgres-vectors` | `knowgauge-postgres-vectors` | `pgvector/pgvector:pg15` | 5433 → 5432 | `postgres_vectors_data` | Vector database: chunk embeddings (`vector(1536)`) used for retrieval |
-| `minio` | `knowgauge-minio` | `minio/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
+| `minio` | `knowgauge-minio` | `cgr.dev/chainguard/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
 | `ollama` | `knowgauge-ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` | Opt-in (`--profile ollama`). Local LLM server for the optional local distractor verifier |
 | `ollama-pull` | `knowgauge-ollama-pull` | `ollama/ollama:latest` | – | – | Opt-in (`--profile ollama`). One-shot: pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits. The first pull downloads about 4.7 GB |
 | `knowgauge-service` | `knowgauge-service` | built from the root `Dockerfile` | 8080 (HTTP), 5005 (JDWP debugger) | – | The Spring Boot app, run with the `local` profile (hostnames overridden through env vars). Only in the `full` compose profile (see option 2). Starts only after the other services are healthy |

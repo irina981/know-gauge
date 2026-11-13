@@ -43,8 +43,12 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    # minio/minio was deleted from Docker Hub (and quay.io/minio/minio closed to anonymous pulls) in Sept 2026.
+    # Chainguard's image runs the same MinIO server. It runs as UID 65532 by default; root avoids
+    # "file access denied" on the named volume. It has no shell or curl, so there is no healthcheck.
+    image: cgr.dev/chainguard/minio:latest
     container_name: knowgauge-minio
+    user: "0:0"
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
@@ -55,11 +59,6 @@ services:
     volumes:
       - minio_data:/data
     networks: [knowgauge-network]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/ready || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Opt-in local LLM for distractor verification (kg.testgen.verification.provider=ollama). Not started by default.
   ollama:
@@ -136,7 +135,7 @@ services:
       postgres-vectors:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
     networks: [knowgauge-network]
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]

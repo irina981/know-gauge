@@ -92,7 +92,7 @@ All services join the `knowgauge-network` bridge:
 |---|---|---|---|
 | `postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` |
 | `postgres-vectors` | `pgvector/pgvector:pg15` | 5433→5432 | `postgres_vectors_data` |
-| `minio` | `minio/minio:latest` | 9000 (S3), 9001 (console) | `minio_data` |
+| `minio` | `cgr.dev/chainguard/minio:latest` | 9000 (S3), 9001 (console) | `minio_data` |
 | `ollama` (profile `ollama`) | `ollama/ollama:latest` | 11434 | `ollama_data` |
 | `ollama-pull` (profile `ollama`, one-shot) | `ollama/ollama:latest` | – | – (pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits) |
 | app (`knowgauge-service`, profile `full`) | built from `Dockerfile` | 8080, 5005 (JDWP, `suspend=n`) | – |
