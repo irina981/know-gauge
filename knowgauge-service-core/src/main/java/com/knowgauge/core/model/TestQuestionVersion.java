@@ -43,7 +43,10 @@ public class TestQuestionVersion extends PersistedObject {
 
 	private Long parentVersionId;
 
-	/** LLM call that produced this content. Null for FIX_ACCEPTED and MANUAL. */
+	/**
+	 * LLM call that produced this content. Null for FIX_ACCEPTED and MANUAL;
+	 * FLAGS_DISMISSED keeps the value of the version it copies.
+	 */
 	private Long generationRunId;
 
 	/** Verification call that checked this content (and raised any flags). */
@@ -212,6 +215,24 @@ public class TestQuestionVersion extends PersistedObject {
 			});
 		}
 		draft.setOptions(fixed);
+		return draft;
+	}
+
+	/**
+	 * Creates the content of a FLAGS_DISMISSED successor draft: everything is
+	 * copied unchanged, but no option is flagged any more (ADR008).
+	 */
+	public TestQuestionVersion toUnflaggedDraft() {
+		TestQuestionVersion draft = copyContentAsDraft();
+		EnumMap<OptionLetter, TestQuestionOption> unflagged = new EnumMap<>(OptionLetter.class);
+		if (options != null) {
+			options.forEach((letter, option) -> {
+				if (option != null) {
+					unflagged.put(letter, option.copyWithoutFlag());
+				}
+			});
+		}
+		draft.setOptions(unflagged);
 		return draft;
 	}
 

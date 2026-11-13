@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.knowgauge.contract.dto.DismissFlagsInput;
 import com.knowgauge.contract.dto.GenerationRunDto;
 import com.knowgauge.contract.dto.ManualQuestionInput;
 import com.knowgauge.contract.dto.PublishTestInput;
@@ -63,6 +64,18 @@ public class TestReviewController {
 			@RequestBody @Valid ReviewActionInput input) {
 		return ResponseEntity.ok(questionMapper.toDto(
 				reviewService.acceptFix(testId, questionId, input.expectedCurrentVersionId(), input.comment())));
+	}
+
+	@PostMapping("/questions/{questionId}/dismiss-flags")
+	@Operation(summary = "Keep the question as it is", description = "Creates a new version with the same content and no flagged options, so a reviewer can overrule the verifier. The comment is required and kept in the history (ADR008).")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Flags dismissed; returns the question with its new current version"),
+			@ApiResponse(responseCode = "400", description = "Comment missing or blank"),
+			@ApiResponse(responseCode = "404", description = "Test or question not found"),
+			@ApiResponse(responseCode = "409", description = "Question changed since expectedCurrentVersionId, test not reviewable, or no flagged options") })
+	public ResponseEntity<TestQuestionDto> dismissFlags(@PathVariable Long testId, @PathVariable Long questionId,
+			@RequestBody @Valid DismissFlagsInput input) {
+		return ResponseEntity.ok(questionMapper.toDto(
+				reviewService.dismissFlags(testId, questionId, input.expectedCurrentVersionId(), input.comment())));
 	}
 
 	@PostMapping("/questions/{questionId}/regenerate")

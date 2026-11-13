@@ -42,6 +42,7 @@ at (`currentVersionId` from the question DTO). It returns the question with its 
 
 | Method | Path | Body / params | Result |
 |---|---|---|---|
+| POST | `/questions/{questionId}/dismiss-flags` | `DismissFlagsInput {expectedCurrentVersionId, comment}` (comment required) | `200 TestQuestionDto` with a new version: same content, no flags ("Keep as is", ADR008). `400` without a comment. `409` if the version is stale, the test is not reviewable, or nothing is flagged |
 | POST | `/questions/{questionId}/accept-fix` | `ReviewActionInput {expectedCurrentVersionId, comment?}` | `200 TestQuestionDto`. `409` if the version is stale, the test is not reviewable, or there is no applicable fix |
 | POST | `/questions/{questionId}/regenerate` | `ReviewActionInput` | `200 TestQuestionDto` (the new version may itself be `NEEDS_REVIEW`). `409` as above. `502` if the LLM could not produce a valid, non-duplicate question (nothing changed, `REGENERATION_FAILED` recorded) |
 | POST | `/questions/{questionId}/manual-replace` | `ManualQuestionInput {expectedCurrentVersionId, questionText, options: {A..D: {text, correct}}, explanation?, comment?}` | `200 TestQuestionDto`. `400` listing every validation reason. `409` as above |

@@ -26,6 +26,13 @@ public interface TestReviewService {
 	TestQuestion acceptFix(Long testId, Long questionId, Long expectedCurrentVersionId, String comment);
 
 	/**
+	 * Keeps the question exactly as it is and clears the verifier's flags, so the
+	 * reviewer can overrule a wrong flag (ADR008). The comment is required: it
+	 * records why the flags were dismissed.
+	 */
+	TestQuestion dismissFlags(Long testId, Long questionId, Long expectedCurrentVersionId, String comment);
+
+	/**
 	 * Replaces the question with a newly generated one from the test's original
 	 * context. The new version is verified again and may itself need review.
 	 */

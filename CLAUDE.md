@@ -102,7 +102,8 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - Questions are **versioned** ([ADR001](docs/adr/ADR001-review-process.md)): `TestQuestion` is a slot,
   `TestQuestionVersion` is immutable content. **Never update a persisted version.** Every change writes a new one
   through `TestReviewTransactionalServiceImpl.applyNewVersion` (optimistic switch on `expectedCurrentVersionId`).
-- Review actions (`TestReviewService`): accept fix, regenerate, manual replace. Each writes a `TestEvent` with the
+- Review actions (`TestReviewService`): accept fix, regenerate, manual replace, keep as is (`dismissFlags`,
+  comment required, [ADR008](docs/adr/ADR008-keep-question-as-is.md)). Each writes a `TestEvent` with the
   actor. Record every LLM call through `GenerationRunRecorder` and every state change through
   `TestHistoryRecorder`, in the same transaction as the change.
 - Prompt templates are `{{var}}` text files in `core/src/main/resources/prompttemplates/`. For `MULTIPLE_CORRECT`

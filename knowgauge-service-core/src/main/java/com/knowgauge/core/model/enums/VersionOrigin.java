@@ -11,5 +11,10 @@ public enum VersionOrigin {
 	/** Created by accepting the verifier's suggested replacements for flagged options. */
 	FIX_ACCEPTED,
 	/** Written manually by a reviewer. */
-	MANUAL
+	MANUAL,
+	/**
+	 * Same content as the previous version, without its flags: the reviewer kept
+	 * the question as it was and overruled the verifier (ADR008).
+	 */
+	FLAGS_DISMISSED
 }

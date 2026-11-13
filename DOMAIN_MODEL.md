@@ -203,9 +203,10 @@ A snapshot of a question's content. It is **insert-only**: a change to a questio
 - `tenantId` (Long) - Tenant identifier
 - `questionId` (Long) - Foreign key to TestQuestion
 - `versionNo` (Integer) - 1 = as generated, then 2, 3, …
-- `origin` (VersionOrigin) - `GENERATED`, `REGENERATED`, `FIX_ACCEPTED` or `MANUAL`
+- `origin` (VersionOrigin) - `GENERATED`, `REGENERATED`, `FIX_ACCEPTED`, `MANUAL` or `FLAGS_DISMISSED`
 - `parentVersionId` (Long, nullable) - Version this one replaced
-- `generationRunId` (Long, nullable) - LLM call that produced the content (null for FIX_ACCEPTED and MANUAL)
+- `generationRunId` (Long, nullable) - LLM call that produced the content (null for FIX_ACCEPTED and MANUAL;
+  FLAGS_DISMISSED keeps the value of the version it copies)
 - `verificationRunId` (Long, nullable) - Verification call that checked the content
 - `questionText` (String) - Question text
 - `explanation` (String, optional) - Explanation for the answer
@@ -215,7 +216,7 @@ A snapshot of a question's content. It is **insert-only**: a change to a questio
 
 **Constraints:**
 - UNIQUE(questionId, versionNo)
-- CHECK origin IN ('GENERATED', 'REGENERATED', 'FIX_ACCEPTED', 'MANUAL')
+- CHECK origin IN ('GENERATED', 'REGENERATED', 'FIX_ACCEPTED', 'MANUAL', 'FLAGS_DISMISSED') (V2)
 
 ### 8.1 TestQuestionOption (Answer Option of a Version)
 One of the four options (A–D) of a version. Immutable like its version.
@@ -240,6 +241,7 @@ One of the four options (A–D) of a version. Immutable like its version.
    - **Accept fix** – flagged texts replaced by suggestions (`FIX_ACCEPTED`)
    - **Regenerate** – a new LLM question from the test's context, verified again (`REGENERATED`)
    - **Manual replace** – the reviewer's own question and answer key (`MANUAL`)
+   - **Keep as is** – the same question without its flags, with a required comment (`FLAGS_DISMISSED`, ADR008)
 4. 🔍 When no question needs review any more, the test becomes `REVIEWED`.
 5. 📢 The reviewer publishes the test (`POST /api/tests/{id}/publish`, only from `GENERATED` or `REVIEWED`). A
    `PUBLISHED` test can no longer be changed, and only published tests accept attempts (ADR005).
@@ -254,7 +256,7 @@ Append-only record of everything that happened to a test and its questions.
 - `questionId` (Long, nullable) - Null for test-level events
 - `eventType` (TestEventType) - `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`,
   `TEST_FAILED`, `TEST_PUBLISHED`, `TEST_UNPUBLISHED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`,
-  `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED`
+  `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED`, `FLAGS_DISMISSED`
 - `fromVersionId`, `toVersionId` (Long, nullable) - Versions before and after the change
 - `actorUserId` (Long, nullable) - Acting user; NULL = system
 - `comment` (String, nullable) - Reviewer comment
@@ -411,12 +413,13 @@ One row per LLM call made for a test: initial generation batches, regeneration o
 - `REGENERATED`: Replaced by a reviewer-requested LLM regeneration
 - `FIX_ACCEPTED`: Flagged option texts replaced by the verifier's suggestions
 - `MANUAL`: Written by a reviewer
+- `FLAGS_DISMISSED`: Same content as the previous version without its flags; the reviewer kept the question (ADR008)
 
 ### TestEventType
 - Test level: `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`, `TEST_FAILED`,
   `TEST_PUBLISHED`, `TEST_UNPUBLISHED`
 - Question level: `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`,
-  `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED`
+  `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED`, `FLAGS_DISMISSED`
 
 ### GenerationRunPurpose
 - `TEST_GENERATION`, `REGENERATION`, `VERIFICATION`

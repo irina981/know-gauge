@@ -196,6 +196,7 @@ review**. It is no longer dropped.
 | Action | Allowed when | New version | Event |
 |---|---|---|---|
 | Accept fix | Current version `isFixApplicable()` | `FIX_ACCEPTED`: flagged texts replaced by suggestions, no flags | `FIX_ACCEPTED` (payload: replaced texts) |
+| Keep as is ([ADR008](../adr/ADR008-keep-question-as-is.md)) | Current version has flags; comment required | `FLAGS_DISMISSED`: same content, no flags; keeps the generation and verification run ids | `FLAGS_DISMISSED` (payload: the dismissed flags with text, suggestion and reason) |
 | Regenerate | Always (test reviewable) | `REGENERATED`: one new LLM question from the test's used chunks, verified again (may be flagged) | `QUESTION_REGENERATED`, plus `OPTION_FLAGGED` per new flag. On failure, `REGENERATION_FAILED` and no new version |
 | Manual replace | Always (test reviewable) | `MANUAL`: reviewer's question and answer key, rule-validated, not LLM-verified, no flags | `QUESTION_MANUALLY_REPLACED` |
 

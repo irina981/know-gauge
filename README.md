@@ -180,7 +180,7 @@ The application uses PostgreSQL with pgvector extension (main DB) and a separate
   - Tracks difficulty (EASY, MEDIUM, HARD), status (CREATED, GENERATED, REQUIRES_REVIEW, REVIEWED, FAILED, PUBLISHED)
   - Records generation model, parameters, and lifecycle timestamps
 - **test_questions**: Question slots (position, status OK / NEEDS_REVIEW, pointer to the current version)
-- **test_question_versions**: Immutable question content (origin GENERATED, REGENERATED, FIX_ACCEPTED or MANUAL; author; generation and verification run)
+- **test_question_versions**: Immutable question content (origin GENERATED, REGENERATED, FIX_ACCEPTED, MANUAL or FLAGS_DISMISSED; author; generation and verification run)
 - **test_question_version_options**: Options A–D of a version: text, correct (answer key), and verifier flag with suggested replacement and reason
 - **test_events**: Append-only history trail of each test (generation, flags, review actions, status changes, with actor)
 - **test_used_chunks**: Junction table mapping tests to source document chunks

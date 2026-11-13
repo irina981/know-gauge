@@ -115,6 +115,40 @@ public class TestReviewServiceImpl implements TestReviewService {
 	}
 
 	@Override
+	public TestQuestion dismissFlags(Long testId, Long questionId, Long expectedCurrentVersionId, String comment) {
+		if (comment == null || comment.isBlank()) {
+			throw new IllegalArgumentException(
+					"A comment is required to keep a question as it is: say why the verifier's flags are wrong.");
+		}
+		ReviewContext ctx = loadForAction(testId, questionId, expectedCurrentVersionId);
+		TestQuestionVersion current = ctx.current();
+		if (!current.hasFlags()) {
+			throw new ReviewConflictException("Question " + questionId + " has no flagged options to dismiss.");
+		}
+
+		// What the verifier said, so the history shows which flags were overruled
+		Map<String, Object> dismissed = new LinkedHashMap<>();
+		for (OptionLetter letter : current.getFlaggedOptions()) {
+			TestQuestionOption option = current.getOption(letter);
+			Map<String, Object> flag = new LinkedHashMap<>();
+			flag.put("text", option.getText());
+			flag.put("suggestedText", option.getSuggestedText());
+			flag.put("flagReason", option.getFlagReason());
+			dismissed.put(letter.name(), flag);
+		}
+		TestQuestionVersion draft = current.toUnflaggedDraft();
+		draft.setGenerationRunId(current.getGenerationRunId());
+		draft.setVerificationRunId(current.getVerificationRunId());
+
+		TestQuestion result = tx.applyNewVersion(ctx.tenantId(), ctx.question(), expectedCurrentVersionId, draft,
+				new VersionChange(VersionOrigin.FLAGS_DISMISSED, TestEventType.FLAGS_DISMISSED, ctx.actorUserId(),
+						comment.trim(), Map.of("dismissedFlags", dismissed)));
+		log.info("Review: test {} question {} - flags dismissed by user {} (version {} -> {})", testId, questionId,
+				ctx.actorUserId(), expectedCurrentVersionId, result.getCurrentVersionId());
+		return result;
+	}
+
+	@Override
 	public TestQuestion regenerate(Long testId, Long questionId, Long expectedCurrentVersionId, String comment) {
 		ReviewContext ctx = loadForAction(testId, questionId, expectedCurrentVersionId);
 		Test test = ctx.test();

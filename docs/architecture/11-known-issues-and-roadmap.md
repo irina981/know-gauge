@@ -46,7 +46,7 @@ operability, not effort.
 |---|---|
 | Retrieval | `FOCUSED` similarity search on the existing IVFFlat index. Avoid-repeats using `test_used_chunks`. Optional re-ranking |
 | Generation | Resilience4j on the LLM adapters (retry, CB, bulkhead, timeouts). More question types (multi-select UX, short answer). Better difficulty and coverage control. A Spring AI adapter to compare with LangChain4j |
-| Review workflow | **Done** ([ADR001](../adr/ADR001-review-process.md)): versions, event log, accept fix / regenerate / manual replace. Next: review UI, optional `DISMISS_FLAG` action, LLM second opinion on manual questions, real user identity in `actorUserId` |
+| Review workflow | **Done** ([ADR001](../adr/ADR001-review-process.md)): versions, event log, accept fix / regenerate / manual replace, and keep as is ([ADR008](../adr/ADR008-keep-question-as-is.md)). Next: LLM second opinion on manual questions, real user identity in `actorUserId` |
 | Attempts | Start, answer, submit and score attempts using the existing tables. Only `PUBLISHED` tests accept attempts ([ADR005](../adr/ADR005-publish-tests.md)). The attempt service must lock the test row before inserting, like unpublish does. Block or archive deletes of tests with attempts. "Clone to draft" to fix a published test that has attempts |
 | Ingestion | Layout-aware PDF extraction, section detection, semantic Markdown-aware splitter (A/B against the recursive one), async workers |
 | Tenancy & auth | Tenant entity, Keycloak OIDC, roles, tenant-scoped queries everywhere, Spring Data auditing |

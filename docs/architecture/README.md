@@ -27,6 +27,8 @@ Related material elsewhere in the repo:
 - [`docs/adr/`](../adr/): Architecture Decision Records
   - [ADR001 – Test Review Process and Question History](../adr/ADR001-review-process.md) (ACCEPTED, implemented): replaces
     the three-tier option model with immutable question versions, an event log and three review actions (accept fix / regenerate / manual replace)
+  - [ADR008 – Keep a Flagged Question As It Is](../adr/ADR008-keep-question-as-is.md) (ACCEPTED): a fourth review action
+    that keeps the question and dismisses the verifier's flags, with a required comment
   - More candidate ADRs are listed in [11](11-known-issues-and-roadmap.md#candidate-adrs)
 
 ## Architecture at a glance

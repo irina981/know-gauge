@@ -123,6 +123,58 @@ class TestReviewServiceImplTest {
 				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("no flagged options");
 	}
 
+	// ---------------- dismiss flags (keep as is) ----------------
+
+	@Test
+	void dismissFlagsKeepsTheContentWithoutFlagsAsNewVersion() {
+		question.getCurrentVersion().setGenerationRunId(5L);
+		question.getCurrentVersion().setVerificationRunId(6L);
+
+		service.dismissFlags(QuestionFixtures.TEST_ID, QUESTION_ID, VERSION_ID, "  HashMap is a fine distractor  ");
+
+		ArgumentCaptor<TestQuestionVersion> draft = ArgumentCaptor.forClass(TestQuestionVersion.class);
+		ArgumentCaptor<VersionChange> change = ArgumentCaptor.forClass(VersionChange.class);
+		verify(tx).applyNewVersion(eq(QuestionFixtures.TENANT), eq(question), eq(VERSION_ID), draft.capture(),
+				change.capture());
+
+		TestQuestionVersion kept = draft.getValue();
+		assertThat(kept.hasFlags()).isFalse();
+		assertThat(kept.getOption(OptionLetter.B).getText()).isEqualTo("HashMap");
+		assertThat(kept.getOption(OptionLetter.B).getSuggestedText()).isNull();
+		assertThat(kept.getQuestionText()).isEqualTo(question.getCurrentVersion().getQuestionText());
+		assertThat(kept.getCorrectOptions()).containsExactly(OptionLetter.A);
+		assertThat(kept.getGenerationRunId()).isEqualTo(5L);
+		assertThat(kept.getVerificationRunId()).isEqualTo(6L);
+		assertThat(change.getValue().origin()).isEqualTo(VersionOrigin.FLAGS_DISMISSED);
+		assertThat(change.getValue().eventType()).isEqualTo(TestEventType.FLAGS_DISMISSED);
+		assertThat(change.getValue().actorUserId()).isEqualTo(USER);
+		assertThat(change.getValue().comment()).isEqualTo("HashMap is a fine distractor");
+		@SuppressWarnings("unchecked")
+		Map<String, Map<String, Object>> dismissed = (Map<String, Map<String, Object>>) change.getValue().payload()
+				.get("dismissedFlags");
+		assertThat(dismissed).containsOnlyKeys("B");
+		assertThat(dismissed.get("B")).containsEntry("text", "HashMap").containsEntry("suggestedText", "ArrayDeque");
+		// The version the question was at keeps its flags (versions are immutable)
+		assertThat(question.getCurrentVersion().hasFlags()).isTrue();
+	}
+
+	@Test
+	void dismissFlagsRequiresAComment() {
+		assertThatThrownBy(() -> service.dismissFlags(QuestionFixtures.TEST_ID, QUESTION_ID, VERSION_ID, "  "))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("comment is required");
+		verify(tx, never()).applyNewVersion(anyLong(), any(), anyLong(), any(), any());
+	}
+
+	@Test
+	void dismissFlagsWithoutFlagsIsAConflict() {
+		TestQuestion clean = QuestionFixtures.persisted(QUESTION_ID, 2, VERSION_ID, QuestionFixtures.defaultVersion());
+		when(questionRepository.findByTenantIdAndId(QuestionFixtures.TENANT, QUESTION_ID))
+				.thenReturn(Optional.of(clean));
+
+		assertThatThrownBy(() -> service.dismissFlags(QuestionFixtures.TEST_ID, QUESTION_ID, VERSION_ID, "ok"))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("no flagged options");
+	}
+
 	@Test
 	void staleExpectedVersionIsAConflict() {
 		assertThatThrownBy(() -> service.acceptFix(QuestionFixtures.TEST_ID, QUESTION_ID, 69L, null))
