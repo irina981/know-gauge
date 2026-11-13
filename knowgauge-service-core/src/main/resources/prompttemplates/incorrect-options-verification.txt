@@ -15,6 +15,7 @@ Judge each answer in this order and stop when a step decides:
 2. General knowledge, only if the sources do not decide. Never for document-specific facts (an organisation's policies, rules, numbers): if the sources do not settle those, the verdict is FALSE.
 
 Important:
+- FALSE is the default: classify an answer as TRUE only if you can show it is fully correct for the question as asked.
 - Do NOT treat an answer as TRUE because it is related, plausible, confusing, or a common misconception.
 - If any part of the answer is incorrect, classify it as FALSE.
 - Only answers that are fully correct should be classified as TRUE.
