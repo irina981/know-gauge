@@ -111,6 +111,13 @@ public class TestReviewController {
 				.ok(testMapper.toDto(reviewService.unpublish(testId, input != null ? input.comment() : null)));
 	}
 
+	@GetMapping("/has-attempts")
+	@Operation(summary = "Whether the test has attempts", description = "true once any attempt exists for the test. A published test can be unpublished only while this is false.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "true if any attempt exists, otherwise false") })
+	public ResponseEntity<Boolean> hasAttempts(@PathVariable Long testId) {
+		return ResponseEntity.ok(reviewService.hasAttempts(testId));
+	}
+
 	// ---------------- history ----------------
 
 	@GetMapping("/questions/{questionId}/versions")

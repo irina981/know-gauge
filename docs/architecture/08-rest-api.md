@@ -47,6 +47,7 @@ at (`currentVersionId` from the question DTO). It returns the question with its 
 | POST | `/questions/{questionId}/manual-replace` | `ManualQuestionInput {expectedCurrentVersionId, questionText, options: {A..D: {text, correct}}, explanation?, comment?}` | `200 TestQuestionDto`. `400` listing every validation reason. `409` as above |
 | POST | `/publish` | `PublishTestInput {comment?}` (body optional) | `200 TestDto` with status `PUBLISHED` ([ADR005](../adr/ADR005-publish-tests.md)). `409` if already published, not `GENERATED`/`REVIEWED`, or a question needs review |
 | POST | `/unpublish` | `PublishTestInput {comment?}` (body optional) | `200 TestDto` with the status before publishing (`GENERATED` or `REVIEWED`). `409` if the test is not published or attempts exist for it |
+| GET | `/has-attempts` | – | `200 true` once any attempt exists for the test, otherwise `200 false`. Lets clients enable unpublish; `/unpublish` checks again under the test row lock |
 | GET | `/questions/{questionId}/versions` | – | `200 List<TestQuestionVersionDto>`, oldest first |
 | GET | `/events` | `questionId` (optional) | `200 List<TestEventDto>`, the history trail, oldest first |
 | GET | `/generation-runs` | – | `200 List<GenerationRunDto>`: every LLM call with prompt, request params, raw response and tokens |

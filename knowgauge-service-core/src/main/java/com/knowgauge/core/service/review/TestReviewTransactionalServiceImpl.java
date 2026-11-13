@@ -152,6 +152,15 @@ public class TestReviewTransactionalServiceImpl {
 	}
 
 	/**
+	 * Read-only check for clients (e.g. to enable an unpublish button). unpublish
+	 * checks again under the test row lock.
+	 */
+	@Transactional(readOnly = true)
+	public boolean hasAttempts(Long tenantId, Long testId) {
+		return attemptRepository.existsByTenantIdAndTestId(tenantId, testId);
+	}
+
+	/**
 	 * Reads {@code previousStatus} from the latest {@code TEST_PUBLISHED} event.
 	 * Falls back to {@code REVIEWED} if it is missing or not publishable.
 	 */

@@ -230,6 +230,11 @@ public class TestReviewServiceImpl implements TestReviewService {
 		return unpublished;
 	}
 
+	@Override
+	public boolean hasAttempts(Long testId) {
+		return tx.hasAttempts(executionContext.tenantId(), testId);
+	}
+
 	private Long actorUserId() {
 		var userId = executionContext.userId();
 		return userId.isPresent() ? userId.getAsLong() : null;

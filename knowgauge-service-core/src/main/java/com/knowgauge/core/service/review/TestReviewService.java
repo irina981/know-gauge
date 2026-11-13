@@ -50,6 +50,12 @@ public interface TestReviewService {
 	Test unpublish(Long testId, String comment);
 
 	/**
+	 * @return whether any attempt exists for the test. While none does, a
+	 *         published test can be unpublished (ADR005).
+	 */
+	boolean hasAttempts(Long testId);
+
+	/**
 	 * @return all versions of the question, oldest first
 	 */
 	List<TestQuestionVersion> getVersions(Long testId, Long questionId);
