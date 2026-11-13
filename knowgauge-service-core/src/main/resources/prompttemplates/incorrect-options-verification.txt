@@ -4,8 +4,15 @@ Input per question:
 - questionIndex
 - questionText
 - answers (map option A-D -> answer)
+- sourceChunkIds (the chunks the question was written from)
 
-For each answers given for the question, decide if it is TRUE or FALSE.
+Shared input:
+- sources (list of {chunkId, text}: the document passages the questions were written from)
+
+For each answer given for the question, decide if it is TRUE or FALSE.
+Judge each answer in this order and stop when a step decides:
+1. Sources (those in the question's sourceChunkIds first): if they clearly show the answer is or is not correct for the question as asked, that is the verdict.
+2. General knowledge, only if the sources do not decide. Never for document-specific facts (an organisation's policies, rules, numbers): if the sources do not settle those, the verdict is FALSE.
 
 Important:
 - Do NOT treat an answer as TRUE because it is related, plausible, confusing, or a common misconception.
@@ -17,7 +24,7 @@ Very important:
 - If all verdicts for the question are "false" DO NOT include that question into response!
 
 Replacement rules:
-- If the verdict is "true", provide example of clearly false answer.
+- If the verdict is "true", provide example of clearly false answer. 
 - Single atomic statement.
 - Similar length/style.
 
