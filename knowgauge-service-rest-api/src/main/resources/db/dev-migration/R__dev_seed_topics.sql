@@ -5,8 +5,6 @@
 -- Five root topics (display order set by position, see the UPDATE below):
 -- Programming (1100)
 -- ├── Java (2000): Core Java (2100), Multithreading (2200), Spring & Spring Boot (4000)
--- ├── Algorithms for Coding Interviews (5000): Array and String Patterns (5100), Searching, Sorting and Heaps (5200),
--- │   Graphs and Trees (5300), Dynamic Programming, Backtracking and Greedy (5400)
 -- └── System Design (3000): Basics (3100), Advanced (3200), Interviews (3300)
 -- Corvane Systems (demo company) (6000): all content about the invented company
 -- ├── Employee Onboarding & Compliance (7000): policy pack (7100-7600)
@@ -45,13 +43,6 @@ VALUES
   (2100, 2000, 1, 'Core Java', 'Language fundamentals and object-oriented programming', '/1100/2000/2100', 1, 1, now(), now()),
   (2200, 2000, 1, 'Multithreading', 'Processes, threads and concurrency in Java', '/1100/2000/2200', 1, 1, now(), now()),
   (4000, 2000, 1, 'Spring & Spring Boot', 'Dependency injection and bean configuration in Spring', '/1100/2000/4000', 1, 1, now(), now()),
-
-  -- Algorithms for Coding Interviews: every pattern has the same parts (idea, when to use it, complexity, sample tasks)
-  (5000, 1100, 1, 'Algorithms for Coding Interviews', 'Well-known algorithm patterns asked in software engineering interviews, with sample tasks', '/1100/5000', 1, 1, now(), now()),
-  (5100, 5000, 1, 'Array and String Patterns', 'Sliding window, two pointers, prefix sums and hashing', '/1100/5000/5100', 1, 1, now(), now()),
-  (5200, 5000, 1, 'Searching, Sorting and Heaps', 'Binary search, sorting algorithms, heaps and top-k problems', '/1100/5000/5200', 1, 1, now(), now()),
-  (5300, 5000, 1, 'Graphs and Trees', 'BFS and DFS, topological sort, shortest paths with Dijkstra', '/1100/5000/5300', 1, 1, now(), now()),
-  (5400, 5000, 1, 'Dynamic Programming, Backtracking and Greedy', 'Memoization and tabulation, backtracking search, greedy choices', '/1100/5000/5400', 1, 1, now(), now()),
 
   -- System Design: from the basics to advanced topics and a typical interview
   (3000, 1100, 1, 'System Design', 'Designing scalable systems, from the basics to advanced topics and interviews', '/1100/3000', 1, 1, now(), now()),
@@ -154,15 +145,16 @@ WHERE d.topic_id = r.topic_id
   );
 
 -- Topics that are no longer part of the seed. Remove them from existing databases, but only while nothing
--- (documents, tests, child topics outside this list) is attached to them. Leaves go first, then 6000.
+-- (documents, tests, child topics outside this list) is attached to them. Leaves go first, then 5000 and 6000.
+-- Algorithms for Coding Interviews (5000-5400) was removed for now; its sources stay in demo-content/algorithms.
 DELETE FROM topics t
-WHERE t.id IN (2300, 3000, 5000, 6100, 6200)
+WHERE t.id IN (2300, 3000, 5100, 5200, 5300, 5400, 6100, 6200)
   AND NOT EXISTS (SELECT 1 FROM topics c WHERE c.parent_id = t.id)
   AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.topic_id = t.id)
   AND NOT EXISTS (SELECT 1 FROM test_covered_topics tc WHERE tc.topic_id = t.id);
 
 DELETE FROM topics t
-WHERE t.id = 6000
+WHERE t.id IN (5000, 6000)
   AND NOT EXISTS (SELECT 1 FROM topics c WHERE c.parent_id = t.id)
   AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.topic_id = t.id)
   AND NOT EXISTS (SELECT 1 FROM test_covered_topics tc WHERE tc.topic_id = t.id);

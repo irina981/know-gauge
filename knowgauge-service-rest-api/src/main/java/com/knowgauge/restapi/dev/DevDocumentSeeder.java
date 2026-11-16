@@ -60,13 +60,6 @@ public class DevDocumentSeeder {
 			new SeedDocument(4000L, "Dependency Injection Types", "Spring - Dependency Injection Types.pdf"),
 			new SeedDocument(4000L, "Bean Configuration Types", "Spring - Bean Configuration Types.pdf"),
 
-			// Algorithms for Coding Interviews (sources in demo-content/algorithms)
-			new SeedDocument(5100L, "Array and String Patterns", "Algorithms - Array and String Patterns.pdf"),
-			new SeedDocument(5200L, "Searching, Sorting and Heaps", "Algorithms - Searching Sorting and Heaps.pdf"),
-			new SeedDocument(5300L, "Graphs and Trees", "Algorithms - Graphs and Trees.pdf"),
-			new SeedDocument(5400L, "Dynamic Programming, Backtracking and Greedy",
-					"Algorithms - Dynamic Programming Backtracking and Greedy.pdf"),
-
 			// System Design (sources in demo-content/system-design)
 			new SeedDocument(3100L, "System Design Basics", "System Design - Basics.pdf"),
 			new SeedDocument(3200L, "Advanced System Design Topics", "System Design - Advanced Topics.pdf"),

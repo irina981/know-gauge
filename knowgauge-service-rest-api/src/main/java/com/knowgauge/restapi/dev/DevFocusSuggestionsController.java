@@ -26,12 +26,6 @@ public class DevFocusSuggestionsController {
 
 	/** Topic id (from the dev seed) to its focus suggestions. */
 	static final Map<Long, List<String>> SUGGESTIONS = Map.of(
-			// Programming › Algorithms for Coding Interviews
-			5000L, List.of("Graph algorithms: BFS, DFS, topological sort and Dijkstra",
-					"Binary search, sorting and heaps", "Sliding window and two pointers on arrays and strings",
-					"Dynamic programming with memoization and tabulation",
-					"Heaps, priority queues and top k elements",
-					"Sliding window: longest substring, minimum window and maximum sum of k consecutive elements"),
 			// Programming › System Design
 			3000L, List.of("Reliability: message queues, retries, rate limiting and circuit breakers",
 					"Distributed data: replication, sharding, consistent hashing and the CAP theorem",

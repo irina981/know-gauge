@@ -9,7 +9,7 @@ Sources for the sample documents that the `local` profile uploads at startup (`D
 | `gradovi-srbije/` | Gradovi Srbije (10000) | 4 Serbian city guides (Latin script) with the same 4 sections each; real facts |
 | `ai-day-to-day/` | AI in Day-to-Day Work (11000) | 4 English guides on generative AI tools with the same 4 sections each |
 | `english-lessons/` | English Lessons (B1–B2) (12000) | 4 English lessons for intermediate learners with the same 4 sections each |
-| `algorithms/` | Programming › Algorithms for Coding Interviews (5000) | 4 documents of interview algorithm patterns; every pattern has idea, when to use it, complexity, sample tasks |
+| `algorithms/` | *Not seeded for now* (was Programming › Algorithms for Coding Interviews, 5000) | 4 documents of interview algorithm patterns; every pattern has idea, when to use it, complexity, sample tasks. Sources only; see `TODO.md` 3.1 |
 | `system-design/` | Programming › System Design (3000) | Basics, advanced topics and an interview walkthrough |
 
 Both Corvane sets sit under the root topic **Corvane Systems (demo company)** (6000).
@@ -122,17 +122,13 @@ matching section from every lesson (checked with the embedding model):
 
 Grammar focuses match only a few passages: ask for 3 to 5 questions.
 
-## Algorithms and System Design
+## System Design
 
-Both sets are technical, so a focus usually selects one section precisely. A single pattern ("Sliding window: …")
-matches 2 to 4 passages: good for 3 to 6 questions. Combining related subjects gives more material:
+The documents are technical, so a focus usually selects one section precisely. A single subject ("Caching
+strategies, …") matches 2 to 4 passages: good for 3 to 6 questions. Combining related subjects gives more material:
 
 | Topic | Focus text | Selects |
 |---|---|---|
-| Algorithms | Graph algorithms: BFS, DFS, topological sort and Dijkstra | The Graphs and Trees document (8 passages) |
-| Algorithms | Binary search, sorting and heaps | The Searching, Sorting and Heaps document |
-| Algorithms | Sliding window and two pointers on arrays and strings | Those two patterns |
-| Algorithms | Heaps, priority queues and top k elements | The heaps section only |
 | System Design | Reliability: message queues, retries, rate limiting and circuit breakers | Messaging and reliability sections (7 passages) |
 | System Design | Distributed data: replication, sharding, consistent hashing and the CAP theorem | Replication, sharding and consistency sections |
 | System Design | Caching strategies, eviction and invalidation | The caching section only |
