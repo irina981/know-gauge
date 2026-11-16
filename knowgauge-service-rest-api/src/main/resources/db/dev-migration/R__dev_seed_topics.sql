@@ -2,12 +2,19 @@
 -- Dev / demo seed: topic tree for tenant 1 (rerunnable). Every leaf topic gets documents from DevDocumentSeeder,
 -- so the tree has no empty topics.
 --
--- Three root topics:
+-- Four root topics:
 -- Programming (1100)
--- ├── Java (2000): Core Java (2100), Multithreading (2200)
--- └── Spring & Spring Boot (4000)
--- Employee Onboarding & Compliance (7000): fictional "Corvane Systems" policy pack (7100-7600)
--- Office Guides (9000): one guide per office, Rotterdam (9100), Lisbon (9200), Kraków (9300), for FOCUSED tests
+-- └── Java (2000): Core Java (2100), Multithreading (2200), Spring & Spring Boot (4000)
+-- Corvane Systems (fictional demo company) (6000): all content about the invented company
+-- ├── Employee Onboarding & Compliance (7000): policy pack (7100-7600)
+-- └── Office Guides (9000): one guide per office, Rotterdam (9100), Lisbon (9200), Kraków (9300), for FOCUSED tests
+-- Gradovi Srbije (10000): Serbian (Latin script) city guides, Beograd (10100), Novi Sad (10200), Niš (10300),
+--   Kragujevac (10400); real, well-known facts
+-- AI in Day-to-Day Work (11000): English guides, Coding Assistants (11100), Writing and Translation (11200),
+--   Chatbots (11300), Images, Audio and Video (11400)
+--
+-- Every multi-document set uses the same sections in each document, so a balanced test covers all of them and a
+-- FOCUSED test on one section picks it from every document (see demo-content/README.md).
 --
 -- Notes:
 --  - Fixed ids keep the references in DevDocumentSeeder stable.
@@ -32,24 +39,42 @@ VALUES
   (2000, 1100, 1, 'Java', 'The Java language and platform', '/1100/2000', 1, 1, now(), now()),
   (2100, 2000, 1, 'Core Java', 'Language fundamentals and object-oriented programming', '/1100/2000/2100', 1, 1, now(), now()),
   (2200, 2000, 1, 'Multithreading', 'Processes, threads and concurrency in Java', '/1100/2000/2200', 1, 1, now(), now()),
-  (4000, 1100, 1, 'Spring & Spring Boot', 'Dependency injection and bean configuration in Spring', '/1100/4000', 1, 1, now(), now()),
+  (4000, 2000, 1, 'Spring & Spring Boot', 'Dependency injection and bean configuration in Spring', '/1100/2000/4000', 1, 1, now(), now()),
 
-  -- Employee Onboarding & Compliance (root; fictional company: Corvane Systems)
-  (7000, NULL, 1, 'Employee Onboarding & Compliance', 'Workplace policy training for new and existing employees of the fictional company Corvane Systems', '/7000', 1, 1, now(), now()),
-  (7100, 7000, 1, 'Code of Conduct & Ethics', 'Code of Conduct, conflicts of interest, gifts, hospitality and anti-bribery', '/7000/7100', 1, 1, now(), now()),
-  (7200, 7000, 1, 'Information Security', 'Acceptable use, passwords and MFA, phishing, data classification', '/7000/7200', 1, 1, now(), now()),
-  (7300, 7000, 1, 'Data Privacy (GDPR Basics)', 'Personal data, GDPR principles, data subject rights and breach response', '/7000/7300', 1, 1, now(), now()),
-  (7400, 7000, 1, 'Respect at Work', 'Anti-harassment, equal opportunity and speaking up', '/7000/7400', 1, 1, now(), now()),
-  (7500, 7000, 1, 'Health & Safety', 'Fire evacuation, office safety, ergonomics and home workstations', '/7000/7500', 1, 1, now(), now()),
-  (7600, 7000, 1, 'Working at Corvane', 'Remote and hybrid work, travel and expenses, leave and time off', '/7000/7600', 1, 1, now(), now()),
+  -- Corvane Systems (root): an invented software company. Everything below is fictional demo content.
+  (6000, NULL, 1, 'Corvane Systems (fictional demo company)', 'Demo content about Corvane Systems, an invented software company: its workplace policies and office guides. All names, places, numbers and contacts are fictional.', '/6000', 1, 1, now(), now()),
 
-  -- Office Guides (root; for FOCUSED tests). Every guide has the same four clearly different sections: fire
-  -- evacuation, parking and commuting, kitchen and coffee, meeting rooms and visitors. A focus on one of them picks
-  -- its sections from all three guides.
-  (9000, NULL, 1, 'Office Guides', 'Practical guides to the Corvane offices: fire evacuation, parking, kitchen and meeting rooms', '/9000', 1, 1, now(), now()),
-  (9100, 9000, 1, 'Rotterdam Office', 'Corvane headquarters in the Maaskade Tower', '/9000/9100', 1, 1, now(), now()),
-  (9200, 9000, 1, 'Lisbon Office', 'Corvane office in the Casa do Rio building', '/9000/9200', 1, 1, now(), now()),
-  (9300, 9000, 1, 'Kraków Office', 'Corvane office in the Wawel Business Park', '/9000/9300', 1, 1, now(), now())
+  -- Employee Onboarding & Compliance
+  (7000, 6000, 1, 'Employee Onboarding & Compliance', 'Workplace policy training for new and existing Corvane employees', '/6000/7000', 1, 1, now(), now()),
+  (7100, 7000, 1, 'Code of Conduct & Ethics', 'Code of Conduct, conflicts of interest, gifts, hospitality and anti-bribery', '/6000/7000/7100', 1, 1, now(), now()),
+  (7200, 7000, 1, 'Information Security', 'Acceptable use, passwords and MFA, phishing, data classification', '/6000/7000/7200', 1, 1, now(), now()),
+  (7300, 7000, 1, 'Data Privacy (GDPR Basics)', 'Personal data, GDPR principles, data subject rights and breach response', '/6000/7000/7300', 1, 1, now(), now()),
+  (7400, 7000, 1, 'Respect at Work', 'Anti-harassment, equal opportunity and speaking up', '/6000/7000/7400', 1, 1, now(), now()),
+  (7500, 7000, 1, 'Health & Safety', 'Fire evacuation, office safety, ergonomics and home workstations', '/6000/7000/7500', 1, 1, now(), now()),
+  (7600, 7000, 1, 'Working at Corvane', 'Remote and hybrid work, travel and expenses, leave and time off', '/6000/7000/7600', 1, 1, now(), now()),
+
+  -- Office Guides (for FOCUSED tests). Every guide has the same four clearly different sections: fire evacuation,
+  -- parking and commuting, kitchen and coffee, meeting rooms and visitors.
+  (9000, 6000, 1, 'Office Guides', 'Practical guides to the Corvane offices: fire evacuation, parking, kitchen and meeting rooms', '/6000/9000', 1, 1, now(), now()),
+  (9100, 9000, 1, 'Rotterdam Office', 'Corvane headquarters in the Maaskade Tower', '/6000/9000/9100', 1, 1, now(), now()),
+  (9200, 9000, 1, 'Lisbon Office', 'Corvane office in the Casa do Rio building', '/6000/9000/9200', 1, 1, now(), now()),
+  (9300, 9000, 1, 'Kraków Office', 'Corvane office in the Wawel Business Park', '/6000/9000/9300', 1, 1, now(), now()),
+
+  -- Gradovi Srbije (root; Serbian, Latin script). Every city guide has the same four sections: istorija,
+  -- znamenitosti, hrana i piće, manifestacije. Real, well-known facts.
+  (10000, NULL, 1, 'Gradovi Srbije', 'Vodiči kroz gradove Srbije: istorija, znamenitosti, hrana i piće, manifestacije', '/10000', 1, 1, now(), now()),
+  (10100, 10000, 1, 'Beograd', 'Glavni grad Srbije, na ušću Save u Dunav', '/10000/10100', 1, 1, now(), now()),
+  (10200, 10000, 1, 'Novi Sad', 'Centar Vojvodine, na Dunavu, ispod Fruške gore', '/10000/10200', 1, 1, now(), now()),
+  (10300, 10000, 1, 'Niš', 'Najveći grad na jugu Srbije, na Nišavi', '/10000/10300', 1, 1, now(), now()),
+  (10400, 10000, 1, 'Kragujevac', 'Najveći grad Šumadije, prva prestonica moderne Srbije', '/10000/10400', 1, 1, now(), now()),
+
+  -- AI in Day-to-Day Work (root; English). Every guide has the same four sections: how it works, good uses, risks
+  -- and limitations, privacy and data security. General information, no product versions or prices.
+  (11000, NULL, 1, 'AI in Day-to-Day Work', 'Using generative AI tools at work: how they work, good uses, risks, and privacy', '/11000', 1, 1, now(), now()),
+  (11100, 11000, 1, 'Coding Assistants', 'AI assistants that suggest, explain and change code', '/11000/11100', 1, 1, now(), now()),
+  (11200, 11000, 1, 'Writing and Translation', 'AI for drafting, editing and translating text', '/11000/11200', 1, 1, now(), now()),
+  (11300, 11000, 1, 'Chatbots', 'AI chatbots for customer service and internal help desks', '/11000/11300', 1, 1, now(), now()),
+  (11400, 11000, 1, 'Images, Audio and Video', 'Generative AI for images, voices and video', '/11000/11400', 1, 1, now(), now())
 ON CONFLICT (id) DO UPDATE
 SET parent_id   = EXCLUDED.parent_id,
     name        = EXCLUDED.name,

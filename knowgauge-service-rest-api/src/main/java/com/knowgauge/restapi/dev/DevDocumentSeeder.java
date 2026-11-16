@@ -88,7 +88,19 @@ public class DevDocumentSeeder {
 			// Office Guides (sources in demo-content/office-guides): same four subjects per office, for FOCUSED tests
 			new SeedDocument(9100L, "Rotterdam Office Guide", "Corvane - Rotterdam Office Guide.pdf"),
 			new SeedDocument(9200L, "Lisbon Office Guide", "Corvane - Lisbon Office Guide.pdf"),
-			new SeedDocument(9300L, "Kraków Office Guide", "Corvane - Krakow Office Guide.pdf"));
+			new SeedDocument(9300L, "Kraków Office Guide", "Corvane - Krakow Office Guide.pdf"),
+
+			// Gradovi Srbije (Serbian, sources in demo-content/gradovi-srbije): same four sections per city
+			new SeedDocument(10100L, "Beograd – vodič kroz grad", "Gradovi Srbije - Beograd.pdf"),
+			new SeedDocument(10200L, "Novi Sad – vodič kroz grad", "Gradovi Srbije - Novi Sad.pdf"),
+			new SeedDocument(10300L, "Niš – vodič kroz grad", "Gradovi Srbije - Nis.pdf"),
+			new SeedDocument(10400L, "Kragujevac – vodič kroz grad", "Gradovi Srbije - Kragujevac.pdf"),
+
+			// AI in Day-to-Day Work (sources in demo-content/ai-day-to-day): same four sections per guide
+			new SeedDocument(11100L, "AI Coding Assistants", "AI at Work - Coding Assistants.pdf"),
+			new SeedDocument(11200L, "AI for Writing and Translation", "AI at Work - Writing and Translation.pdf"),
+			new SeedDocument(11300L, "AI Chatbots for Customer Service", "AI at Work - Chatbots.pdf"),
+			new SeedDocument(11400L, "AI for Images, Audio and Video", "AI at Work - Images and Media.pdf"));
 
 	private void seedIfMissing(DocumentService documentService, DocumentRepository documentRepository, Long topicId,
 			String title, String originalFileName, String classpathLocation) throws Exception {

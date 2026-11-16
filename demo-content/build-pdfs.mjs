@@ -113,21 +113,29 @@ function markdownToHtml(md) {
 
 const css = readFileSync(join(here, 'style.css'), 'utf8');
 
+// Header labels per document language (front matter `lang`, default en).
+const LABELS = {
+	en: ['Document ID', 'Version', 'Effective date', 'Owner', 'Applies to'],
+	sr: ['Oznaka', 'Verzija', 'Datum', 'Autor', 'Namenjeno'],
+};
+
+const CORVANE_DISCLAIMER = `Fictional sample document created for the KnowGauge demo. Corvane Systems is not a real
+company, and this document is not legal or HR advice.`;
+
+// Front matter: `brand` (default Corvane Systems), `lang` (en or sr) and `disclaimer` override the defaults, so
+// documents that are not about the fictional company can say so.
 function page(meta, bodyHtml) {
-	const rows = [
-		['Document ID', meta.docid],
-		['Version', meta.version],
-		['Effective date', meta.effective],
-		['Owner', meta.owner],
-		['Applies to', meta.appliesTo],
-	].filter(([, v]) => v);
-	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(meta.title)}</title>
+	const lang = meta.lang || 'en';
+	const labels = LABELS[lang] || LABELS.en;
+	const rows = [meta.docid, meta.version, meta.effective, meta.owner, meta.appliesTo]
+		.map((v, i) => [labels[i], v])
+		.filter(([, v]) => v);
+	return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><title>${escapeHtml(meta.title)}</title>
 <style>${css}</style></head><body>
-<div class="brand">Corvane Systems</div>
+<div class="brand">${escapeHtml(meta.brand || 'Corvane Systems')}</div>
 <table class="meta">${rows.map(([k, v]) => `<tr><th>${k}</th><td>${escapeHtml(v)}</td></tr>`).join('')}</table>
 ${bodyHtml}
-<p class="disclaimer">Fictional sample document created for the KnowGauge demo. Corvane Systems is not a real
-company, and this document is not legal or HR advice.</p>
+<p class="disclaimer">${escapeHtml(meta.disclaimer || CORVANE_DISCLAIMER)}</p>
 </body></html>`;
 }
 

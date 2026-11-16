@@ -4,12 +4,20 @@ Sources for the sample documents that the `local` profile uploads at startup (`D
 
 | Folder | Topic (`R__dev_seed_topics.sql`) | Content |
 |---|---|---|
-| `employee-onboarding/` | Employee Onboarding & Compliance (7000) | 15 workplace policies for **Corvane Systems**, a fictional software company |
-| `office-guides/` | Office Guides (9000) | 3 office guides with the same 4 subjects each, written for **focused** tests |
+| `employee-onboarding/` | Corvane Systems › Employee Onboarding & Compliance (7000) | 15 workplace policies for **Corvane Systems**, a fictional software company |
+| `office-guides/` | Corvane Systems › Office Guides (9000) | 3 office guides with the same 4 subjects each, written for **focused** tests |
+| `gradovi-srbije/` | Gradovi Srbije (10000) | 4 Serbian city guides (Latin script) with the same 4 sections each; real facts |
+| `ai-day-to-day/` | AI in Day-to-Day Work (11000) | 4 English guides on generative AI tools with the same 4 sections each |
+
+Both Corvane sets sit under the root topic **Corvane Systems (fictional demo company)** (6000).
 
 All text is original and written for KnowGauge. Corvane Systems, its products, tools (TripDesk, ExpenseHub,
 PeoplePortal, Corvane Vault and so on) and contacts are fictional. Email addresses use the reserved `.example` domain.
-Each PDF ends with a disclaimer saying so.
+Each PDF ends with a disclaimer saying so. The city guides and the AI guides are not about Corvane: they give general,
+real information, and their disclaimer says to check official sources.
+
+Front matter can set `brand` (the line above the title, default Corvane Systems), `lang` (`en` or `sr`, for the
+header labels) and `disclaimer`.
 
 ## Writing guidelines
 
@@ -75,3 +83,23 @@ Each focus selects 6 to 9 passages from all three guides. A focused test can ask
 so ask for **5 to 12 questions**: a focus with too few close passages fails with a clear message (including how many
 questions would fit) instead of padding the test with unrelated material. Compare with a balanced test over the same
 topic, whose questions mix all four subjects.
+
+## Gradovi Srbije and AI in Day-to-Day Work
+
+Both sets use the same four sections in every document, so a balanced test from the root topic covers all of them,
+and a focused test on one section draws it from every document. Real-world subjects overlap more than the office
+guides (landmarks are historic, festivals take place at landmarks), so some focus texts select more cleanly than
+others. These were checked with the embedding model:
+
+| Topic | Focus text | Selects |
+|---|---|---|
+| Gradovi Srbije | Hrana i piće, tradicionalna jela i rakija | Food sections of all four cities |
+| Gradovi Srbije | Festivali i manifestacije: koncerti, film i pozorište | Festival sections of all four cities |
+| Gradovi Srbije | Istorija grada: osnivanje, vladari, ratovi i oslobođenje | Mostly history, some landmarks |
+| Gradovi Srbije | Znamenitosti za obilazak: tvrđave, spomenici, muzeji i parkovi | Mostly landmarks, some festivals |
+| AI in Day-to-Day Work | Privacy and data security: personal data, GDPR and confidential information | Privacy sections of all four guides |
+| AI in Day-to-Day Work | Risks and limitations: hallucinations, errors, deepfakes and copyright | Mostly risk sections |
+| AI in Day-to-Day Work | How AI tools work: language models, tokens, prompts and training | Mostly "how it works" sections |
+| AI in Day-to-Day Work | Deepfakes, voice cloning scams and labelling AI-generated media | The images and media guide only |
+
+Generate Serbian tests with **Language: Serbian**.
