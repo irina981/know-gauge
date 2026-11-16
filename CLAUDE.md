@@ -116,7 +116,9 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   Don't mutate the `getOptions()` view (it is unmodifiable).
 - Validation rules live in `TestQuestionValidator` as `ValidationStrategy` steps. Pre-LLM, post-LLM and manual
   replace use different strategy lists. Each rule returns a reason string.
-- `FOCUSED` coverage mode and `avoidRepeats` are not implemented.
+- `FOCUSED` coverage embeds the test's `focusQuery` and takes the nearest chunks (`VectorStore.findNearest`, exact
+  IVFFlat search via `ivfflat.probes`), keeping only chunks close to it (`kg.retrieval.focused.*`). A topic selected
+  for generation stands for its whole subtree. `avoidRepeats` is not implemented.
 
 ## Taking tests (ADR009)
 

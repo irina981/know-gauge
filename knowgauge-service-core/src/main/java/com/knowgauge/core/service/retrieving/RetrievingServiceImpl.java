@@ -24,15 +24,18 @@ import lombok.extern.slf4j.Slf4j;
 public class RetrievingServiceImpl implements RetrievingService {
 	private final VectorStore vectorStore;
 	private final EmbeddingService embeddingService;
+	private final FocusedRetrievalProperties focused;
 
-	public RetrievingServiceImpl(VectorStore vectorStore, EmbeddingService embeddingService) {
+	public RetrievingServiceImpl(VectorStore vectorStore, EmbeddingService embeddingService,
+			FocusedRetrievalProperties focused) {
 		this.vectorStore = vectorStore;
 		this.embeddingService = embeddingService;
+		this.focused = focused;
 	}
 
 	@Override
 	public List<ChunkEmbedding> retrieveTop(Long tenantId, Collection<Long> documentIds, int limit,
-			TestCoverageMode coverageMode, boolean avoidRepeats) {
+			TestCoverageMode coverageMode, String focusQuery, boolean avoidRepeats) {
 		// =========================
 		// Step 0: Validate inputs
 		// =========================
@@ -50,14 +53,10 @@ public class RetrievingServiceImpl implements RetrievingService {
 		}
 
 		// =========================
-		// Step 1: Validate supported coverage modes
+		// Step 1: FOCUSED is a similarity search, not balanced sampling
 		// =========================
-		// FOCUSED requires query embedding + vector distance ordering.
-		// Until implemented, fail-fast to avoid silently returning random/balanced
-		// results.
 		if (coverageMode == TestCoverageMode.FOCUSED) {
-			throw new UnsupportedOperationException(
-					"FOCUSED coverage mode requires vector similarity search with a query text/embedding. Not implemented yet.");
+			return retrieveFocused(tenantId, documentIds, limit, focusQuery);
 		}
 
 		// =========================
@@ -165,6 +164,72 @@ public class RetrievingServiceImpl implements RetrievingService {
 		}
 
 		return result;
+	}
+
+	/**
+	 * FOCUSED coverage: embeds the focus text with the same model as the chunks and
+	 * returns only the chunks that are about it, nearest first. A chunk counts when
+	 * it is at most {@code maxGapToBest} further away than the closest chunk and no
+	 * further than {@code maxDistance}. At most {@code limit} are used, the same
+	 * limit as for the balanced modes (it grows with the question count). So a
+	 * narrow focus yields few chunks instead of being padded with unrelated ones,
+	 * and a focus the material does not cover yields none. There is no
+	 * per-document balancing: the focus decides which documents contribute.
+	 * Identical content (same checksum) is taken once.
+	 */
+	private List<ChunkEmbedding> retrieveFocused(Long tenantId, Collection<Long> documentIds, int limit,
+			String focusQuery) {
+		if (focusQuery == null || focusQuery.isBlank()) {
+			throw new IllegalArgumentException("FOCUSED coverage needs a focus text to search for.");
+		}
+		String embeddingModel = embeddingService.modelName();
+		float[] queryEmbedding = embeddingService.embed(focusQuery);
+		int wanted = limit;
+
+		// A few extra rows make up for duplicates; the distance cut-off below decides the rest.
+		List<ChunkEmbedding> nearest = vectorStore.findNearest(tenantId, documentIds, queryEmbedding, embeddingModel,
+				wanted * 2 + 5);
+		if (nearest.isEmpty()) {
+			return List.of();
+		}
+		double best = cosineDistance(queryEmbedding, nearest.get(0).getEmbedding());
+		double cutOff = Math.min(best + focused.getMaxGapToBest(), focused.getMaxDistance());
+
+		Set<String> seenChecksums = new HashSet<>();
+		List<ChunkEmbedding> result = new ArrayList<>(wanted);
+		List<String> distances = new ArrayList<>();
+		for (ChunkEmbedding e : nearest) {
+			double distance = cosineDistance(queryEmbedding, e.getEmbedding());
+			if (result.size() >= wanted || distance > cutOff) {
+				break;
+			}
+			String checksum = e.getChunkChecksum();
+			if (checksum != null && !seenChecksums.add(checksum)) {
+				continue;
+			}
+			result.add(e);
+			distances.add(e.getChunkId() + "=" + String.format(java.util.Locale.ROOT, "%.3f", distance));
+		}
+		log.info("Focused retrieval: {} chunks within cosine distance {} (closest {}, at most {}): [{}]",
+				result.size(), String.format(java.util.Locale.ROOT, "%.3f", cutOff),
+				String.format(java.util.Locale.ROOT, "%.3f", best), wanted, String.join(", ", distances));
+		return result;
+	}
+
+	/** 1 - cosine similarity, as pgvector's {@code <=>} operator. */
+	static double cosineDistance(float[] a, float[] b) {
+		if (a == null || b == null || a.length != b.length) {
+			return 2.0; // not comparable: treat as far away
+		}
+		double dot = 0;
+		double normA = 0;
+		double normB = 0;
+		for (int i = 0; i < a.length; i++) {
+			dot += a[i] * b[i];
+			normA += a[i] * a[i];
+			normB += b[i] * b[i];
+		}
+		return normA == 0 || normB == 0 ? 2.0 : 1 - dot / (Math.sqrt(normA) * Math.sqrt(normB));
 	}
 
 	/**

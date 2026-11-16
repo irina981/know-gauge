@@ -59,6 +59,7 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (`local` profile only) |
 | `kg.context.*` | `DefaultTenantProvider`, `DefaultUserProvider` | `tenant-id` (required), `user-id` (optional) |
 | `kg.invitations.*` | `InvitationProperties` | `link-base-url` (public UI address; links are `<base>/i/<token>`), `max-per-request` (200) |
+| `kg.retrieval.focused.*` | `FocusedRetrievalProperties` | `max-distance` (0.65), `max-gap-to-best` (0.20): which chunks count as about the focus text in FOCUSED retrieval ([05](05-retrieval.md#focused-similarity-search)) |
 | `kg.mail.from` | `SpringMailInvitationMailer` | Sender of invitation emails. SMTP itself is Spring's `spring.mail.*` (Mailpit `localhost:1025` in `local`; `KG_MAIL_*` in `prod`). `management.health.mail.enabled=false`, so an unreachable SMTP server does not mark the service down |
 
 Property-name styles are mixed (`camelCase` in `kg.chunking`/`kg.storage` timeouts, `kebab-case` elsewhere).

@@ -12,6 +12,7 @@ import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.model.enums.DocumentStatus;
+import com.knowgauge.core.model.enums.TestCoverageMode;
 import com.knowgauge.core.service.content.DocumentService;
 import com.knowgauge.core.service.content.TopicService;
 
@@ -21,8 +22,9 @@ import com.knowgauge.core.service.content.TopicService;
  * Responsibilities:
  * - Validate test draft structure (name, description, sources + questionCount)
  * - Ensure topics/documents exist and belong to tenant
- * - Resolve all source documents (explicit documentIds + documents derived from topicIds)
- * - Ensure all resolved source documents are in INGESTED state
+ * - Resolve all source documents: explicit documentIds (which must be INGESTED) plus the INGESTED documents of
+ *   the selected topics and all their sub-topics (others are skipped)
+ * - Fail when no ingested source document remains
  *
  * Returns the resolved documentIds that should be considered as generation sources.
  *
@@ -33,6 +35,7 @@ public class TestDraftValidator {
 
     static final int MAX_NAME_LENGTH = 200;
     static final int MAX_DESCRIPTION_LENGTH = 2000;
+    static final int MAX_FOCUS_QUERY_LENGTH = 2000;
 
     private final DocumentService documentService;
     private final TopicService topicService;
@@ -51,24 +54,27 @@ public class TestDraftValidator {
         List<Long> explicitDocumentIds = safeList(testDraft.getDocumentIds());
 
         normalizeAndValidateNameAndDescription(testDraft);
+        normalizeAndValidateFocusQuery(testDraft);
         validateAtLeastOneSourceSelected(topicIds, explicitDocumentIds);
         validateQuestionCount(testDraft);
 
-        List<Topic> topics = validateTopicsExistAndBelongToTenant(tenantId, topicIds);
+        validateTopicsExistAndBelongToTenant(tenantId, topicIds);
 
+        // Explicitly chosen documents must be ingested: the user asked for exactly these.
         List<Document> explicitDocuments = validateDocumentsExistAndBelongToTenant(tenantId, explicitDocumentIds);
+        validateAllDocumentsIngested(explicitDocuments);
 
-        List<Document> topicDocuments = resolveDocumentsFromTopics(tenantId, topics);
+        // A topic stands for its whole subtree, so a parent topic without documents of its own works too. Documents
+        // under it that are not ingested (yet) are skipped instead of failing the whole test.
+        List<Long> expandedTopicIds = expandTopicIdsWithDescendants(tenantId, topicIds);
+        List<Document> topicDocuments = resolveIngestedDocumentsFromTopics(tenantId, expandedTopicIds);
 
         List<Document> allSourceDocuments = mergeDocuments(explicitDocuments, topicDocuments);
 
         validateNonEmptySources(allSourceDocuments);
-        validateAllDocumentsIngested(allSourceDocuments);
         testDraft.setDocumentIds(allSourceDocuments.stream().map(doc -> doc.getId()).toList());
-
-        List<Long> expandedTopicIds = expandTopicIdsWithDescendants(tenantId, topicIds);
         testDraft.setTopicIds(expandedTopicIds);
-        
+
         return testDraft;
     }
     
@@ -130,6 +136,27 @@ public class TestDraftValidator {
         test.setDescription(description == null || description.isEmpty() ? null : description);
     }
 
+    /**
+     * FOCUSED coverage needs the text to search for; the other modes ignore it,
+     * so it is dropped for them.
+     */
+    private void normalizeAndValidateFocusQuery(Test test) {
+        if (test.getCoverageMode() != TestCoverageMode.FOCUSED) {
+            test.setFocusQuery(null);
+            return;
+        }
+        String focus = test.getFocusQuery() == null ? "" : test.getFocusQuery().strip();
+        if (focus.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Test.focusQuery is required for FOCUSED coverage: describe what the questions should be about.");
+        }
+        if (focus.length() > MAX_FOCUS_QUERY_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Test.focusQuery must be at most " + MAX_FOCUS_QUERY_LENGTH + " characters.");
+        }
+        test.setFocusQuery(focus);
+    }
+
     private void validateAtLeastOneSourceSelected(List<Long> topicIds, List<Long> documentIds) {
         if (topicIds.isEmpty() && documentIds.isEmpty()) {
             throw new IllegalArgumentException("Test must specify at least one topicId or documentId.");
@@ -176,27 +203,26 @@ public class TestDraftValidator {
         return documents;
     }
 
-    private List<Document> resolveDocumentsFromTopics(Long tenantId, List<Topic> topics) {
+    /** Ingested documents of the given topics (the selected topics plus all their descendants). */
+    private List<Document> resolveIngestedDocumentsFromTopics(Long tenantId, List<Long> topicIds) {
 
-        if (topics.isEmpty()) {
+        if (topicIds.isEmpty()) {
             return List.of();
         }
 
-        List<Long> topicIds = topics.stream().map(Topic::getId).toList();
-
-        // Requires: DocumentService.findByTopicIds(tenantId, topicIds)
         List<Document> docs = documentService.findByTopicIds(tenantId, topicIds);
 
         for (Document d : docs) {
             validateBelongsToTenant("Document", d.getId(), tenantId, d.getTenantId());
         }
 
-        return docs;
+        return docs.stream().filter(d -> d.getStatus() == DocumentStatus.INGESTED).toList();
     }
 
     private void validateNonEmptySources(List<Document> sourceDocuments) {
         if (sourceDocuments.isEmpty()) {
-            throw new IllegalArgumentException("No source documents found for selected topics/documents.");
+            throw new IllegalArgumentException(
+                    "The selected topics and their sub-topics have no ingested documents. Ingest documents first.");
         }
     }
 

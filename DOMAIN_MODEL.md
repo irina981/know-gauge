@@ -135,6 +135,7 @@ Represents generated tests with full audit trail and generation lifecycle.
 - `description` (String, optional, max 2000) - Free-text description
 - `difficulty` (TestDifficulty) - EASY / MEDIUM / HARD
 - `coverageMode` (CoverageMode) - BALANCED_PER_DOCS / BALANCED_PER_DOC_CHUNKS / FOCUSED
+- `focusQuery` (String, nullable) - Required for FOCUSED: what the questions should be about; embedded and used for similarity search
 - `avoidRepeats` (Boolean, default: true) - Avoid using same chunks twice
 - `questionCount` (Integer) - Number of questions to generate (must be > 0)
 - `answerCardinality` (AnswerCardinality) - SINGLE_CORRECT / MULTIPLE_CORRECT
@@ -414,7 +415,7 @@ One row per LLM call made for a test: initial generation batches, regeneration o
 ### CoverageMode
 - `BALANCED_PER_DOCS`: Distribute questions across documents equally
 - `BALANCED_PER_DOC_CHUNKS`: Distribute questions across chunks equally
-- `FOCUSED`: Concentrate on specific high-value topics
+- `FOCUSED`: Use the chunks most similar to `focusQuery` (pgvector cosine similarity) instead of a balanced sample
 
 ### AnswerCardinality
 - `SINGLE_CORRECT`: Multiple choice with one correct answer (traditional MCQ)

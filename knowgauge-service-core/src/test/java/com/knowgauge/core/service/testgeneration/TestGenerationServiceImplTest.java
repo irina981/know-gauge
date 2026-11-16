@@ -112,7 +112,7 @@ class TestGenerationServiceImplTest {
 			embeddings.add(ChunkEmbedding.builder().chunkId(id).documentId(3L).build());
 			loaded.add(DocumentChunk.builder().id(id).chunkText("chunk " + id).build());
 		}
-		when(retrievingService.retrieveTop(eq(TENANT), anyList(), anyInt(), any(), anyBoolean()))
+		when(retrievingService.retrieveTop(eq(TENANT), anyList(), anyInt(), any(), any(), anyBoolean()))
 				.thenReturn(embeddings);
 		java.util.Collections.reverse(loaded);
 		when(chunkRepository.findByTenantIdAndIdIn(eq(TENANT), anyList())).thenReturn(loaded);
@@ -199,12 +199,50 @@ class TestGenerationServiceImplTest {
 
 	@Test
 	void slicesNeverOutnumberChunks() {
-		List<DocumentChunk> chunks = List.of(DocumentChunk.builder().id(1L).build(),
-				DocumentChunk.builder().id(2L).build());
-		List<ChunksContext> slices = TestGenerationServiceImpl.sliceChunks(new ChunksContext(chunks, List.of(1L, 2L)),
-				4);
+		List<ChunksContext> slices = TestGenerationServiceImpl.sliceChunks(chunks(2), 20, 5);
 
-		assertThat(slices).hasSize(2);
 		assertThat(slices).extracting(ChunksContext::chunkIds).containsExactly(List.of(1L), List.of(2L));
+	}
+
+	@Test
+	void slicesFollowTheQuestionCountOfEachBatch() {
+		// 7 questions in batches of 5 and 2: the first batch gets 5/7 of the chunks
+		List<ChunksContext> slices = TestGenerationServiceImpl.sliceChunks(chunks(10), 7, 5);
+
+		assertThat(slices).extracting(s -> s.chunkIds().size()).containsExactly(7, 3);
+	}
+
+	@Test
+	void focusedTestsNeedOnlyHalfAChunkPerQuestion() {
+		givenChunks(5);
+		givenBatches(bi -> "Question " + bi[0] + "." + bi[1]);
+		com.knowgauge.core.model.Test focused = draft(10);
+		focused.setCoverageMode(TestCoverageMode.FOCUSED);
+		focused.setFocusQuery("fire evacuation");
+
+		service.generate(focused);
+
+		verify(batchGenerator, times(2)).generateBatch(any());
+	}
+
+	@Test
+	void focusedTestsWithTooFewMatchingChunksSayHowManyQuestionsFit() {
+		givenChunks(4);
+		com.knowgauge.core.model.Test focused = draft(10);
+		focused.setCoverageMode(TestCoverageMode.FOCUSED);
+		focused.setFocusQuery("fire evacuation");
+
+		assertThatThrownBy(() -> service.generate(focused)).isInstanceOf(InsufficientContextException.class)
+				.hasMessageContaining("Only 4 passages").hasMessageContaining("at most 8 questions");
+		verify(batchGenerator, never()).generateBatch(any());
+	}
+
+	private static ChunksContext chunks(int count) {
+		List<Long> ids = LongStream.rangeClosed(1, count).boxed().toList();
+		List<DocumentChunk> chunks = new ArrayList<>();
+		for (Long id : ids) {
+			chunks.add(DocumentChunk.builder().id(id).build());
+		}
+		return new ChunksContext(chunks, ids);
 	}
 }

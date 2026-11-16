@@ -47,6 +47,9 @@ public class TestEntity extends AuditableEntity {
 	@Column(columnDefinition = "text")
 	private String description;
 
+	@Column(name = "focus_query", columnDefinition = "text")
+	private String focusQuery;
+
 	@Column(name = "public_token", unique = true, length = 64)
 	private String publicToken;
 

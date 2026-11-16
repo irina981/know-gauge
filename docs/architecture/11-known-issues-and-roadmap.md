@@ -8,7 +8,7 @@ operability, not effort.
 | # | Area | Issue | Severity | Location |
 |---|---|---|---|---|
 | 1 | Test generation | ~~`formatChunk` wrote `topicId=` with the document ID~~ **Fixed** with ADR001 | – | `TestGenerationPromptBuilder.formatChunk` |
-| 2 | Test generation | Typed errors (`LlmResponseParsingException`, `UnsupportedOperationException` for FOCUSED) are wrapped in `RuntimeException`, so the API returns 500 instead of the mapped 400/502/507 | Medium | `TestGenerationServiceImpl.generate`, `IngestionServiceImpl.ingest` |
+| 2 | Test generation | Typed errors (`LlmResponseParsingException`, `EmbeddingException`s from embedding the FOCUSED focus text) are wrapped in `RuntimeException`, so the API returns 500 instead of the mapped 400/502/507 | Medium | `TestGenerationServiceImpl.generate`, `IngestionServiceImpl.ingest` |
 | 3 | Test generation | ~~Flagged SINGLE_CORRECT questions were silently dropped~~ **Fixed** by ADR001: flags no longer change the answer key, so flagged questions are kept for review | – | `VerificationResponseMapper`, `TestQuestionValidator` |
 | 4 | Test generation | Default `max-consecutive-zero-progress-batches=1`: one empty batch (for example the multi-correct quota not being met) fails the whole test | Medium (config) | `application.properties` |
 | 5 | Test generation | ~~Dedupe only within a batch, and every batch used the same context, so batches repeated each other's questions~~ **Fixed**: each batch gets its own chunk slice and the questions so far to avoid, and cross-batch duplicates are dropped | – | `TestGenerationServiceImpl.generateAllBatches` |
@@ -43,7 +43,7 @@ operability, not effort.
 
 | Theme | Items |
 |---|---|
-| Retrieval | `FOCUSED` similarity search on the existing IVFFlat index. Avoid-repeats using `test_used_chunks`. Optional re-ranking |
+| Retrieval | Done: `FOCUSED` similarity search (`focusQuery`). Next: a minimum similarity for FOCUSED. Avoid-repeats using `test_used_chunks`. Optional re-ranking |
 | Generation | Resilience4j on the LLM adapters (retry, CB, bulkhead, timeouts). More question types (multi-select UX, short answer). Better difficulty and coverage control. A Spring AI adapter to compare with LangChain4j |
 | Review workflow | **Done** ([ADR001](../adr/ADR001-review-process.md)): versions, event log, accept fix / regenerate / manual replace, and keep as is ([ADR008](../adr/ADR008-keep-question-as-is.md)). Next: LLM second opinion on manual questions, real user identity in `actorUserId` |
 | Attempts | Done: start, submit and score attempts on `PUBLISHED` tests; participants take them through a shared link (name + email, no limit) or a personal email invitation (one attempt) under `/api/public` (ADR009). Next: protect the admin side and rate-limit `/api/public`, send invitations in the background, participant data retention, save answers while an attempt is running, time limits, block or archive deletes of tests with attempts, "clone to draft" to fix a published test that has attempts |

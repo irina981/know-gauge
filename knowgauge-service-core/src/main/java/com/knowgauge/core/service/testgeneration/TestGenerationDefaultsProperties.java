@@ -22,6 +22,12 @@ public class TestGenerationDefaultsProperties {
 	private String generationModel;
 	private Integer chunksPerQuestion;
 	private Integer minChunksPerQuestion;
+	/**
+	 * Minimum chunks per question for FOCUSED tests. Lower than for balanced tests,
+	 * because focused retrieval returns only chunks about the focus and never pads:
+	 * 0.5 means at most two questions per chunk.
+	 */
+	private Double focusedMinChunksPerQuestion = 0.5;
 	private Integer minChunksPerTest;
 	private Integer questionGenerationBatchSize;
 	private Integer minMultipleCorrectPercentage;
@@ -105,6 +111,14 @@ public class TestGenerationDefaultsProperties {
 
 	public void setMinChunksPerQuestion(Integer minChunksPerQuestion) {
 		this.minChunksPerQuestion = minChunksPerQuestion;
+	}
+
+	public Double getFocusedMinChunksPerQuestion() {
+		return focusedMinChunksPerQuestion;
+	}
+
+	public void setFocusedMinChunksPerQuestion(Double focusedMinChunksPerQuestion) {
+		this.focusedMinChunksPerQuestion = focusedMinChunksPerQuestion;
 	}
 
 	public Integer getMinChunksPerTest() {

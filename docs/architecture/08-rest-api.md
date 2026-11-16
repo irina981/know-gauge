@@ -14,6 +14,7 @@ There is **no authentication**. The tenant and user come from `ExecutionContext`
 | GET | `/topics/roots` | – | `200 List<TopicDto>` |
 | GET | `/topics/children/{parentId}` | – | `200 List<TopicDto>` (direct children) |
 | GET | `/topics/descendants/{parentId}` | – | `200 List<TopicDto>` (all descendants, by path prefix) |
+| GET | `/topics/ingested-document-counts` | – | `200 List<TopicDocumentCountDto {topicId, ingestedDocuments}>`: ingested documents directly in each topic; topics without any are left out. Clients add up a subtree to know whether a topic can be used for generation |
 | POST | `/topics` | `TopicCreateInput` (parentId?, name, description) | `201 TopicDto` + `Location` |
 | PUT | `/topics/{id}` | `TopicUpdateInput` (name, description; `null` = unchanged, body `id` ignored) | `200 TopicDto`. `404` if not found, `400` on a duplicate name under the same parent |
 | POST | `/topics/tree` | `TopicTreeNodeInput` (recursive name/description/children) | `201 TopicDto` (root with created children) |
@@ -135,7 +136,11 @@ Personal links by email (ADR009): one per address, usable for one attempt, sent 
 `name` is required (non-blank after trimming, at most 200 characters). The backend does not invent one: the client
 proposes a meaningful default (for example from the selected topics, difficulty and question count) and lets the
 user edit it. `description` is optional (at most 2000 characters; blank is stored as `null`). Every other field is
-optional and falls back to `kg.testgen.defaults.*`, but at least one topic or document ID is required. Enum fields are strings, parsed case-insensitively by `EnumParser` through `EnumMappingHelper`.
+optional and falls back to `kg.testgen.defaults.*`, but at least one topic or document ID is required.
+A topic in `topicIds` stands for its whole subtree (its ingested documents and those of all sub-topics).
+`coverageMode: "FOCUSED"` additionally requires `focusQuery` (at most 2000 characters): the test is generated from
+the chunks most similar to it ([05](05-retrieval.md#focused-similarity-search)). It is ignored for the other modes,
+and `TestDto.focusQuery` returns it. Enum fields are strings, parsed case-insensitively by `EnumParser` through `EnumMappingHelper`.
 
 ### `TestQuestionDto`
 

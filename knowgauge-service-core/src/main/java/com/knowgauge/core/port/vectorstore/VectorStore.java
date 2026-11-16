@@ -28,4 +28,14 @@ public interface VectorStore {
 
 	public List<ChunkEmbedding> findCandidates(Long tenantId, Collection<Long> documentIds, int maxChunksPerDoc,
 			String embeddingModel, boolean avoidRepeats);
+
+	/**
+	 * Similarity search for FOCUSED coverage: the chunks of the given documents
+	 * closest to the query embedding (cosine distance), nearest first.
+	 *
+	 * @param queryEmbedding embedding of the focus text, made with {@code embeddingModel}
+	 * @param limit          most rows returned
+	 */
+	List<ChunkEmbedding> findNearest(Long tenantId, Collection<Long> documentIds, float[] queryEmbedding,
+			String embeddingModel, int limit);
 }

@@ -47,6 +47,12 @@ public class Test extends AuditableObject {
 	private String description;
 
 	/**
+	 * What the questions should be about, for FOCUSED coverage: embedded and used
+	 * for similarity search over the chunks in scope. {@code null} for other modes.
+	 */
+	private String focusQuery;
+
+	/**
 	 * Random token of the shared link /t/{token} (ADR009). {@code null} until an
 	 * administrator creates the link; replaced when regenerated. The link works
 	 * only while the test is PUBLISHED.

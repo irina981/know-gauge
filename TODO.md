@@ -73,7 +73,7 @@
 - [ ] Add annotation-based resilience in `LlmTestGenerationServiceImpl` (similar to `OpenAiEmbeddingServiceImpl`): `@Retry`, `@CircuitBreaker`, `@Bulkhead` for general errors (+ timeout support if possible).
 - [ ] Add/adjust `resilience4j.properties` entries for test-generation calls (retry, circuit breaker, bulkhead, timeout parameters).
 - [ ] Implement "avoid duplicates" logic: exclude chunks already used in previous GENERATED tests (query test_used_chunks for existing tests with status=GENERATED and filter out those chunk IDs from retrieval)
-- [ ] Implement FOCUSED mode test generation: use similarity search based on user query/topic description to retrieve most relevant chunks (instead of balanced retrieval across documents)
+- [x] Implement FOCUSED mode test generation: use similarity search based on user query/topic description to retrieve most relevant chunks (instead of balanced retrieval across documents)
 - [ ] Implement SpringAI-based adapter for `LlmTestGenerationService` (alongside current LangChain4j implementation): investigate SpringAI capabilities including tool calling, structured output support, and response parsing vs current JSON parsing approach. Compare features, performance, and developer experience to evaluate potential migration from LangChain4j to SpringAI for all LLM adapters.
 
 ### 4) Async jobs / orchestration

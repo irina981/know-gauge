@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import org.hibernate.query.NativeQuery;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocChunkCount;
@@ -27,8 +28,8 @@ import jakarta.persistence.PersistenceContext;
  * equally) - BALANCED_PER_DOC_CHUNKS: proportional to document chunk volume
  * (size-aware balancing)
  *
- * NOTE: This is NOT a semantic similarity retrieval yet. - FOCUSED mode would
- * require query embedding + ORDER BY distance(embedding, queryEmbedding).
+ * FOCUSED mode is a similarity search instead ({@link #findNearest}): ORDER BY
+ * cosine distance to the embedded focus text.
  *
  * Selection approach overview (BALANCED modes): 1) Compute corpus shape (how
  * many chunks exist per document in the scope). 2) Compute per-document quotas
@@ -110,6 +111,56 @@ public class PgVectorStore implements VectorStore {
 		}
 
 		return candidates.stream().map(mapper::toDomain).toList();
+	}
+
+	/**
+	 * IVFFlat probes for {@link #findNearest}. Equal to the index's {@code lists}
+	 * (100, see the pgvector migration), which makes the search exact. With the
+	 * default of 1 probe the index only scans one list and, combined with the
+	 * tenant/model/document filter, can return far fewer rows than requested.
+	 */
+	private static final int EXACT_SEARCH_PROBES = 100;
+
+	@Override
+	@Transactional(transactionManager = "vectorTransactionManager", readOnly = true)
+	public List<ChunkEmbedding> findNearest(Long tenantId, Collection<Long> documentIds, float[] queryEmbedding,
+			String embeddingModel, int limit) {
+		// Only for this transaction (is_local = true), so other queries keep their settings.
+		em.createNativeQuery("SELECT set_config('ivfflat.probes', :probes, true)")
+				.setParameter("probes", String.valueOf(EXACT_SEARCH_PROBES)).getSingleResult();
+
+		String sql = """
+				SELECT ce.id, ce.tenant_id, ce.topic_id, ce.document_id, ce.document_version, ce.section_id,
+				       ce.chunk_id, ce.chunk_checksum, ce.embedding_model, ce.embedding,
+				       ce.created_at, ce.created_by, ce.updated_at, ce.updated_by
+				FROM chunk_embeddings ce
+				WHERE ce.tenant_id = :tenantId
+				  AND ce.embedding_model = :embeddingModel
+				  AND ce.document_id IN (:documentIds)
+				ORDER BY ce.embedding <=> CAST(:query AS vector)
+				LIMIT :limit
+				""";
+
+		@SuppressWarnings("unchecked")
+		NativeQuery<ChunkEmbeddingEntity> q = em.createNativeQuery(sql, ChunkEmbeddingEntity.class)
+				.setParameter("tenantId", tenantId).setParameter("embeddingModel", embeddingModel)
+				.setParameter("query", toVectorLiteral(queryEmbedding)).setParameter("limit", limit)
+				.unwrap(NativeQuery.class);
+		q.setParameterList("documentIds", documentIds);
+
+		return q.getResultList().stream().map(mapper::toDomain).toList();
+	}
+
+	/** pgvector's text form: {@code [0.1,0.2,...]}. */
+	static String toVectorLiteral(float[] vector) {
+		StringBuilder sb = new StringBuilder(vector.length * 12).append('[');
+		for (int i = 0; i < vector.length; i++) {
+			if (i > 0) {
+				sb.append(',');
+			}
+			sb.append(vector[i]);
+		}
+		return sb.append(']').toString();
 	}
 
 	/**

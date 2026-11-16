@@ -79,7 +79,7 @@ erDiagram
 | `DocumentStatus` | `UPLOADED`, `INGESTING`, `INGESTED`, `FAILED` | Document lifecycle |
 | `TestStatus` | `CREATED`, `GENERATED`, `REQUIRES_REVIEW`, `REVIEWED`, `FAILED`, `PUBLISHED` | Test lifecycle |
 | `TestDifficulty` | `EASY`, `MEDIUM`, `HARD` | Prompt variable |
-| `TestCoverageMode` | `BALANCED_PER_DOCS`, `BALANCED_PER_DOC_CHUNKS`, `FOCUSED` | Retrieval strategy (`FOCUSED` is not implemented) |
+| `TestCoverageMode` | `BALANCED_PER_DOCS`, `BALANCED_PER_DOC_CHUNKS`, `FOCUSED` | Retrieval strategy (`FOCUSED` = similarity search for `focusQuery`) |
 | `AnswerCardinality` | `SINGLE_CORRECT`, `MULTIPLE_CORRECT` | Prompt template selection, validation |
 | `Language` | `EN`, `DE`, `FR`, `ES`, `IT`, `SR` | Prompt variable |
 | `OptionLetter` | `A`, `B`, `C`, `D` | Option keys (exactly 4 options) |

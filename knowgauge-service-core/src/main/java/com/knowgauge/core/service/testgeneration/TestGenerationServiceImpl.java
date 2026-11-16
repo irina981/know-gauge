@@ -16,6 +16,7 @@ import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocumentChunk;
 import com.knowgauge.core.model.Test;
 import com.knowgauge.core.model.TestQuestion;
+import com.knowgauge.core.model.enums.TestCoverageMode;
 import com.knowgauge.core.model.enums.GenerationRunPurpose;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
@@ -141,7 +142,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	private ChunksContext retrieveAndLoadChunks(Long tenantId, Test test, List<Long> documentIds, List<Long> topicIds) {
 		List<ChunkEmbedding> embeddings = retrievingService.retrieveTop(tenantId, documentIds,
-				recommendedChunkLimit(test), test.getCoverageMode(), Boolean.TRUE.equals(test.getAvoidRepeats()));
+				recommendedChunkLimit(test), test.getCoverageMode(), test.getFocusQuery(),
+				Boolean.TRUE.equals(test.getAvoidRepeats()));
 		List<Long> chunkIds = embeddings == null ? List.of()
 				: embeddings.stream().map(ChunkEmbedding::getChunkId).distinct().toList();
 		log.info("    Test generation {} - Retrieved {} chunks: [{}]", test.getId(), chunkIds.size(), chunkIds);
@@ -164,10 +166,25 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	}
 
 	/**
-	 * Fails when there are fewer than {@code min-chunks-per-question} chunks per
-	 * requested question.
+	 * Fails when there are fewer chunks than the minimum per requested question:
+	 * {@code min-chunks-per-question} for balanced tests,
+	 * {@code focused-min-chunks-per-question} (default 0.5, so up to two questions
+	 * per chunk) for FOCUSED tests, whose retrieval returns only chunks about the
+	 * focus.
 	 */
 	private void requireEnoughChunks(Test test, int available) {
+		if (test.getCoverageMode() == TestCoverageMode.FOCUSED) {
+			double perQuestion = defaults.getFocusedMinChunksPerQuestion() != null
+					? defaults.getFocusedMinChunksPerQuestion()
+					: 0.5;
+			int required = Math.max(1, (int) Math.ceil(test.getQuestionCount() * perQuestion));
+			if (available < required) {
+				int maxQuestions = (int) Math.floor(available / perQuestion);
+				throw InsufficientContextException.forFocus(available, required, test.getQuestionCount(),
+						maxQuestions);
+			}
+			return;
+		}
 		int perQuestion = defaults.getMinChunksPerQuestion() != null ? defaults.getMinChunksPerQuestion() : 1;
 		int required = Math.max(1, test.getQuestionCount() * perQuestion);
 		if (available < required) {
@@ -190,7 +207,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		int maxZeroProgress = defaults.getMaxConsecutiveZeroProgressBatches() != null
 				? defaults.getMaxConsecutiveZeroProgressBatches()
 				: 3;
-		List<ChunksContext> slices = sliceChunks(ctx, (totalQuestions + batchSize - 1) / batchSize);
+		List<ChunksContext> slices = sliceChunks(ctx, totalQuestions, batchSize);
 		List<TestQuestion> all = new ArrayList<>();
 		int batchIndex = 0;
 		int zeroProgress = 0;
@@ -227,17 +244,27 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	}
 
 	/**
-	 * Splits the chunks into {@code batchCount} contiguous slices of near-equal
-	 * size (at most one slice per chunk).
+	 * Splits the chunks into one contiguous slice per planned batch, sized in
+	 * proportion to the batch's question count: with 10 chunks and 7 questions
+	 * (batches of 5 and 2), the slices hold 7 and 3 chunks. Every slice gets at
+	 * least one chunk; with fewer chunks than batches there are fewer slices, and
+	 * the remaining batches reuse them.
 	 */
-	static List<ChunksContext> sliceChunks(ChunksContext ctx, int batchCount) {
+	static List<ChunksContext> sliceChunks(ChunksContext ctx, int totalQuestions, int batchSize) {
 		int n = ctx.chunks().size();
-		int sliceCount = Math.max(1, Math.min(batchCount, n));
-		List<ChunksContext> slices = new ArrayList<>(sliceCount);
-		for (int i = 0; i < sliceCount; i++) {
-			int from = i * n / sliceCount;
-			int to = (i + 1) * n / sliceCount;
+		if (n == 0 || totalQuestions <= 0) {
+			return List.of(ctx);
+		}
+		List<ChunksContext> slices = new ArrayList<>();
+		int from = 0;
+		int questionsPlanned = 0;
+		while (questionsPlanned < totalQuestions && from < n) {
+			questionsPlanned += Math.min(batchSize, totalQuestions - questionsPlanned);
+			int to = questionsPlanned >= totalQuestions ? n
+					: questionsPlanned * n / totalQuestions;
+			to = Math.min(n, Math.max(to, from + 1));
 			slices.add(new ChunksContext(ctx.chunks().subList(from, to), ctx.chunkIds().subList(from, to)));
+			from = to;
 		}
 		return slices;
 	}

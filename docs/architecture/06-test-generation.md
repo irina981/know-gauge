@@ -73,11 +73,12 @@ otherwise:        0
   one). `description` is trimmed, at most 2000 characters, and blank becomes `null`.
 - At least one `topicId` or `documentId`, and `questionCount > 0`.
 - Every topic and document exists and belongs to the tenant.
-- The source documents are the explicit documents plus the documents **directly** attached to the selected topics,
-  deduplicated with order kept.
-- The resulting list is non-empty and **every** document is `INGESTED`.
-- `topicIds` is then expanded with all descendants (path prefix) for the record. Documents under descendant topics
-  are **not** added to the source set, only documents of the selected topics themselves.
+- `focusQuery` is required (at most 2000 characters) for `FOCUSED` and cleared for the other modes.
+- `topicIds` is expanded with all descendants (path prefix): a topic stands for its whole subtree, so a parent topic
+  without documents of its own can be selected.
+- The source documents are the explicit documents (each must be `INGESTED`) plus the `INGESTED` documents of the
+  expanded topics, deduplicated with order kept. Topic documents that are not ingested yet are skipped.
+- The resulting list must not be empty.
 
 ## Step 1 – Batched generation
 
@@ -253,7 +254,7 @@ A flagged question passes validation unchanged (flags don't affect correctness),
 - HTTP status: errors raised **before** `persistTest` (draft validation, `IllegalArgumentException`) return
   **400**. `InsufficientContextException` (retrieval returned fewer than `questionCount × min-chunks-per-question`
   chunks, including none) is rethrown as is and returns **422**; the test is still marked `FAILED`. Every other
-  error after `persistTest`, including `FOCUSED` mode and `LlmResponseParsingException`, is wrapped by
+  error after `persistTest`, including `LlmResponseParsingException`, is wrapped by
   `generate()` in a plain `RuntimeException` and returns **500**. The typed handlers (507/502, 400 for unsupported
   operations) therefore never fire for generation.
 
@@ -266,6 +267,7 @@ A flagged question passes validation unchanged (flags don't affect correctness),
 | `kg.testgen.defaults.chunks-per-question` | 4 | Retrieval limit factor |
 | `kg.testgen.defaults.min-chunks-per-test` | 20 | Floor for the retrieval limit (not a minimum on the chunks returned) |
 | `kg.testgen.defaults.min-chunks-per-question` | 1 | Generation fails with 422 when retrieval returns fewer than `questionCount ×` this many chunks |
+| `kg.testgen.defaults.focused-min-chunks-per-question` | 0.5 | The same minimum for FOCUSED tests (decimal): 0.5 allows up to two questions per matching chunk |
 | `kg.testgen.defaults.min-multiple-correct-percentage` | 50 | Multi-correct quota |
 | `kg.testgen.defaults.max-consecutive-zero-progress-batches` | 1 | Failure threshold |
 | `kg.testgen.defaults.generation-model` | `gpt-5.6-luna` | Generation model (a reasoning model, see `OpenAiReasoningModels`) |
