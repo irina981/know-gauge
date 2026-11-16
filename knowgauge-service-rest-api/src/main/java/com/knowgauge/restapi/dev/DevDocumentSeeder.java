@@ -83,7 +83,12 @@ public class DevDocumentSeeder {
 					"Corvane - Ergonomics and Home Workstation Guide.pdf"),
 			new SeedDocument(7600L, "Remote and Hybrid Work Policy", "Corvane - Remote and Hybrid Work Policy.pdf"),
 			new SeedDocument(7600L, "Travel and Expense Policy", "Corvane - Travel and Expense Policy.pdf"),
-			new SeedDocument(7600L, "Leave and Time Off Policy", "Corvane - Leave and Time Off Policy.pdf"));
+			new SeedDocument(7600L, "Leave and Time Off Policy", "Corvane - Leave and Time Off Policy.pdf"),
+
+			// Office Guides (sources in demo-content/office-guides): same four subjects per office, for FOCUSED tests
+			new SeedDocument(9100L, "Rotterdam Office Guide", "Corvane - Rotterdam Office Guide.pdf"),
+			new SeedDocument(9200L, "Lisbon Office Guide", "Corvane - Lisbon Office Guide.pdf"),
+			new SeedDocument(9300L, "Kraków Office Guide", "Corvane - Krakow Office Guide.pdf"));
 
 	private void seedIfMissing(DocumentService documentService, DocumentRepository documentRepository, Long topicId,
 			String title, String originalFileName, String classpathLocation) throws Exception {

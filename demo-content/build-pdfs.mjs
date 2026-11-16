@@ -1,6 +1,6 @@
 // Renders the Markdown demo documents to PDF with a headless Chromium browser (Edge or Chrome).
 //
-// Usage:  node demo-content/build-pdfs.mjs [--browser "<path to msedge/chrome>"]
+// Usage:  node demo-content/build-pdfs.mjs [--set <folder>] [--browser "<path to msedge/chrome>"]
 //
 // Every *.md file in a sub-folder of demo-content/ is converted. The front matter `pdf` field is the output
 // file name; PDFs are written to knowgauge-service-rest-api/src/main/resources/devdocs/.
@@ -137,7 +137,25 @@ const workDir = join(tmpdir(), 'kg-demo-pdfs');
 rmSync(workDir, { recursive: true, force: true });
 mkdirSync(workDir, { recursive: true });
 
-const sets = readdirSync(here).filter((d) => statSync(join(here, d)).isDirectory());
+/** Waits until the file exists and its size stops changing, or the timeout passes. */
+function waitForFile(path, timeoutMs) {
+	const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+	let lastSize = -1;
+	for (const end = Date.now() + timeoutMs; Date.now() < end; sleep(250)) {
+		if (!existsSync(path)) continue;
+		const size = statSync(path).size;
+		if (size > 0 && size === lastSize) return;
+		lastSize = size;
+	}
+}
+
+// --set <folder> builds only that folder, so the PDFs of the other folders stay byte-for-byte unchanged.
+const setIdx = process.argv.indexOf('--set');
+const onlySet = setIdx > -1 ? process.argv[setIdx + 1] : undefined;
+const sets = readdirSync(here).filter(
+	(d) => statSync(join(here, d)).isDirectory() && (!onlySet || d === onlySet),
+);
+if (onlySet && sets.length === 0) throw new Error(`No folder named '${onlySet}' in demo-content/.`);
 let count = 0;
 for (const set of sets) {
 	for (const file of readdirSync(join(here, set)).filter((f) => f.endsWith('.md')).sort()) {
@@ -146,9 +164,16 @@ for (const set of sets) {
 		const htmlPath = join(workDir, file.replace(/\.md$/, '.html'));
 		writeFileSync(htmlPath, page(meta, markdownToHtml(body)), 'utf8');
 		const pdfPath = join(outDir, meta.pdf);
-		execFileSync(browser, ['--headless=new', '--disable-gpu', '--no-pdf-header-footer',
-			`--user-data-dir=${join(workDir, 'profile')}`, `--print-to-pdf=${pdfPath}`, pathToFileURL(htmlPath).href],
-			{ stdio: 'ignore' });
+		rmSync(pdfPath, { force: true });
+		// The browser command can return before the PDF is on disk, so wait for it. A fresh profile per file and up to
+		// 3 tries cover runs where headless Edge exits without writing anything.
+		for (let attempt = 1; attempt <= 3 && !existsSync(pdfPath); attempt++) {
+			execFileSync(browser, ['--headless=new', '--disable-gpu', '--no-pdf-header-footer',
+				`--user-data-dir=${join(workDir, `profile-${count}-${attempt}`)}`, `--print-to-pdf=${pdfPath}`,
+				pathToFileURL(htmlPath).href], { stdio: 'ignore' });
+			waitForFile(pdfPath, 20_000);
+		}
+		if (!existsSync(pdfPath)) throw new Error(`The browser did not write ${meta.pdf}`);
 		console.log(`${set}/${file} -> ${meta.pdf}`);
 		count++;
 	}

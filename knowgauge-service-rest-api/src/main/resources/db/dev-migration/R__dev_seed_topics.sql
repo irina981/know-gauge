@@ -2,11 +2,12 @@
 -- Dev / demo seed: topic tree for tenant 1 (rerunnable). Every leaf topic gets documents from DevDocumentSeeder,
 -- so the tree has no empty topics.
 --
--- Two root topics:
+-- Three root topics:
 -- Programming (1100)
 -- ├── Java (2000): Core Java (2100), Multithreading (2200)
 -- └── Spring & Spring Boot (4000)
 -- Employee Onboarding & Compliance (7000): fictional "Corvane Systems" policy pack (7100-7600)
+-- Office Guides (9000): one guide per office, Rotterdam (9100), Lisbon (9200), Kraków (9300), for FOCUSED tests
 --
 -- Notes:
 --  - Fixed ids keep the references in DevDocumentSeeder stable.
@@ -40,7 +41,15 @@ VALUES
   (7300, 7000, 1, 'Data Privacy (GDPR Basics)', 'Personal data, GDPR principles, data subject rights and breach response', '/7000/7300', 1, 1, now(), now()),
   (7400, 7000, 1, 'Respect at Work', 'Anti-harassment, equal opportunity and speaking up', '/7000/7400', 1, 1, now(), now()),
   (7500, 7000, 1, 'Health & Safety', 'Fire evacuation, office safety, ergonomics and home workstations', '/7000/7500', 1, 1, now(), now()),
-  (7600, 7000, 1, 'Working at Corvane', 'Remote and hybrid work, travel and expenses, leave and time off', '/7000/7600', 1, 1, now(), now())
+  (7600, 7000, 1, 'Working at Corvane', 'Remote and hybrid work, travel and expenses, leave and time off', '/7000/7600', 1, 1, now(), now()),
+
+  -- Office Guides (root; for FOCUSED tests). Every guide has the same four clearly different sections: fire
+  -- evacuation, parking and commuting, kitchen and coffee, meeting rooms and visitors. A focus on one of them picks
+  -- its sections from all three guides.
+  (9000, NULL, 1, 'Office Guides', 'Practical guides to the Corvane offices: fire evacuation, parking, kitchen and meeting rooms', '/9000', 1, 1, now(), now()),
+  (9100, 9000, 1, 'Rotterdam Office', 'Corvane headquarters in the Maaskade Tower', '/9000/9100', 1, 1, now(), now()),
+  (9200, 9000, 1, 'Lisbon Office', 'Corvane office in the Casa do Rio building', '/9000/9200', 1, 1, now(), now()),
+  (9300, 9000, 1, 'Kraków Office', 'Corvane office in the Wawel Business Park', '/9000/9300', 1, 1, now(), now())
 ON CONFLICT (id) DO UPDATE
 SET parent_id   = EXCLUDED.parent_id,
     name        = EXCLUDED.name,

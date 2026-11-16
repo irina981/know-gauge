@@ -5,6 +5,7 @@ Sources for the sample documents that the `local` profile uploads at startup (`D
 | Folder | Topic (`R__dev_seed_topics.sql`) | Content |
 |---|---|---|
 | `employee-onboarding/` | Employee Onboarding & Compliance (7000) | 15 workplace policies for **Corvane Systems**, a fictional software company |
+| `office-guides/` | Office Guides (9000) | 3 office guides with the same 4 subjects each, written for **focused** tests |
 
 All text is original and written for KnowGauge. Corvane Systems, its products, tools (TripDesk, ExpenseHub,
 PeoplePortal, Corvane Vault and so on) and contacts are fictional. Email addresses use the reserved `.example` domain.
@@ -50,5 +51,27 @@ Chrome (set `KG_PDF_BROWSER` or pass `--browser <path>` if neither is found in t
 node demo-content/build-pdfs.mjs
 ```
 
+Add `--set <folder>` to build only one folder, for example `--set office-guides`. The other PDFs are then left
+unchanged.
+
 To add a document, create the Markdown file, build the PDFs and add a `SeedDocument` entry in `DevDocumentSeeder`.
 Never change the `originalFileName` of a document that is already seeded: it is the seeder's idempotency key.
+
+## Office Guides: material for focused tests
+
+`FOCUSED` coverage takes only the passages close to a focus text instead of a balanced sample. The three office
+guides (Rotterdam, Lisbon, Kraków) all have the same four sections, and the subjects are deliberately far apart, so it
+is easy to see whether a question belongs to the focus. Generate from the **Office Guides** topic with a focus such
+as:
+
+| Focus text | Every question should be about |
+|---|---|
+| Fire evacuation, alarms, assembly points and fire wardens | Section 1 of each guide: stairwells, assembly points, warden vests, drills |
+| Parking, electric car charging, bicycles and public transport | Section 2: parking spaces and booking, chargers, bike storage, travel allowances |
+| Kitchen, coffee, fridge rules and team lunches | Section 3: free drinks, fridge clean-out days, dishwasher, lunches |
+| Booking meeting rooms and registering visitors | Section 4: room check-in, booking limits, video-wall rooms, visitor badges |
+
+Each focus selects 6 to 9 passages from all three guides. A focused test can ask up to two questions per passage,
+so ask for **5 to 12 questions**: a focus with too few close passages fails with a clear message (including how many
+questions would fit) instead of padding the test with unrelated material. Compare with a balanced test over the same
+topic, whose questions mix all four subjects.
