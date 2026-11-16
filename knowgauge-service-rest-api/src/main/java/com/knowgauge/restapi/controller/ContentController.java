@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -219,8 +220,9 @@ public class ContentController {
 	}
 
 	@GetMapping("/documents/{id}/content")
-	@Operation(summary = "Download document content")
-	public void downloadDocument(@PathVariable Long id, HttpServletResponse response) throws IOException {
+	@Operation(summary = "Download document content", description = "With inline=true the browser shows the file (for example in a PDF preview) instead of saving it.")
+	public void downloadDocument(@PathVariable Long id,
+			@RequestParam(defaultValue = "false") boolean inline, HttpServletResponse response) throws IOException {
 
 		// Get metadata first (NO streaming yet)
 		Document document = documentService.get(id)
@@ -228,7 +230,8 @@ public class ContentController {
 
 		// Set headers BEFORE writing body
 		response.setContentType(document.getContentType());
-		response.setHeader("Content-Disposition", "attachment; filename=\"" + document.getOriginalFileName() + "\"");
+		response.setHeader("Content-Disposition",
+				(inline ? "inline" : "attachment") + "; filename=\"" + document.getOriginalFileName() + "\"");
 
 		// Now stream content
 		try (OutputStream out = response.getOutputStream()) {

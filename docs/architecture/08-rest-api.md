@@ -22,7 +22,7 @@ There is **no authentication**. The tenant and user come from `ExecutionContext`
 | GET | `/documents/{id}` | – | `200 DocumentDto` (includes ingestion `status`, `errorMessage`, `ingestedAt`), `404` if not found |
 | GET | `/documents/all/{topicId}` | Spring `Pageable` (`page`, `size`, `sort`) | `200 Page<DocumentDto>` |
 | POST | `/documents` | `multipart/form-data`: part `meta` = JSON `DocumentInput` (topicId, title), part `file` | `201 DocumentDto` + `Location`. Max 50 MB |
-| GET | `/documents/{id}/content` | – | Binary stream with `Content-Type` and `Content-Disposition: attachment`. `404` if not found |
+| GET | `/documents/{id}/content` | `inline` (default `false`) | Binary stream with `Content-Type` and `Content-Disposition: attachment` (`inline` with `inline=true`, for the UI's PDF preview). `404` if not found |
 | DELETE | `/documents/{id}` | – | `200` (DB row, then MinIO object) |
 | POST | `/documents/ingestion/{id}` | – | `200` once ingestion has finished (synchronous), `409` if the document is already being ingested |
 
