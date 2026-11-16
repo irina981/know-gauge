@@ -4,8 +4,11 @@
 --
 -- Five root topics (display order set by position, see the UPDATE below):
 -- Programming (1100)
--- └── Java (2000): Core Java (2100), Multithreading (2200), Spring & Spring Boot (4000)
--- Corvane Systems (fictional demo company) (6000): all content about the invented company
+-- ├── Java (2000): Core Java (2100), Multithreading (2200), Spring & Spring Boot (4000)
+-- ├── Algorithms for Coding Interviews (5000): Array and String Patterns (5100), Searching, Sorting and Heaps (5200),
+-- │   Graphs and Trees (5300), Dynamic Programming, Backtracking and Greedy (5400)
+-- └── System Design (3000): Basics (3100), Advanced (3200), Interviews (3300)
+-- Corvane Systems (demo company) (6000): all content about the invented company
 -- ├── Employee Onboarding & Compliance (7000): policy pack (7100-7600)
 -- └── Office Guides (9000): one guide per office, Rotterdam (9100), Lisbon (9200), Kraków (9300), for FOCUSED tests
 -- Gradovi Srbije (10000): Serbian (Latin script) city guides, Beograd (10100), Novi Sad (10200), Niš (10300),
@@ -43,8 +46,21 @@ VALUES
   (2200, 2000, 1, 'Multithreading', 'Processes, threads and concurrency in Java', '/1100/2000/2200', 1, 1, now(), now()),
   (4000, 2000, 1, 'Spring & Spring Boot', 'Dependency injection and bean configuration in Spring', '/1100/2000/4000', 1, 1, now(), now()),
 
+  -- Algorithms for Coding Interviews: every pattern has the same parts (idea, when to use it, complexity, sample tasks)
+  (5000, 1100, 1, 'Algorithms for Coding Interviews', 'Well-known algorithm patterns asked in software engineering interviews, with sample tasks', '/1100/5000', 1, 1, now(), now()),
+  (5100, 5000, 1, 'Array and String Patterns', 'Sliding window, two pointers, prefix sums and hashing', '/1100/5000/5100', 1, 1, now(), now()),
+  (5200, 5000, 1, 'Searching, Sorting and Heaps', 'Binary search, sorting algorithms, heaps and top-k problems', '/1100/5000/5200', 1, 1, now(), now()),
+  (5300, 5000, 1, 'Graphs and Trees', 'BFS and DFS, topological sort, shortest paths with Dijkstra', '/1100/5000/5300', 1, 1, now(), now()),
+  (5400, 5000, 1, 'Dynamic Programming, Backtracking and Greedy', 'Memoization and tabulation, backtracking search, greedy choices', '/1100/5000/5400', 1, 1, now(), now()),
+
+  -- System Design: from the basics to advanced topics and a typical interview
+  (3000, 1100, 1, 'System Design', 'Designing scalable systems, from the basics to advanced topics and interviews', '/1100/3000', 1, 1, now(), now()),
+  (3100, 3000, 1, 'System Design Basics', 'Scalability, load balancing, caching and choosing a database', '/1100/3000/3100', 1, 1, now(), now()),
+  (3200, 3000, 1, 'Advanced System Design', 'Replication, sharding, consistent hashing, CAP, messaging and reliability patterns', '/1100/3000/3200', 1, 1, now(), now()),
+  (3300, 3000, 1, 'System Design Interviews', 'A step-by-step approach, estimates, and case studies', '/1100/3000/3300', 1, 1, now(), now()),
+
   -- Corvane Systems (root): an invented software company. Everything below is fictional demo content.
-  (6000, NULL, 1, 'Corvane Systems (fictional demo company)', 'Demo content about Corvane Systems, an invented software company: its workplace policies and office guides. All names, places, numbers and contacts are fictional.', '/6000', 1, 1, now(), now()),
+  (6000, NULL, 1, 'Corvane Systems (demo company)', 'Demo content about Corvane Systems, an invented software company: its workplace policies and office guides. All names, places, numbers and contacts are fictional.', '/6000', 1, 1, now(), now()),
 
   -- Employee Onboarding & Compliance
   (7000, 6000, 1, 'Employee Onboarding & Compliance', 'Workplace policy training for new and existing Corvane employees', '/6000/7000', 1, 1, now(), now()),
@@ -96,7 +112,7 @@ SET parent_id   = EXCLUDED.parent_id,
 -- Display order of the root topics (V3__topic_position.sql). Other topics have no position and sort by name.
 UPDATE topics
 SET position = CASE id
-                 WHEN 6000 THEN 1   -- Corvane Systems (fictional demo company)
+                 WHEN 6000 THEN 1   -- Corvane Systems (demo company)
                  WHEN 11000 THEN 2  -- AI in Day-to-Day Work
                  WHEN 12000 THEN 3  -- English Lessons (B1–B2)
                  WHEN 1100 THEN 4   -- Programming

@@ -76,6 +76,24 @@
 - [x] Implement FOCUSED mode test generation: use similarity search based on user query/topic description to retrieve most relevant chunks (instead of balanced retrieval across documents)
 - [ ] Implement SpringAI-based adapter for `LlmTestGenerationService` (alongside current LangChain4j implementation): investigate SpringAI capabilities including tool calling, structured output support, and response parsing vs current JSON parsing approach. Compare features, performance, and developer experience to evaluate potential migration from LangChain4j to SpringAI for all LLM adapters.
 
+### 3.1) Code questions for algorithm topics
+Generated tests on algorithms (e.g. Programming › Algorithms for Coding Interviews) are mostly theoretical. Code-based
+multiple-choice questions test whether someone can read and reason about code. Question types that fit MCQ: pattern
+recognition (which approach fits this problem), what does this snippet return for a given input, find the bug (numbered
+lines), fill in the missing line, complexity of a snippet, which input breaks this solution.
+- [ ] Add short, correct Java solutions (10–20 lines) to the sample tasks in `demo-content/algorithms`, so the
+  generator has code to ask about.
+- [ ] Render code in questions and options: support fenced ```code``` blocks (monospace, whitespace preserved) on the
+  review page, in the test runner and on the participant results page.
+- [ ] Add a code-question prompt template (e.g. `mcq-code`) that uses the question types above, keeps snippets short
+  and puts code in fenced blocks; expose it as a **Question style** choice (Conceptual / Code reading / Mixed) in the
+  generate form instead of a raw template ID.
+- [ ] Answer-key correctness: "what does this return" questions need the model to trace code correctly. Keep snippets
+  short and rely on the verifier and review; later, optionally run snippets in a sandbox to confirm the expected
+  output.
+- [ ] Later, separate product decision: real coding tasks (editor + test cases run in a code-execution sandbox, new
+  grading) instead of multiple choice.
+
 ### 4) Async jobs / orchestration
 - [ ] Queue-based ingestion (outbox table or message broker later)
 - [ ] Background worker for ingestion + embeddings
