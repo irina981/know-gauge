@@ -60,10 +60,15 @@ public class DevDocumentSeeder {
 			new SeedDocument(4000L, "Dependency Injection Types", "Spring - Dependency Injection Types.pdf"),
 			new SeedDocument(4000L, "Bean Configuration Types", "Spring - Bean Configuration Types.pdf"),
 
-			// System Design (sources in demo-content/system-design)
-			new SeedDocument(3100L, "System Design Basics", "System Design - Basics.pdf"),
-			new SeedDocument(3200L, "Advanced System Design Topics", "System Design - Advanced Topics.pdf"),
-			new SeedDocument(3300L, "System Design Interview Walkthrough", "System Design - Interview Walkthrough.pdf"),
+			// System Design: a five-lesson tutorial series, provided as PDFs (no Markdown source)
+			new SeedDocument(3010L, "System Design Fundamentals", "System Design - 01 System Design Fundamentals.pdf"),
+			new SeedDocument(3020L, "Scalability and Performance", "System Design - 02 Scalability and Performance.pdf"),
+			new SeedDocument(3030L, "Data Storage and Consistency",
+					"System Design - 03 Data Storage and Consistency.pdf"),
+			new SeedDocument(3040L, "Distributed Systems and Messaging",
+					"System Design - 04 Distributed Systems and Messaging.pdf"),
+			new SeedDocument(3050L, "Reliability, Security, and Observability",
+					"System Design - 05 Reliability Security and Observability.pdf"),
 
 			// Employee Onboarding & Compliance (fictional company; sources in demo-content/employee-onboarding)
 			new SeedDocument(7100L, "Code of Conduct", "Corvane - Code of Conduct.pdf"),

@@ -27,10 +27,13 @@ public class DevFocusSuggestionsController {
 	/** Topic id (from the dev seed) to its focus suggestions. */
 	static final Map<Long, List<String>> SUGGESTIONS = Map.of(
 			// Programming › System Design
-			3000L, List.of("Reliability: message queues, retries, rate limiting and circuit breakers",
-					"Distributed data: replication, sharding, consistent hashing and the CAP theorem",
-					"Scaling a web system: load balancing, caching and stateless services",
-					"Caching strategies, eviction and invalidation", "CAP theorem, consistency models and quorums"),
+			3000L, List.of("Capacity estimates: QPS, peak factor, storage growth and headroom",
+					"Idempotency keys, retries with backoff and duplicate messages",
+					"Load balancing, stateless services and autoscaling",
+					"Transactional outbox and the dual-write problem",
+					"Caching: cache-aside, TTL, invalidation and cache stampedes",
+					"Replication, read replicas, partitioning and sharding", "SLIs, SLOs, SLAs and error budgets",
+					"Authentication, authorization, TLS and secrets"),
 			// Corvane Systems › Employee Onboarding & Compliance
 			7000L, List.of("Passwords, passphrases and multi-factor authentication",
 					"Recognising and reporting phishing emails",

@@ -10,7 +10,7 @@ Sources for the sample documents that the `local` profile uploads at startup (`D
 | `ai-day-to-day/` | AI in Day-to-Day Work (11000) | 4 English guides on generative AI tools with the same 4 sections each |
 | `english-lessons/` | English Lessons (B1–B2) (12000) | 4 English lessons for intermediate learners with the same 4 sections each |
 | `algorithms/` | *Not seeded for now* (was Programming › Algorithms for Coding Interviews, 5000) | 4 documents of interview algorithm patterns; every pattern has idea, when to use it, complexity, sample tasks. Sources only; see `TODO.md` 3.1 |
-| `system-design/` | Programming › System Design (3000) | Basics, advanced topics and an interview walkthrough |
+| – | Programming › System Design (3000) | 5 lessons provided as PDFs only (no source folder); see "System Design" below |
 
 Both Corvane sets sit under the root topic **Corvane Systems (demo company)** (6000).
 
@@ -124,13 +124,21 @@ Grammar focuses match only a few passages: ask for 3 to 5 questions.
 
 ## System Design
 
-The documents are technical, so a focus usually selects one section precisely. A single subject ("Caching
-strategies, …") matches 2 to 4 passages: good for 3 to 6 questions. Combining related subjects gives more material:
+Programming › System Design (3000) is a five-lesson tutorial series provided as PDFs only (there is no Markdown
+source here): System Design Fundamentals, Scalability and Performance, Data Storage and Consistency, Distributed
+Systems and Messaging, and Reliability, Security, and Observability. Each lesson has four pages and is its own
+sub-topic (3010-3050, kept in lesson order with `position`).
 
-| Topic | Focus text | Selects |
-|---|---|---|
-| System Design | Reliability: message queues, retries, rate limiting and circuit breakers | Messaging and reliability sections (7 passages) |
-| System Design | Distributed data: replication, sharding, consistent hashing and the CAP theorem | Replication, sharding and consistency sections |
-| System Design | Caching strategies, eviction and invalidation | The caching section only |
+Some focus texts cut across lessons, others select one lesson's section (checked with the embedding model):
+
+| Focus text | Selects |
+|---|---|
+| Capacity estimates: QPS, peak factor, storage growth and headroom | Lessons 1 and 2 (12 passages) |
+| Idempotency keys, retries with backoff and duplicate messages | Mostly Lesson 4 (12 passages) |
+| Load balancing, stateless services and autoscaling | Mostly Lesson 2 (10 passages) |
+| Transactional outbox and the dual-write problem | Lessons 3 and 4 (9 passages) |
+| Caching: cache-aside, TTL, invalidation and cache stampedes | Lesson 2's caching page only |
+| Replication, read replicas, partitioning and sharding | Lesson 3's replication page only |
+| SLIs, SLOs, SLAs and error budgets | Lesson 5's reliability page only |
 
 The generate form offers these as suggestions (`DevFocusSuggestionsController`, dev profile only).
