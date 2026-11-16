@@ -29,4 +29,7 @@ public class Topic extends AuditableObject {
 
 	private String path;
 
+	/** Display order among siblings (lowest first); {@code null} sorts after positioned topics, by name. */
+	private Integer position;
+
 }

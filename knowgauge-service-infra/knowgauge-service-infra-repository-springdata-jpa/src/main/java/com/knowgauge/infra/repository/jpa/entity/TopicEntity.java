@@ -32,5 +32,9 @@ public class TopicEntity extends AuditableEntity {
     @Column
     private String path;
 
+    /** Display order among siblings; null sorts after positioned topics. */
+    @Column
+    private Integer position;
+
 
 }

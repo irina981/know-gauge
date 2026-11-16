@@ -11,5 +11,6 @@ public record TopicDto(
 		@Schema(description = "Topic description", example = "Core concepts and practical usage") String description,
 		@Schema(description = "Parent topic id", example = "10") Long parentId,
 		@Schema(description = "Materialized topic path", example = "/Backend/Spring Boot") String path,
+		@Schema(description = "Display order among sibling topics (lowest first); empty sorts after positioned topics, by name", example = "1") Integer position,
 		@Schema(description = "Direct child topics") List<TopicDto> children) {
 }
