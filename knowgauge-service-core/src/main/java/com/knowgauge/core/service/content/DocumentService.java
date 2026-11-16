@@ -2,6 +2,7 @@ package com.knowgauge.core.service.content;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +36,12 @@ public interface DocumentService {
 	int markFailed(Long documentId, String errorMessage);
 	
 	List<Document> findByTopicIds(Long tenantId, List<Long> topicIds);
+
+	/**
+	 * Ingested documents per topic of the current tenant, counting only documents
+	 * directly in each topic (not in sub-topics). Topics without any are left out.
+	 */
+	Map<Long, Long> countIngestedByTopic();
 
 	/**
 	 * Returns up to {@code limit} {@code UPLOADED} documents of the tenant, oldest first.

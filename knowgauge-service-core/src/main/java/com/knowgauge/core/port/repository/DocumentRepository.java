@@ -1,5 +1,6 @@
 package com.knowgauge.core.port.repository;
 
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +34,9 @@ public interface DocumentRepository {
 	
 	void deleteById(Long id);
 	
+	/** @return the number of documents with the given status per topic id (topics without any are left out) */
+	Map<Long, Long> countByTopicId(Long tenantId, DocumentStatus status);
+
 	boolean existsByTopicIdAndOriginalFileName(Long topicId, String originalFileName);
 
     boolean existsByTopicIdAndChecksum(Long topicId, String contentHash);

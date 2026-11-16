@@ -1,5 +1,7 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,6 +75,15 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 	@Override
 	public int markFailed(Long documentId, String errorMessage) {
 		return jpaRepository.markFailed(documentId, errorMessage);
+	}
+
+	@Override
+	public Map<Long, Long> countByTopicId(Long tenantId, DocumentStatus status) {
+		Map<Long, Long> counts = new LinkedHashMap<>();
+		for (Object[] row : jpaRepository.countByTopicId(tenantId, status)) {
+			counts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+		}
+		return counts;
 	}
 
 	@Override

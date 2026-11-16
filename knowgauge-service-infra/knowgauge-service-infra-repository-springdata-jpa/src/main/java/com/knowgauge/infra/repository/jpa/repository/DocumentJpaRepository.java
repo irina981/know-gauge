@@ -55,6 +55,13 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, Lon
 
 	boolean existsByTopicIdAndChecksum(Long topicId, String contentHash);
 	
+	@Query("""
+			select d.topicId, count(d) from DocumentEntity d
+			where d.tenantId = :tenantId and d.status = :status
+			group by d.topicId
+			""")
+	List<Object[]> countByTopicId(@Param("tenantId") Long tenantId, @Param("status") DocumentStatus status);
+
 	List<DocumentEntity> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicId);
 
 	List<DocumentEntity> findByTenantIdAndStatusOrderByCreatedAtAscIdAsc(Long tenantId, DocumentStatus status,

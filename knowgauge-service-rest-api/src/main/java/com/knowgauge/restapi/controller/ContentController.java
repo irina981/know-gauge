@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.knowgauge.contract.dto.TopicDocumentCountDto;
 import com.knowgauge.contract.dto.DocumentDto;
 import com.knowgauge.contract.dto.DocumentInput;
 import com.knowgauge.contract.dto.TopicCreateInput;
@@ -99,6 +100,13 @@ public class ContentController {
 	public ResponseEntity<List<TopicDto>> getChildren(@PathVariable Long parentId) {
 		List<TopicDto> topics = topicService.getChildren(parentId).stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
+	}
+
+	@GetMapping("/topics/ingested-document-counts")
+	@Operation(summary = "Count ingested documents per topic", description = "For each topic that directly holds ingested documents, how many it holds. Topics without any are left out; add up a subtree to know whether a parent topic can be used for test generation.")
+	public ResponseEntity<List<TopicDocumentCountDto>> getIngestedDocumentCounts() {
+		return ResponseEntity.ok(documentService.countIngestedByTopic().entrySet().stream()
+				.map(e -> new TopicDocumentCountDto(e.getKey(), e.getValue())).toList());
 	}
 
 	@GetMapping("/topics/descendants/{parentId}")

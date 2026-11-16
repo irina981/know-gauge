@@ -2,6 +2,7 @@ package com.knowgauge.core.service.content;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -124,6 +125,12 @@ public class DocumentServiceImpl implements DocumentService {
 	@Override
 	public int markFailed(Long documentId, String errorMessage) {
 		return documentRepository.markFailed(documentId, errorMessage);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Map<Long, Long> countIngestedByTopic() {
+		return documentRepository.countByTopicId(executionContext.tenantId(), DocumentStatus.INGESTED);
 	}
 
 	@Override
