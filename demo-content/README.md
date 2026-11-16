@@ -8,6 +8,7 @@ Sources for the sample documents that the `local` profile uploads at startup (`D
 | `office-guides/` | Corvane Systems › Office Guides (9000) | 3 office guides with the same 4 subjects each, written for **focused** tests |
 | `gradovi-srbije/` | Gradovi Srbije (10000) | 4 Serbian city guides (Latin script) with the same 4 sections each; real facts |
 | `ai-day-to-day/` | AI in Day-to-Day Work (11000) | 4 English guides on generative AI tools with the same 4 sections each |
+| `english-lessons/` | English Lessons (B1–B2) (12000) | 4 English lessons for intermediate learners with the same 4 sections each |
 
 Both Corvane sets sit under the root topic **Corvane Systems (fictional demo company)** (6000).
 
@@ -103,3 +104,18 @@ others. These were checked with the embedding model:
 | AI in Day-to-Day Work | Deepfakes, voice cloning scams and labelling AI-generated media | The images and media guide only |
 
 Generate Serbian tests with **Language: Serbian**.
+
+## English Lessons (B1–B2)
+
+Four lessons (travel, work, health, technology), each with vocabulary, one grammar point, common mistakes and useful
+phrases. A focus on one grammar point selects exactly that lesson's grammar section; the section focuses select the
+matching section from every lesson (checked with the embedding model):
+
+| Focus text | Selects |
+|---|---|
+| Present perfect and past simple | The grammar section of Lesson 1 |
+| The passive voice | The grammar section of Lesson 4 |
+| Useful phrases for everyday situations | Useful phrases of all four lessons, plus some lesson introductions |
+| Common mistakes and their corrections | Common mistakes of all four lessons, plus some lesson introductions |
+
+Grammar focuses match only a few passages: ask for 3 to 5 questions.

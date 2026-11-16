@@ -2,7 +2,7 @@
 -- Dev / demo seed: topic tree for tenant 1 (rerunnable). Every leaf topic gets documents from DevDocumentSeeder,
 -- so the tree has no empty topics.
 --
--- Four root topics:
+-- Five root topics (display order set by position, see the UPDATE below):
 -- Programming (1100)
 -- └── Java (2000): Core Java (2100), Multithreading (2200), Spring & Spring Boot (4000)
 -- Corvane Systems (fictional demo company) (6000): all content about the invented company
@@ -12,6 +12,8 @@
 --   Kragujevac (10400); real, well-known facts
 -- AI in Day-to-Day Work (11000): English guides, Coding Assistants (11100), Writing and Translation (11200),
 --   Chatbots (11300), Images, Audio and Video (11400)
+-- English Lessons (B1–B2) (12000): Lesson 1 Travel (12100), Lesson 2 Work (12200), Lesson 3 Health (12300),
+--   Lesson 4 Technology (12400)
 --
 -- Every multi-document set uses the same sections in each document, so a balanced test covers all of them and a
 -- FOCUSED test on one section picks it from every document (see demo-content/README.md).
@@ -74,7 +76,15 @@ VALUES
   (11100, 11000, 1, 'Coding Assistants', 'AI assistants that suggest, explain and change code', '/11000/11100', 1, 1, now(), now()),
   (11200, 11000, 1, 'Writing and Translation', 'AI for drafting, editing and translating text', '/11000/11200', 1, 1, now(), now()),
   (11300, 11000, 1, 'Chatbots', 'AI chatbots for customer service and internal help desks', '/11000/11300', 1, 1, now(), now()),
-  (11400, 11000, 1, 'Images, Audio and Video', 'Generative AI for images, voices and video', '/11000/11400', 1, 1, now(), now())
+  (11400, 11000, 1, 'Images, Audio and Video', 'Generative AI for images, voices and video', '/11000/11400', 1, 1, now(), now()),
+
+  -- English Lessons (root; B1-B2 learners). Every lesson has the same four sections: vocabulary, grammar (one point
+  -- per lesson), common mistakes, useful phrases.
+  (12000, NULL, 1, 'English Lessons (B1–B2)', 'English lessons for intermediate learners: vocabulary, grammar, common mistakes and useful phrases', '/12000', 1, 1, now(), now()),
+  (12100, 12000, 1, 'Lesson 1 – Travel and Holidays', 'Travel vocabulary; present perfect and past simple', '/12000/12100', 1, 1, now(), now()),
+  (12200, 12000, 1, 'Lesson 2 – Work and Careers', 'Work vocabulary; modal verbs for obligation and advice', '/12000/12200', 1, 1, now(), now()),
+  (12300, 12000, 1, 'Lesson 3 – Health and Lifestyle', 'Health vocabulary; first and second conditional', '/12000/12300', 1, 1, now(), now()),
+  (12400, 12000, 1, 'Lesson 4 – Technology and the Internet', 'Technology vocabulary; the passive voice', '/12000/12400', 1, 1, now(), now())
 ON CONFLICT (id) DO UPDATE
 SET parent_id   = EXCLUDED.parent_id,
     name        = EXCLUDED.name,
@@ -82,6 +92,17 @@ SET parent_id   = EXCLUDED.parent_id,
     path        = EXCLUDED.path,
     updated_by  = 1,
     updated_at  = now();
+
+-- Display order of the root topics (V3__topic_position.sql). Other topics have no position and sort by name.
+UPDATE topics
+SET position = CASE id
+                 WHEN 6000 THEN 1   -- Corvane Systems (fictional demo company)
+                 WHEN 11000 THEN 2  -- AI in Day-to-Day Work
+                 WHEN 12000 THEN 3  -- English Lessons (B1–B2)
+                 WHEN 1100 THEN 4   -- Programming
+                 WHEN 10000 THEN 5  -- Gradovi Srbije
+               END
+WHERE id IN (6000, 11000, 12000, 1100, 10000);
 
 -- Re-parenting seed topics changes their paths. Rebuild the paths of all their descendants (including topics
 -- created by users under a seed topic) from parent_id, so path-prefix queries keep working.

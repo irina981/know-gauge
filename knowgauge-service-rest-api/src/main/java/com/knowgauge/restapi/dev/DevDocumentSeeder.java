@@ -100,7 +100,14 @@ public class DevDocumentSeeder {
 			new SeedDocument(11100L, "AI Coding Assistants", "AI at Work - Coding Assistants.pdf"),
 			new SeedDocument(11200L, "AI for Writing and Translation", "AI at Work - Writing and Translation.pdf"),
 			new SeedDocument(11300L, "AI Chatbots for Customer Service", "AI at Work - Chatbots.pdf"),
-			new SeedDocument(11400L, "AI for Images, Audio and Video", "AI at Work - Images and Media.pdf"));
+			new SeedDocument(11400L, "AI for Images, Audio and Video", "AI at Work - Images and Media.pdf"),
+
+			// English Lessons (sources in demo-content/english-lessons): same four sections per lesson
+			new SeedDocument(12100L, "Lesson 1 – Travel and Holidays", "English Lessons - Lesson 1 Travel.pdf"),
+			new SeedDocument(12200L, "Lesson 2 – Work and Careers", "English Lessons - Lesson 2 Work.pdf"),
+			new SeedDocument(12300L, "Lesson 3 – Health and Lifestyle", "English Lessons - Lesson 3 Health.pdf"),
+			new SeedDocument(12400L, "Lesson 4 – Technology and the Internet",
+					"English Lessons - Lesson 4 Technology.pdf"));
 
 	private void seedIfMissing(DocumentService documentService, DocumentRepository documentRepository, Long topicId,
 			String title, String originalFileName, String classpathLocation) throws Exception {
