@@ -10,6 +10,7 @@ Sources for the sample documents that the `local` profile uploads at startup (`D
 | `ai-day-to-day/` | AI in Day-to-Day Work (11000) | 4 English guides on generative AI tools with the same 4 sections each |
 | `english-lessons/` | English Lessons (B1–B2) (12000) | 4 English lessons for intermediate learners with the same 4 sections each |
 | `algorithms/` | *Not seeded for now* (was Programming › Algorithms for Coding Interviews, 5000) | 4 documents of interview algorithm patterns; every pattern has idea, when to use it, complexity, sample tasks. Sources only; see `TODO.md` 3.1 |
+| – | Programming › Java (2000) | 7 lessons provided as PDFs only (no source folder); see "Java" below |
 | – | Programming › System Design (3000) | 5 lessons provided as PDFs only (no source folder); see "System Design" below |
 
 Both Corvane sets sit under the root topic **Corvane Systems (demo company)** (6000).
@@ -126,8 +127,8 @@ Grammar focuses match only a few passages: ask for 3 to 5 questions.
 
 Programming › System Design (3000) is a five-lesson tutorial series provided as PDFs only (there is no Markdown
 source here): System Design Fundamentals, Scalability and Performance, Data Storage and Consistency, Distributed
-Systems and Messaging, and Reliability, Security, and Observability. Each lesson has four pages and is its own
-sub-topic (3010-3050, kept in lesson order with `position`).
+Systems and Messaging, and Reliability, Security, and Observability. Each lesson has four pages; all five are
+documents directly in System Design, uploaded (and so listed) in lesson order.
 
 Some focus texts cut across lessons, others select one lesson's section (checked with the embedding model):
 
@@ -140,5 +141,29 @@ Some focus texts cut across lessons, others select one lesson's section (checked
 | Caching: cache-aside, TTL, invalidation and cache stampedes | Lesson 2's caching page only |
 | Replication, read replicas, partitioning and sharding | Lesson 3's replication page only |
 | SLIs, SLOs, SLAs and error budgets | Lesson 5's reliability page only |
+
+The generate form offers these as suggestions (`DevFocusSuggestionsController`, dev profile only).
+
+## Java
+
+Programming › Java (2000) is a seven-lesson tutorial series provided as PDFs only, like System Design: Java Language
+Fundamentals; Modern Java: Streams, Records, Optionals; JVM Memory and Garbage Collection; Processes, Threads, and
+Java Concurrency; Spring Framework Fundamentals; Spring Boot Practical Guide; and Quarkus Fundamentals and
+Architecture. Each lesson has four pages; all seven are documents directly in Java, in lesson order.
+
+Some focus texts cut across the framework lessons, others select one lesson's pages (checked with the embedding
+model):
+
+| Focus text | Selects |
+|---|---|
+| Transactions with @Transactional: boundaries, rollback and proxies | Spring's transactions page, plus the Spring Boot and Quarkus persistence pages (5 passages) |
+| Dependency injection, beans and scopes | Spring's bean pages and Quarkus CDI (6 passages) |
+| Configuration properties, profiles and secrets | Spring, Spring Boot and Quarkus configuration (7 passages) |
+| Garbage collection: heap, reachability, memory leaks and collectors | The JVM lesson only (6 passages) |
+| Race conditions, synchronization, locks and atomic variables | The concurrency lesson only (5 passages) |
+| Virtual threads, thread pools and CompletableFuture | The concurrency lesson only (6 passages) |
+| Records, switch expressions and Optional | The modern Java lesson only (6 passages) |
+| Health checks, readiness, liveness and graceful shutdown | Mostly Spring Boot's Actuator page (5 passages) |
+| Native executables, build-time processing and dev mode in Quarkus | The Quarkus lesson (9 passages) |
 
 The generate form offers these as suggestions (`DevFocusSuggestionsController`, dev profile only).

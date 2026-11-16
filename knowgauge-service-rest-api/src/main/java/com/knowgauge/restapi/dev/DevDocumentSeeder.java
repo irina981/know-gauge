@@ -54,20 +54,27 @@ public class DevDocumentSeeder {
 	}
 
 	private static final List<SeedDocument> SEED_DOCUMENTS = List.of(
-			// Programming
-			new SeedDocument(2100L, "Core Java Notes", "Java - Core Java Notes.pdf"),
-			new SeedDocument(2200L, "Processes vs Threads", "Java - Processes vs Threads.pdf"),
-			new SeedDocument(4000L, "Dependency Injection Types", "Spring - Dependency Injection Types.pdf"),
-			new SeedDocument(4000L, "Bean Configuration Types", "Spring - Bean Configuration Types.pdf"),
+			// Programming › Java and › System Design: tutorial series provided as PDFs (no Markdown source), the
+			// lessons directly in the topic. Listed in lesson order, which is also the order they are shown in.
+			new SeedDocument(2000L, "Java Language Fundamentals", "Java - 01 Java Language Fundamentals.pdf"),
+			new SeedDocument(2000L, "Modern Java: Streams, Records, Optionals",
+					"Java - 02 Modern Java Streams Records Optionals.pdf"),
+			new SeedDocument(2000L, "JVM Memory and Garbage Collection",
+					"Java - 03 JVM Memory and Garbage Collection.pdf"),
+			new SeedDocument(2000L, "Processes, Threads, and Java Concurrency",
+					"Java - 04 Processes Threads and Java Concurrency.pdf"),
+			new SeedDocument(2000L, "Spring Framework Fundamentals", "Java - 05 Spring Framework Fundamentals.pdf"),
+			new SeedDocument(2000L, "Spring Boot Practical Guide", "Java - 06 Spring Boot Practical Guide.pdf"),
+			new SeedDocument(2000L, "Quarkus Fundamentals and Architecture",
+					"Java - 07 Quarkus Fundamentals and Architecture.pdf"),
 
-			// System Design: a five-lesson tutorial series, provided as PDFs (no Markdown source)
-			new SeedDocument(3010L, "System Design Fundamentals", "System Design - 01 System Design Fundamentals.pdf"),
-			new SeedDocument(3020L, "Scalability and Performance", "System Design - 02 Scalability and Performance.pdf"),
-			new SeedDocument(3030L, "Data Storage and Consistency",
+			new SeedDocument(3000L, "System Design Fundamentals", "System Design - 01 System Design Fundamentals.pdf"),
+			new SeedDocument(3000L, "Scalability and Performance", "System Design - 02 Scalability and Performance.pdf"),
+			new SeedDocument(3000L, "Data Storage and Consistency",
 					"System Design - 03 Data Storage and Consistency.pdf"),
-			new SeedDocument(3040L, "Distributed Systems and Messaging",
+			new SeedDocument(3000L, "Distributed Systems and Messaging",
 					"System Design - 04 Distributed Systems and Messaging.pdf"),
-			new SeedDocument(3050L, "Reliability, Security, and Observability",
+			new SeedDocument(3000L, "Reliability, Security, and Observability",
 					"System Design - 05 Reliability Security and Observability.pdf"),
 
 			// Employee Onboarding & Compliance (fictional company; sources in demo-content/employee-onboarding)

@@ -26,6 +26,14 @@ public class DevFocusSuggestionsController {
 
 	/** Topic id (from the dev seed) to its focus suggestions. */
 	static final Map<Long, List<String>> SUGGESTIONS = Map.of(
+			// Programming › Java
+			2000L, List.of("Transactions with @Transactional: boundaries, rollback and proxies",
+					"Dependency injection, beans and scopes", "Configuration properties, profiles and secrets",
+					"Garbage collection: heap, reachability, memory leaks and collectors",
+					"Race conditions, synchronization, locks and atomic variables",
+					"Virtual threads, thread pools and CompletableFuture", "Records, switch expressions and Optional",
+					"Health checks, readiness, liveness and graceful shutdown",
+					"Native executables, build-time processing and dev mode in Quarkus"),
 			// Programming › System Design
 			3000L, List.of("Capacity estimates: QPS, peak factor, storage growth and headroom",
 					"Idempotency keys, retries with backoff and duplicate messages",
