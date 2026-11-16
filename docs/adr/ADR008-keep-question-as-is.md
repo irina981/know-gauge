@@ -21,7 +21,7 @@ A fourth review action, **Keep as is**, lets the reviewer overrule the verifier:
   `expectedCurrentVersionId`).
 - The question becomes `OK`, and the test `REVIEWED` once no question needs review.
 
-`V2__keep_question_as_is.sql` adds `FLAGS_DISMISSED` to the `chk_tq_versions_origin` and `chk_test_events_type`
+`V1__create_initial_schema.sql` includes `FLAGS_DISMISSED` in the `chk_tq_versions_origin` and `chk_test_events_type`
 CHECK constraints. The UI shows a **Keep as is** button next to Accept fix, with a dialog that asks for the comment.
 
 This extends [ADR001](ADR001-review-process.md), which has three review actions.
@@ -74,5 +74,5 @@ Versions are immutable and the question status is derived from the current versi
 
 ## Supporting Material
 * [ADR001 – Test Review Process and Question History](ADR001-review-process.md)
-* Migration: `knowgauge-service-rest-api/src/main/resources/db/migration/V2__keep_question_as_is.sql`
+* Migration: `knowgauge-service-rest-api/src/main/resources/db/migration/V1__create_initial_schema.sql`
 * Review actions: [03 – Domain model](../architecture/03-domain-model.md#review-actions)

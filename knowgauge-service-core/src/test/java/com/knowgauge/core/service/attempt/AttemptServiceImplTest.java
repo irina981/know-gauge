@@ -18,12 +18,14 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.exception.AttemptConflictException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Attempt;
 import com.knowgauge.core.model.AttemptAnswer;
+import com.knowgauge.core.model.TestInvitation;
 import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.model.enums.AttemptStatus;
@@ -31,6 +33,7 @@ import com.knowgauge.core.model.enums.OptionLetter;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.AttemptAnswerRepository;
 import com.knowgauge.core.port.repository.AttemptRepository;
+import com.knowgauge.core.port.repository.TestInvitationRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.service.attempt.AttemptService.AttemptView;
@@ -47,6 +50,8 @@ class AttemptServiceImplTest {
 	private AttemptAnswerRepository answerRepository;
 	private TestRepository testRepository;
 	private TestQuestionRepository questionRepository;
+	private TestInvitationRepository invitationRepository;
+	private ApplicationEventPublisher events;
 	private AttemptServiceImpl service;
 
 	/** Q1: answer A. Q2: answer B. */
@@ -62,7 +67,8 @@ class AttemptServiceImplTest {
 		when(context.tenantId()).thenReturn(TENANT);
 		when(context.userId()).thenReturn(OptionalLong.of(USER));
 		service = new AttemptServiceImpl(attemptRepository, answerRepository, testRepository, questionRepository,
-				context);
+				invitationRepository = mock(TestInvitationRepository.class), context,
+				events = mock(ApplicationEventPublisher.class));
 
 		singleCorrectQuestions = List.of(
 				QuestionFixtures.persisted(1L, 0, 11L, QuestionFixtures.defaultVersion()),
@@ -111,6 +117,108 @@ class AttemptServiceImplTest {
 		assertThatThrownBy(() -> service.start(TEST_ID)).isInstanceOf(ResourceNotFoundException.class);
 	}
 
+	// ---------------- participants (ADR009) ----------------
+
+	private static final String LINK = "test-link-token";
+	private static final String INVITE = "invitation-token";
+	private static final long INVITATION_ID = 12L;
+
+	@Test
+	void sharedLinkStartsAnAttemptWithTheNormalizedNameAndEmail() {
+		givenPublishedTestBehindLink();
+
+		AttemptView view = service.startForParticipant(LINK, "  Ana   Petrovic ", " Ana@Example.COM ");
+
+		assertThat(view.attempt().getParticipantName()).isEqualTo("Ana Petrovic");
+		assertThat(view.attempt().getParticipantEmail()).isEqualTo("ana@example.com");
+		assertThat(view.attempt().getUserId()).isNull();
+		assertThat(view.attempt().getPublicToken()).isNotBlank();
+		assertThat(view.attempt().getInvitationId()).isNull();
+	}
+
+	@Test
+	void sharedLinkAllowsAnyNumberOfAttemptsForTheSameEmail() {
+		givenPublishedTestBehindLink();
+
+		service.startForParticipant(LINK, "Ana", "ana@example.com");
+		service.startForParticipant(LINK, "Ana", "ana@example.com");
+
+		verify(attemptRepository, org.mockito.Mockito.times(2)).save(any());
+	}
+
+	@Test
+	void sharedLinkRejectsAMissingNameOrInvalidEmail() {
+		givenPublishedTestBehindLink();
+
+		assertThatThrownBy(() -> service.startForParticipant(LINK, "  ", "ana@example.com"))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("full name");
+		assertThatThrownBy(() -> service.startForParticipant(LINK, "Ana", "not-an-email"))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("valid email");
+		verify(attemptRepository, never()).save(any());
+	}
+
+	@Test
+	void sharedLinkOfAnUnpublishedTestDoesNotWork() {
+		com.knowgauge.core.model.Test test = QuestionFixtures.test(AnswerCardinality.SINGLE_CORRECT,
+				TestStatus.REVIEWED);
+		when(testRepository.findByTenantIdAndPublicToken(TENANT, LINK)).thenReturn(Optional.of(test));
+
+		assertThatThrownBy(() -> service.startForParticipant(LINK, "Ana", "ana@example.com"))
+				.isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("not valid or the test is closed");
+	}
+
+	@Test
+	void invitationTakesTheEmailFromTheInvitation() {
+		givenPublishedTestBehindLink();
+		givenInvitation();
+
+		AttemptView view = service.startForInvitation(INVITE, "Ana Petrovic");
+
+		assertThat(view.attempt().getParticipantEmail()).isEqualTo("invited@example.com");
+		assertThat(view.attempt().getParticipantName()).isEqualTo("Ana Petrovic");
+		assertThat(view.attempt().getInvitationId()).isEqualTo(INVITATION_ID);
+	}
+
+	@Test
+	void invitationContinuesTheRunningAttemptInsteadOfStartingAnother() {
+		givenPublishedTestBehindLink();
+		givenInvitation();
+		Attempt running = Attempt.builder().id(ATTEMPT_ID).tenantId(TENANT).testId(TEST_ID)
+				.invitationId(INVITATION_ID).status(AttemptStatus.STARTED).totalQuestions(2).build();
+		when(attemptRepository.findByTenantIdAndInvitationId(TENANT, INVITATION_ID)).thenReturn(Optional.of(running));
+
+		AttemptView view = service.startForInvitation(INVITE, "Ana");
+
+		assertThat(view.attempt()).isSameAs(running);
+		verify(attemptRepository, never()).save(any());
+	}
+
+	@Test
+	void invitationCanBeUsedOnlyOnce() {
+		givenPublishedTestBehindLink();
+		givenInvitation();
+		Attempt scored = Attempt.builder().id(ATTEMPT_ID).tenantId(TENANT).testId(TEST_ID)
+				.invitationId(INVITATION_ID).status(AttemptStatus.SCORED).build();
+		when(attemptRepository.findByTenantIdAndInvitationId(TENANT, INVITATION_ID)).thenReturn(Optional.of(scored));
+
+		assertThatThrownBy(() -> service.startForInvitation(INVITE, "Ana"))
+				.isInstanceOf(AttemptConflictException.class).hasMessageContaining("already used");
+		verify(attemptRepository, never()).save(any());
+	}
+
+	private void givenPublishedTestBehindLink() {
+		givenTest(AnswerCardinality.SINGLE_CORRECT, TestStatus.PUBLISHED);
+		com.knowgauge.core.model.Test test = testRepository.findByTenantIdAndId(TENANT, TEST_ID).orElseThrow();
+		when(testRepository.findByTenantIdAndPublicToken(TENANT, LINK)).thenReturn(Optional.of(test));
+		when(questionRepository.findByTenantIdAndTestId(TENANT, TEST_ID)).thenReturn(singleCorrectQuestions);
+	}
+
+	private void givenInvitation() {
+		TestInvitation invitation = TestInvitation.builder().id(INVITATION_ID).tenantId(TENANT).testId(TEST_ID)
+				.email("invited@example.com").publicToken(INVITE).build();
+		when(invitationRepository.findByTenantIdAndPublicToken(TENANT, INVITE)).thenReturn(Optional.of(invitation));
+	}
+
 	// ---------------- submit ----------------
 
 	@Test
@@ -132,6 +240,10 @@ class AttemptServiceImplTest {
 		assertThat(answers).extracting(AttemptAnswer::getCorrect).containsExactly(true, false);
 		assertThat(answers).extracting(AttemptAnswer::getQuestionVersionId).containsExactly(11L, 21L);
 		assertThat(answers.get(1).getChosenOptions()).containsExactly(OptionLetter.C);
+		// The result email goes out after commit (AttemptResultNotifier).
+		ArgumentCaptor<AttemptScoredEvent> event = ArgumentCaptor.forClass(AttemptScoredEvent.class);
+		verify(events).publishEvent(event.capture());
+		assertThat(event.getValue().attempt()).isSameAs(attempt);
 	}
 
 	@Test

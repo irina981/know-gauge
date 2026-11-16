@@ -147,6 +147,7 @@ Represents generated tests with full audit trail and generation lifecycle.
 - `generationFinishedAt` (Instant, nullable) - When generation succeeded
 - `generationFailedAt` (Instant, nullable) - When generation failed
 - `generationErrorMessage` (String, nullable) - Error details if generation failed
+- `publicToken` (String, nullable, unique) - Token of the shared link `/t/{token}`: created on request from the Share tab, replaced when regenerated; works while `PUBLISHED` (ADR009)
 - `createdAt`, `updatedAt` (Instant) - Timestamps
 - `createdBy` (Long) - User who initiated the test generation
 - `updatedBy` (Long) - User who last updated the test
@@ -270,7 +271,11 @@ Tracks user test attempts and scoring results.
 - `id` (Long) - Primary key
 - `tenantId` (Long) - Tenant identifier
 - `testId` (Long) - Foreign key to Test
-- `userId` (Long) - User identifier who is taking the test
+- `userId` (Long, nullable) - Set only when a logged-in administrator took the test (ADR009)
+- `participantName` (String, nullable) - Full name the participant entered
+- `participantEmail` (String, nullable) - Lower-cased email; for personal invitations the invited address, not editable
+- `publicToken` (String, unique) - Random token the participant reads and submits the attempt by
+- `invitationId` (Long, nullable) - Personal invitation the attempt was started from; at most one attempt per invitation
 - `status` (AttemptStatus) - STARTED / SUBMITTED / SCORED
 - `totalQuestions` (Integer) - Total number of questions in test
 - `correctCount` (Integer, default: 0) - Number of correctly answered questions
@@ -292,10 +297,26 @@ Tracks user test attempts and scoring results.
 - `SUBMITTED`: User submitted all answers
 - `SCORED`: Answer sheet evaluated, results calculated
 - Today `POST /api/attempts/{id}/submit` saves the answers and scores in one step (`STARTED` → `SCORED`); only `PUBLISHED`
-  tests can be attempted, and an attempt runs as the configured user (`kg.context.user-id`)
+  tests can be attempted. Participants start attempts through the shared link (no limit) or a personal invitation
+  (one attempt); administrators through the admin API as the configured user (`kg.context.user-id`)
 
 **Relationship:**
 - One-to-Many with AttemptAnswer (one answer record per question)
+
+### 9.1 TestInvitation (Personal Test Link)
+A personal link to a published test for one email address, sent by the server (ADR009).
+
+**Fields:**
+- `id`, `tenantId`, `testId`
+- `email` (String) - Lower-cased invited address; becomes the attempt's `participantEmail`
+- `publicToken` (String, unique) - Random token in the link `/i/{token}`
+- `sentAt` (Instant, nullable) - Last successful send
+- `sendCount` (Integer, default: 0) - How often a send was attempted
+- `sendError` (String, nullable) - Error of the last send; cleared by a successful one
+
+**Constraints:**
+- UNIQUE(testId, email) - Inviting an address again re-sends the same link
+- At most one attempt per invitation (partial unique index on `attempts.invitation_id`)
 
 ### 10. AttemptAnswer (Individual Question Answers)
 Records user's answer to a single question in an attempt.

@@ -58,19 +58,56 @@ frozen: every review action returns 409 until it is unpublished (possible only w
 
 ## Attempts – `AttemptController` (`/api`)
 
-Only `PUBLISHED` tests can be taken. An attempt belongs to the current user (`kg.context.user-id`).
+The administrator's view of attempts (ADR009). Only `PUBLISHED` tests can be taken. `POST /tests/{testId}/attempts`
+starts an attempt for the current user (`kg.context.user-id`); participants start theirs through
+`/api/public/**` below. `AttemptDto` carries `participantName`, `participantEmail` and `invitationId`.
 
 | Method | Path | Body / params | Result |
 |---|---|---|---|
 | POST | `/tests/{testId}/attempts` | – | `201 AttemptDetailDto` with the questions and options, **without** the answer key. `404` unknown test, `409` test not published or without questions. Locks the test row, so it cannot race with unpublish |
 | GET | `/attempts/{attemptId}` | – | `200 AttemptDetailDto`. While `STARTED` the answer key is hidden; once `SCORED` each question has `chosenOptions`, `correctOptions`, `correct` and `explanation` |
 | POST | `/attempts/{attemptId}/submit` | `SubmitAttemptInput {answers: [{questionId, chosenOptions}]}` | `200 AttemptDetailDto`, scored. `400` unknown question, invalid letter or several options on a single-answer test. `409` already submitted |
-| GET | `/attempts` | `testId`, `userId` (both optional) | `200 List<AttemptDto>`, newest first |
+| GET | `/attempts` | `testId`, `userId`, `participantEmail` (all optional; email case-insensitive) | `200 List<AttemptDto>`, newest first |
 
 Scoring is all-or-nothing per question: correct only if the chosen options exactly equal the answer key (for
 `MULTIPLE_CORRECT`, every correct option and no other). Questions left out of the submission count as wrong.
 `scorePercent` is `correct / total × 100`, rounded to one decimal. Each answer stores the question version it was
 given for; published tests are frozen, so that is the current version.
+
+## Public tests – `PublicTestController` (`/api/public`)
+
+What participants call ([ADR009](../adr/ADR009-public-test-links.md)). Everything is addressed by a random token,
+never by id, and participants never get the answer key: after scoring only the score and their own answers
+marked right or wrong. The score and a results link (`/r/{attemptToken}`) are also emailed after the submit commits. A link works while its test is
+`PUBLISHED`; otherwise it answers `404`.
+
+| Method | Path | Body | Result |
+|---|---|---|---|
+| GET | `/tests/{testToken}` | – | `200 PublicTestDto {name, description, questionCount, answerCardinality}` |
+| POST | `/tests/{testToken}/attempts` | `StartPublicAttemptInput {participantName, participantEmail}` | `201 PublicAttemptDto` with the attempt token and the questions (no key). No attempt limit. `400` missing name or invalid email |
+| GET | `/invitations/{invitationToken}` | – | `200 PublicInvitationDto {email, test, attemptStatus?, attemptToken?}`; `attemptToken` only while the attempt runs |
+| POST | `/invitations/{invitationToken}/attempt` | `StartInvitationAttemptInput {participantName}` | `200 PublicAttemptDto`. The email is the invited address. Returns the running attempt if already started; `409` once it was submitted |
+| GET | `/attempts/{attemptToken}` | – | `200 PublicAttemptDto`: the questions while `STARTED`; once `SCORED`, `correctCount`, `scorePercent` and each question with `chosenOptions` and `correct` (`correctOptions` and `explanation` stay empty) |
+| POST | `/attempts/{attemptToken}/submit` | `SubmitAttemptInput` | `200 PublicAttemptDto` with the score and the marked answers; the result email goes out after commit. `409` already submitted |
+
+## Shared link – `SharedLinkController`
+
+| Method | Path | Body | Result |
+|---|---|---|---|
+| POST | `/api/tests/{testId}/shared-link` | – | `200 TestDto` with a new `publicToken`. Creates the link, or replaces it so the old one stops working (attempts already started can still be finished). Records `SHARED_LINK_CREATED` / `SHARED_LINK_REGENERATED`. `404` unknown test, `409` not published |
+
+A test has no shared link (`publicToken` is `null`) until one is created here.
+
+## Invitations – `InvitationController` (`/api/tests/{testId}/invitations`)
+
+Personal links by email (ADR009): one per address, usable for one attempt, sent by the server over SMTP.
+
+| Method | Path | Body | Result |
+|---|---|---|---|
+| POST | `` | `InviteInput {emails, message?}` | `200 List<TestInvitationDto>` for the given addresses. Duplicates are merged; already invited addresses get the same link again unless it was used. A failed send is returned in `sendError`, not as an error. `400` invalid or no addresses, or more than `kg.invitations.max-per-request`; `409` test not published |
+| GET | `` | – | `200 List<TestInvitationDto>`, oldest first, with `attemptStatus`, `participantName` and `scorePercent` of used links |
+| POST | `/{invitationId}/resend` | – | `200 TestInvitationDto`. `409` link already used or test not published |
+
 
 ### `TestInput`
 
@@ -166,6 +203,7 @@ The `knowgauge-service-rest-contract` records are the public API surface: `Topic
 `TopicUpdateInput`, `TopicTreeNodeInput`, `DocumentDto`, `DocumentInput`, `DocumentChunkDto`
 (no endpoint yet), `TestInput`, `TestDto`, `TestQuestionDto`, `TestQuestionOptionDto`, `TestQuestionVersionDto`,
 `TestEventDto`, `GenerationRunDto`, `ReviewActionInput`, `ManualQuestionInput`, `AttemptDto`, `AttemptDetailDto`,
-`AttemptQuestionDto` and `SubmitAttemptInput`. They use
+`AttemptQuestionDto`, `SubmitAttemptInput`, `PublicTestDto`, `PublicAttemptDto`, `PublicInvitationDto`,
+`StartPublicAttemptInput`, `StartInvitationAttemptInput`, `InviteInput` and `TestInvitationDto`. They use
 `jakarta.validation` and `@Schema` annotations. `knowgauge-service-rest-client` is meant to hold a typed client
 over these DTOs but is empty.

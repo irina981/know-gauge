@@ -25,6 +25,7 @@ flowchart TB
         jpa[infra-repository-springdata-jpa]
         pgv[infra-vectorstore-pgvector]
         minio[infra-storage-minio]
+        mail[infra-mail-springmail]
         emb[infra-embedding-langchain4j-openai]
         tg[infra-testgeneration-langchain4j-openai]
         pdf[infra-documentparsing-pdfbox]
@@ -33,9 +34,9 @@ flowchart TB
 
     api --> core
     api --> contract
-    api --> jpa & pgv & minio & emb & tg & pdf & split
+    api --> jpa & pgv & minio & mail & emb & tg & pdf & split
     client --> contract
-    jpa & pgv & minio & emb & tg & pdf & split --> core
+    jpa & pgv & minio & mail & emb & tg & pdf & split --> core
 ```
 
 The dependency rule is that **infra modules depend on core, and core never depends on infra**. Only `rest-api`
@@ -53,6 +54,7 @@ puts everything on one classpath. `@SpringBootApplication(scanBasePackages = "co
 | `infra-repository-springdata-jpa` | `com.knowgauge.infra.repository.jpa` | Main datasource, EMF, `transactionManager`, Flyway, JPA entities, MapStruct entity mappers, Spring Data repos and port adapters |
 | `infra-vectorstore-pgvector` | `com.knowgauge.infra.vectorstore.pgvector.jpa` | Vector datasource, `vectorEntityManagerFactory`, `vectorTransactionManager`, `pgvectorFlyway`, `ChunkEmbeddingEntity`, `PgVectorStore` |
 | `infra-storage-minio` | `com.knowgauge.infra.storage.minio` | `MinioClient` config, `MinIoStorageService` |
+| `infra-mail-springmail` | `com.knowgauge.infra.mail.springmail` | `SpringMailInvitationMailer` (SMTP via `JavaMailSender`, `spring.mail.*`) |
 | `infra-embedding-langchain4j-openai` | `com.knowgauge.infra.embedding.langchain4j.openai` | `OpenAiEmbeddingModel` bean, `OpenAiEmbeddingServiceImpl` |
 | `infra-testgeneration-langchain4j-openai` | `com.knowgauge.infra.testgeneration.langchain4j.openai` | Two `OpenAiClient` beans, generation and verification adapters, LLM-response DTOs and mappers |
 | `infra-documentparsing-pdfbox` | `com.knowgauge.infra.documentparsing.pdfbox` | `PdfPageExtractionService` (one string per page) |
@@ -62,9 +64,10 @@ puts everything on one classpath. `@SpringBootApplication(scanBasePackages = "co
 
 | Port (core) | Package | Adapter (infra) | Notes |
 |---|---|---|---|
-| `TopicRepository`, `DocumentRepository`, `DocumentChunkRepository`, `DocumentSectionRepository`, `TestRepository`, `TestQuestionRepository`, `AttemptRepository`, `AttemptAnswerRepository`, `GenerationRunRepository` | `core.port.repository` | `*JpaRepositoryAdapter` | Each adapter wraps a Spring Data `*JpaRepository` and maps entity↔domain with MapStruct |
+| `TopicRepository`, `DocumentRepository`, `DocumentChunkRepository`, `DocumentSectionRepository`, `TestRepository`, `TestQuestionRepository`, `AttemptRepository`, `AttemptAnswerRepository`, `TestInvitationRepository`, `GenerationRunRepository` | `core.port.repository` | `*JpaRepositoryAdapter` | Each adapter wraps a Spring Data `*JpaRepository` and maps entity↔domain with MapStruct |
 | `VectorStore` | `core.port.vectorstore` | `PgVectorStore` | Spring Data for CRUD, native SQL through `@PersistenceContext(unitName="pgvector")` for sampling |
 | `StorageService` | `core.port.storage` | `MinIoStorageService` | Returns `StoredObject` record (key, etag, versionId, size, contentType) |
+| `InvitationMailer` | `core.port.notification` | `SpringMailInvitationMailer` | Throws `MailDeliveryException`; the invitation stores the error |
 | `EmbeddingService` | `core.port.embedding` | `OpenAiEmbeddingServiceImpl` | Exposes `modelName()`. Embeddings are only comparable within the same model |
 | `DocumentParser` | `core.port.documentparser` | `PdfPageExtractionService` | Chosen at runtime by `contentType()` from a `List<DocumentParser>` |
 | `DocumentSplitter` | `core.port.documentsplitter` | `LangChainDocumentSplitter` | Takes the core `ChunkingPolicy` |

@@ -74,6 +74,15 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks: [knowgauge-network]
 
+  # Catches every email the service sends (invitations). SMTP on 1025, inbox at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: knowgauge-mailpit
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    networks: [knowgauge-network]
+
   # Opt-in local LLM for distractor verification (kg.testgen.verification.provider=ollama). Not started by default.
   ollama:
     profiles: [ollama]
@@ -130,6 +139,10 @@ services:
       KG_STORAGE_ACCESSKEY: ${MINIO_ROOT_USER:-minio}
       KG_STORAGE_SECRETKEY: ${MINIO_ROOT_PASSWORD:-minio12345}
 
+      # Mailpit (spring.mail.host) and the UI address used in invitation links
+      SPRING_MAIL_HOST: mailpit
+      KG_INVITATIONS_LINKBASEURL: ${KG_UI_URL:-http://localhost:5173}
+
       # OpenAI (no default; needed for ingestion and test generation)
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
@@ -152,6 +165,8 @@ services:
       postgres-vectors:
         condition: service_healthy
       minio:
+        condition: service_started
+      mailpit:
         condition: service_started
     networks: [knowgauge-network]
     healthcheck:

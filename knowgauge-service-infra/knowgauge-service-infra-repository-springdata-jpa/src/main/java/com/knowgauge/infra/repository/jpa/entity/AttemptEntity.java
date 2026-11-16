@@ -30,8 +30,20 @@ public class AttemptEntity extends AuditableEntity {
     @Column(name = "test_id", nullable = false)
     private Long testId;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "participant_name", length = 200)
+    private String participantName;
+
+    @Column(name = "participant_email", length = 320)
+    private String participantEmail;
+
+    @Column(name = "public_token", nullable = false, unique = true, length = 64, updatable = false)
+    private String publicToken;
+
+    @Column(name = "invitation_id")
+    private Long invitationId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

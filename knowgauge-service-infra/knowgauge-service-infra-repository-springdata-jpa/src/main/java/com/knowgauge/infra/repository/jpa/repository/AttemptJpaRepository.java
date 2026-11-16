@@ -20,6 +20,10 @@ public interface AttemptJpaRepository extends JpaRepository<AttemptEntity, Long>
 
 	Optional<AttemptEntity> findByTenantIdAndId(Long tenantId, Long id);
 
+	Optional<AttemptEntity> findByTenantIdAndPublicToken(Long tenantId, String publicToken);
+
+	Optional<AttemptEntity> findByTenantIdAndInvitationId(Long tenantId, Long invitationId);
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("""
 			    select a
@@ -36,10 +40,11 @@ public interface AttemptJpaRepository extends JpaRepository<AttemptEntity, Long>
 			     where a.tenantId = :tenantId
 			       and (:testId is null or a.testId = :testId)
 			       and (:userId is null or a.userId = :userId)
+			       and (:participantEmail is null or a.participantEmail = :participantEmail)
 			     order by a.startedAt desc, a.id desc
 			""")
 	List<AttemptEntity> findFiltered(@Param("tenantId") Long tenantId, @Param("testId") Long testId,
-			@Param("userId") Long userId);
+			@Param("userId") Long userId, @Param("participantEmail") String participantEmail);
 
 	Page<AttemptEntity> findByTestId(Long testId, Pageable pageable);
 

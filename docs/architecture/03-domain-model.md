@@ -52,6 +52,8 @@ erDiagram
     TEST_QUESTION_VERSION }o--o| GENERATION_RUN : "generation_run_id / verification_run_id"
     TEST ||--o{ TEST_EVENT : "history trail"
     TEST ||--o{ ATTEMPT : "taken as"
+    TEST ||--o{ TEST_INVITATION : "personal links"
+    TEST_INVITATION |o--o| ATTEMPT : "used once by"
     ATTEMPT ||--o{ ATTEMPT_ANSWER : "one per question"
     ATTEMPT_ANSWER }o--|| TEST_QUESTION_VERSION : "version answered"
 ```
@@ -66,7 +68,8 @@ erDiagram
 | Question | `TestQuestion` | A stable **slot** (position, status, pointer to its current version). Content lives in immutable `TestQuestionVersion`s (see [below](#questions-versions-and-review-adr001)) |
 | History | `TestEvent` | Append-only trail of a test: generation, flags, review actions, status changes, with actor and time |
 | Audit | `GenerationRun` | One row per LLM call (generation, regeneration, verification) with model, prompt template, chunks, prompt as sent, request params, tokens and raw response |
-| Attempt | `Attempt` / `AttemptAnswer` | An attempt at a `PUBLISHED` test by one user (`AttemptService`). Submitting scores it at once; each answer references the exact question version and stores the chosen options |
+| Attempt | `Attempt` / `AttemptAnswer` | An attempt at a `PUBLISHED` test (`AttemptService`) by a participant (name and email, through the shared link or a personal invitation) or the configured user. Read and submitted by its random `publicToken` (ADR009). Submitting scores it at once; each answer references the exact question version and stores the chosen options |
+| Invitation | `TestInvitation` | A personal link for one email (`InvitationService`), sent by the server, usable for one attempt; the attempt takes the invited address as its email (ADR009) |
 | Identity | `User`, `Tenant` | Model only (`Tenant` is package-private). No tables |
 
 ## Enums

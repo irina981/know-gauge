@@ -8,7 +8,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record AttemptDto(
 		@Schema(description = "Attempt id", example = "42") Long id,
 		@Schema(description = "Test that was taken", example = "5001") Long testId,
-		@Schema(description = "User who took the test", example = "1") Long userId,
+		@Schema(description = "Administrator who took the test; empty for participants", example = "1") Long userId,
+		@Schema(description = "Full name the participant entered", example = "Ana Petrovic") String participantName,
+		@Schema(description = "Participant email (lower-cased); from the invitation for personal links", example = "ana@example.com") String participantEmail,
+		@Schema(description = "Personal invitation the attempt was started from, if any", example = "12") Long invitationId,
 		@Schema(description = "STARTED, SUBMITTED or SCORED", example = "SCORED") String status,
 		@Schema(description = "Number of questions in the test", example = "10") Integer totalQuestions,
 		@Schema(description = "Correctly answered questions (0 until scored)", example = "8") Integer correctCount,

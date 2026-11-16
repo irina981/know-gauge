@@ -39,7 +39,7 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - `OPENAI_API_KEY` must be set in the environment (or in `local-development/.env` for compose). Compose is for
   local development only and needs no `.env`: every other variable defaults to the `application-local.properties`
   values. Keep those defaults in sync when changing dev credentials.
-- Swagger UI: http://localhost:8080/swagger-ui.html · health: `/actuator/health` · logs (Dozzle): http://localhost:8888.
+- Swagger UI: http://localhost:8080/swagger-ui.html · health: `/actuator/health` · logs (Dozzle): http://localhost:8888 · mail (Mailpit): http://localhost:8025.
 - Logs are plain text in `local`/`test` and JSON (ECS) in `prod`, with `documentId`/`testId` as MDC fields
   ([ADR007](docs/adr/ADR007-json-logs-and-dozzle.md)).
 - Unit tests exist for the core (`knowgauge-service-core/src/test/java`: question model, validator, review
@@ -60,6 +60,7 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 | `knowgauge-service-infra/*-repository-springdata-jpa` | Main DB: JPA entities, Spring Data repos, `*JpaRepositoryAdapter` implementing core repository ports |
 | `knowgauge-service-infra/*-vectorstore-pgvector` | Vector DB: `ChunkEmbeddingEntity`, `PgVectorStore` (native SQL sampling) |
 | `knowgauge-service-infra/*-storage-minio` | `MinIoStorageService` |
+| `knowgauge-service-infra/*-mail-springmail` | `SpringMailInvitationMailer` (invitation emails over SMTP) |
 | `knowgauge-service-infra/*-embedding-langchain4j-openai` | `OpenAiEmbeddingServiceImpl` |
 | `knowgauge-service-infra/*-testgeneration-langchain4j-openai` | LLM generation + verification adapters, LLM-response DTOs and mappers |
 | `knowgauge-service-infra/*-documentparsing-pdfbox` | `PdfPageExtractionService` |
@@ -116,6 +117,19 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - Validation rules live in `TestQuestionValidator` as `ValidationStrategy` steps. Pre-LLM, post-LLM and manual
   replace use different strategy lists. Each rule returns a reason string.
 - `FOCUSED` coverage mode and `avoidRepeats` are not implemented.
+
+## Taking tests (ADR009)
+
+- Participants never use the admin API. They open a shared link `/t/{token}` (created or regenerated on request, `SharedLinkService`; name + email, no attempt limit) or a
+  personal invitation `/i/{token}` (name only; the email is the invited address; one attempt per link) and call
+  `/api/public/**`, which addresses everything by random token and never returns the answer key: after scoring only the score and
+  the participant's own answers marked right or wrong. `AttemptResultNotifier` emails the score and the results
+  link `/r/{token}` after the submit commits.
+- Invitation emails go out from `InvitationServiceImpl` (non-transactional) between short transactions of
+  `InvitationTransactionalServiceImpl`. A failed send is stored on the invitation, not thrown. Locally Mailpit
+  (compose service `mailpit`) catches them.
+
+
 
 ## Conventions
 

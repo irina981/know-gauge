@@ -20,6 +20,8 @@ import jakarta.persistence.LockModeType;
 public interface TestJpaRepository extends JpaRepository<TestEntity, Long> {
 	Optional<TestEntity> findByTenantIdAndId(Long tenentId, Long testId);
 
+	Optional<TestEntity> findByTenantIdAndPublicToken(Long tenantId, String publicToken);
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("""
 			    select t

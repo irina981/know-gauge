@@ -39,13 +39,23 @@ public class AttemptJpaRepositoryAdapter implements AttemptRepository {
 	}
 
 	@Override
+	public Optional<Attempt> findByTenantIdAndPublicToken(Long tenantId, String publicToken) {
+		return jpaRepository.findByTenantIdAndPublicToken(tenantId, publicToken).map(mapper::toDomain);
+	}
+
+	@Override
+	public Optional<Attempt> findByTenantIdAndInvitationId(Long tenantId, Long invitationId) {
+		return jpaRepository.findByTenantIdAndInvitationId(tenantId, invitationId).map(mapper::toDomain);
+	}
+
+	@Override
 	public Optional<Attempt> findByTenantIdAndIdForUpdate(Long tenantId, Long id) {
 		return jpaRepository.findByTenantIdAndIdForUpdate(tenantId, id).map(mapper::toDomain);
 	}
 
 	@Override
-	public List<Attempt> findByTenantId(Long tenantId, Long testId, Long userId) {
-		return jpaRepository.findFiltered(tenantId, testId, userId).stream().map(mapper::toDomain).toList();
+	public List<Attempt> findByTenantId(Long tenantId, Long testId, Long userId, String participantEmail) {
+		return jpaRepository.findFiltered(tenantId, testId, userId, participantEmail).stream().map(mapper::toDomain).toList();
 	}
 
 	@Override

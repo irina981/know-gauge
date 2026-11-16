@@ -12,6 +12,9 @@ public interface TestRepository {
 
 	Optional<Test> findByTenantIdAndId(Long tenantId, Long id);
 
+	/** Looks a test up by its public link token (ADR009). */
+	Optional<Test> findByTenantIdAndPublicToken(Long tenantId, String publicToken);
+
 	/**
 	 * Reads the test and locks its row until the caller's transaction ends.
 	 * Serializes status changes (publish) with review actions on the same test.

@@ -17,5 +17,9 @@ public enum TestEventType {
 	QUESTION_REGENERATED,
 	REGENERATION_FAILED,
 	QUESTION_MANUALLY_REPLACED,
-	FLAGS_DISMISSED
+	FLAGS_DISMISSED,
+	/** The shared link of a published test was created (ADR009). */
+	SHARED_LINK_CREATED,
+	/** The shared link was replaced; the old one stopped working (ADR009). */
+	SHARED_LINK_REGENERATED
 }

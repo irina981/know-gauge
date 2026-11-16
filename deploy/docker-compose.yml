@@ -95,6 +95,14 @@ services:
       KG_STORAGE_BUCKET: ${KG_STORAGE_BUCKET:-knowgauge-content}
       KG_STORAGE_CREATE_BUCKET: "true"
 
+      # Invitation emails (ADR009): your SMTP server, and the public address of the UI for the links
+      KG_MAIL_HOST: ${KG_MAIL_HOST:-}
+      KG_MAIL_PORT: ${KG_MAIL_PORT:-587}
+      KG_MAIL_USERNAME: ${KG_MAIL_USERNAME:-}
+      KG_MAIL_PASSWORD: ${KG_MAIL_PASSWORD:-}
+      KG_MAIL_FROM: ${KG_MAIL_FROM:-KnowGauge <no-reply@knowgauge.local>}
+      KG_PUBLIC_UI_URL: ${KG_PUBLIC_UI_URL:?Set KG_PUBLIC_UI_URL (the address participants open) in deploy/.env}
+
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in deploy/.env}
 
       KG_TENANT_ID: ${KG_TENANT_ID:-1}

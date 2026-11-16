@@ -76,10 +76,11 @@ public class AttemptController {
 	}
 
 	@GetMapping("/attempts")
-	@Operation(summary = "List attempts", description = "Attempts of the tenant, newest first, optionally filtered by test and user.")
+	@Operation(summary = "List attempts", description = "Attempts of the tenant, newest first, optionally filtered by test, user and participant email.")
 	public ResponseEntity<List<AttemptDto>> list(
 			@Parameter(description = "Only attempts at this test") @RequestParam(required = false) Long testId,
-			@Parameter(description = "Only attempts by this user") @RequestParam(required = false) Long userId) {
-		return ResponseEntity.ok(attemptService.list(testId, userId).stream().map(attemptMapper::toDto).toList());
+			@Parameter(description = "Only attempts by this user") @RequestParam(required = false) Long userId,
+			@Parameter(description = "Only attempts by this participant email (case-insensitive)") @RequestParam(required = false) String participantEmail) {
+		return ResponseEntity.ok(attemptService.list(testId, userId, participantEmail).stream().map(attemptMapper::toDto).toList());
 	}
 }

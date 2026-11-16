@@ -26,5 +26,6 @@ public record TestDto(
 		@Schema(description = "Generation start time (UTC)", example = "2026-02-18T10:15:30Z") Instant generationStartedAt,
 		@Schema(description = "Generation finish time (UTC)", example = "2026-02-18T10:15:45Z") Instant generationFinishedAt,
 		@Schema(description = "Generation failure time (UTC)", example = "2026-02-18T10:15:45Z") Instant generationFailedAt,
-		@Schema(description = "Failure reason when status is FAILED", example = "Model request timed out") String generationErrorMessage) {
+		@Schema(description = "Failure reason when status is FAILED", example = "Model request timed out") String generationErrorMessage,
+		@Schema(description = "Token of the shared link (/t/{token}); the link works while the test is PUBLISHED", example = "dGhpcy1pcy1hLXRva2Vu") String publicToken) {
 }

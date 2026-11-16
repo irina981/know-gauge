@@ -21,7 +21,20 @@ public class Attempt extends AuditableObject {
 
 	private Long testId;
 
+	/** Set only when a logged-in administrator started the attempt (ADR009). */
 	private Long userId;
+
+	/** Full name the participant entered on the start screen. */
+	private String participantName;
+
+	/** Email the participant entered; identifies the same person across attempts. */
+	private String participantEmail;
+
+	/** Random token the participant uses to read and submit the attempt (ADR009). */
+	private String publicToken;
+
+	/** The personal invitation this attempt was started from, if any. */
+	private Long invitationId;
 
 	private AttemptStatus status;
 

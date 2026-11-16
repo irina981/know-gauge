@@ -46,6 +46,13 @@ public class Test extends AuditableObject {
 	 */
 	private String description;
 
+	/**
+	 * Random token of the shared link /t/{token} (ADR009). {@code null} until an
+	 * administrator creates the link; replaced when regenerated. The link works
+	 * only while the test is PUBLISHED.
+	 */
+	private String publicToken;
+
 	// ============================================================
 	// Coverage scope
 	// ============================================================

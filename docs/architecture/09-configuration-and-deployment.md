@@ -58,6 +58,8 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `kg.pgvector.jpa.*` | (declared but not read by the vector EMF) | `hibernate.ddl-auto`, `show-sql`, … |
 | `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (`local` profile only) |
 | `kg.context.*` | `DefaultTenantProvider`, `DefaultUserProvider` | `tenant-id` (required), `user-id` (optional) |
+| `kg.invitations.*` | `InvitationProperties` | `link-base-url` (public UI address; links are `<base>/i/<token>`), `max-per-request` (200) |
+| `kg.mail.from` | `SpringMailInvitationMailer` | Sender of invitation emails. SMTP itself is Spring's `spring.mail.*` (Mailpit `localhost:1025` in `local`; `KG_MAIL_*` in `prod`). `management.health.mail.enabled=false`, so an unreachable SMTP server does not mark the service down |
 
 Property-name styles are mixed (`camelCase` in `kg.chunking`/`kg.storage` timeouts, `kebab-case` elsewhere).
 Spring relaxed binding accepts both for `@ConfigurationProperties`, but `@Value` needs the exact form.
@@ -99,6 +101,7 @@ All services join the `knowgauge-network` bridge:
 | `ollama` (profile `ollama`) | `ollama/ollama:latest` | 11434 | `ollama_data` |
 | `ollama-pull` (profile `ollama`, one-shot) | `ollama/ollama:latest` | – | – (pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits) |
 | `dozzle` | `amir20/dozzle:latest` | 8888→8080 on `127.0.0.1` (log viewer, no login) | – (reads the Docker socket) |
+| `mailpit` | `axllent/mailpit:latest` | 1025 (SMTP), 8025 (inbox UI) on `127.0.0.1` | – (catches every invitation email) |
 | app (`knowgauge-service`, profile `full`) | built from `Dockerfile` | 8080, 5005 (JDWP, `suspend=n`) | – |
 
 The databases and the app have healthchecks; MinIO has none (its image has no shell or curl). The app `depends_on`

@@ -72,6 +72,12 @@
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
+			<artifactId>knowgauge-service-infra-mail-springmail</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.knowgauge</groupId>
 			<artifactId>knowgauge-service-infra-embedding-langchain4j-openai</artifactId>
 			<version>${project.version}</version>
 		</dependency>
