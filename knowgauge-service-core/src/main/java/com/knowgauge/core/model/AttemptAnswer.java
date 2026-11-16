@@ -1,7 +1,6 @@
 package com.knowgauge.core.model;
 
-import java.time.Instant;
-import java.util.EnumSet;
+import java.util.List;
 
 import com.knowgauge.core.model.enums.OptionLetter;
 
@@ -11,6 +10,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * The answer given to one question in an attempt, scored when the attempt is
+ * submitted.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,8 +22,6 @@ import lombok.experimental.SuperBuilder;
 public class AttemptAnswer extends AuditableObject {
 	private Long tenantId;
 
-	private Long id;
-
 	private Long attemptId;
 
 	private Long questionId;
@@ -28,9 +29,9 @@ public class AttemptAnswer extends AuditableObject {
 	/** Exact question version shown to the user (see ADR001). */
 	private Long questionVersionId;
 
-	private EnumSet<OptionLetter> chosenOptions;
+	/** Options the user selected; empty when the question was left unanswered. */
+	private List<OptionLetter> chosenOptions;
 
+	/** Whether the chosen options exactly match the answer key. */
 	private Boolean correct;
-
-	private Instant answeredAt;
 }

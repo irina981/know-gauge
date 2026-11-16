@@ -70,7 +70,7 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 | `test_events` | FK test and question (cascade), event-type CHECK | **Append-only** history: actor, from/to version, comment, `payload_json JSONB` |
 | `generation_runs` | FK test and question (cascade), purpose/status CHECKs | One row per LLM call: model, prompt template, chunks, prompt as sent, request params, raw response, tokens, finish reason |
 | `test_used_chunks` / `test_covered_topics` / `test_covered_documents` | Composite PKs, cascade FKs | `@ManyToMany` join tables on `TestEntity` |
-| `attempts`, `attempt_answers`, `attempt_answer_chosen_options` | Cascades, CHECKs. `attempt_answers.question_version_id` FK → versions | Not used by any service yet |
+| `attempts`, `attempt_answers`, `attempt_answer_chosen_options` | Cascades, CHECKs. `attempt_answers.question_version_id` FK → versions | Written by `AttemptServiceImpl`; `uk_attempt_answers_attempt_question` also guards against a double submit |
 
 Slots and versions reference each other (`current_version_id` ↔ `question_id`). New questions are therefore
 saved in three steps inside one transaction: slot, then version 1, then the slot's pointer.

@@ -11,7 +11,9 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 @Entity
@@ -19,6 +21,8 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@Getter
+@Setter
 public class AttemptEntity extends AuditableEntity {
 	@Column(name = "tenant_id", nullable = false)
 	private Long tenantId;

@@ -56,6 +56,22 @@ at (`currentVersionId` from the question DTO). It returns the question with its 
 Review actions are allowed while the test is `GENERATED`, `REQUIRES_REVIEW` or `REVIEWED`. A `PUBLISHED` test is
 frozen: every review action returns 409 until it is unpublished (possible only while it has no attempts).
 
+## Attempts – `AttemptController` (`/api`)
+
+Only `PUBLISHED` tests can be taken. An attempt belongs to the current user (`kg.context.user-id`).
+
+| Method | Path | Body / params | Result |
+|---|---|---|---|
+| POST | `/tests/{testId}/attempts` | – | `201 AttemptDetailDto` with the questions and options, **without** the answer key. `404` unknown test, `409` test not published or without questions. Locks the test row, so it cannot race with unpublish |
+| GET | `/attempts/{attemptId}` | – | `200 AttemptDetailDto`. While `STARTED` the answer key is hidden; once `SCORED` each question has `chosenOptions`, `correctOptions`, `correct` and `explanation` |
+| POST | `/attempts/{attemptId}/submit` | `SubmitAttemptInput {answers: [{questionId, chosenOptions}]}` | `200 AttemptDetailDto`, scored. `400` unknown question, invalid letter or several options on a single-answer test. `409` already submitted |
+| GET | `/attempts` | `testId`, `userId` (both optional) | `200 List<AttemptDto>`, newest first |
+
+Scoring is all-or-nothing per question: correct only if the chosen options exactly equal the answer key (for
+`MULTIPLE_CORRECT`, every correct option and no other). Questions left out of the submission count as wrong.
+`scorePercent` is `correct / total × 100`, rounded to one decimal. Each answer stores the question version it was
+given for; published tests are frozen, so that is the current version.
+
 ### `TestInput`
 
 ```json
@@ -121,6 +137,7 @@ serialized as `{timestamp, path, status, error, message}`:
 | `UnsupportedOperationException` | 400 |
 | `EntityNotFoundException`, `ResourceNotFoundException` (review: test/question not found) | 404 |
 | `ReviewConflictException` (stale version, test not reviewable, no fix to apply, test not publishable, unpublish with attempts) | 409 |
+| `AttemptConflictException` (test not published or without questions, attempt already submitted) | 409 |
 | `QuestionValidationException` (manual replace; message lists every reason) | 400 |
 | `RegenerationFailedException` (nothing was changed) | 502 |
 | `InsufficientContextException` (test generation: fewer chunks than `questionCount × min-chunks-per-question`) | 422 |
@@ -148,6 +165,7 @@ Behaviour to know about:
 The `knowgauge-service-rest-contract` records are the public API surface: `TopicDto`, `TopicCreateInput`,
 `TopicUpdateInput`, `TopicTreeNodeInput`, `DocumentDto`, `DocumentInput`, `DocumentChunkDto`
 (no endpoint yet), `TestInput`, `TestDto`, `TestQuestionDto`, `TestQuestionOptionDto`, `TestQuestionVersionDto`,
-`TestEventDto`, `GenerationRunDto`, `ReviewActionInput` and `ManualQuestionInput`. They use
+`TestEventDto`, `GenerationRunDto`, `ReviewActionInput`, `ManualQuestionInput`, `AttemptDto`, `AttemptDetailDto`,
+`AttemptQuestionDto` and `SubmitAttemptInput`. They use
 `jakarta.validation` and `@Schema` annotations. `knowgauge-service-rest-client` is meant to hold a typed client
 over these DTOs but is empty.

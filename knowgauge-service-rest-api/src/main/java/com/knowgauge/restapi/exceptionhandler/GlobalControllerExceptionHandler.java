@@ -32,6 +32,7 @@ import com.knowgauge.core.exception.InsufficientContextException;
 import com.knowgauge.core.exception.QuestionValidationException;
 import com.knowgauge.core.exception.RegenerationFailedException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
+import com.knowgauge.core.exception.AttemptConflictException;
 import com.knowgauge.core.exception.ReviewConflictException;
 import com.knowgauge.core.exception.StorageAuthException;
 import com.knowgauge.core.exception.StorageBadRequestException;
@@ -283,6 +284,13 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 	public ResponseEntity<Object> handleReviewConflictException(WebRequest request, ReviewConflictException ex) {
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.CONFLICT, request, ex);
 		log.warn("Review conflict: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.CONFLICT, request);
+	}
+
+	@ExceptionHandler(AttemptConflictException.class)
+	public ResponseEntity<Object> handleAttemptConflictException(WebRequest request, AttemptConflictException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.CONFLICT, request, ex);
+		log.warn("Attempt conflict: {}", ex.getMessage());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.CONFLICT, request);
 	}
 

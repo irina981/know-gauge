@@ -12,8 +12,8 @@ content, not from the LLM's general knowledge. The service:
 - **verifies** incorrect options with a second LLM pass and flags suspicious ones for human review
 - records generation metadata (model, prompt template, used chunks, timestamps, errors) so runs can be reproduced
 
-Planned but not implemented yet: test attempts and scoring, users and tenants, authentication (see
-[11](11-known-issues-and-roadmap.md)).
+Published tests can be taken as attempts, scored when submitted. Planned but not implemented yet: users and
+tenants, authentication (see [11](11-known-issues-and-roadmap.md)).
 
 ## System context
 

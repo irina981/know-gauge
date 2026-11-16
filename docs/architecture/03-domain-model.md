@@ -51,8 +51,8 @@ erDiagram
     TEST ||--o{ GENERATION_RUN : "one per LLM call"
     TEST_QUESTION_VERSION }o--o| GENERATION_RUN : "generation_run_id / verification_run_id"
     TEST ||--o{ TEST_EVENT : "history trail"
-    TEST ||--o{ ATTEMPT : "taken as (not wired)"
-    ATTEMPT ||--o{ ATTEMPT_ANSWER : "(not wired)"
+    TEST ||--o{ ATTEMPT : "taken as"
+    ATTEMPT ||--o{ ATTEMPT_ANSWER : "one per question"
     ATTEMPT_ANSWER }o--|| TEST_QUESTION_VERSION : "version answered"
 ```
 
@@ -66,7 +66,7 @@ erDiagram
 | Question | `TestQuestion` | A stable **slot** (position, status, pointer to its current version). Content lives in immutable `TestQuestionVersion`s (see [below](#questions-versions-and-review-adr001)) |
 | History | `TestEvent` | Append-only trail of a test: generation, flags, review actions, status changes, with actor and time |
 | Audit | `GenerationRun` | One row per LLM call (generation, regeneration, verification) with model, prompt template, chunks, prompt as sent, request params, tokens and raw response |
-| Attempt | `Attempt` / `AttemptAnswer` | Model, tables and repository ports exist. No service or endpoint uses them yet. Answers reference the exact question version |
+| Attempt | `Attempt` / `AttemptAnswer` | An attempt at a `PUBLISHED` test by one user (`AttemptService`). Submitting scores it at once; each answer references the exact question version and stores the chosen options |
 | Identity | `User`, `Tenant` | Model only (`Tenant` is package-private). No tables |
 
 ## Enums
@@ -84,7 +84,7 @@ erDiagram
 | `VersionOrigin` | `GENERATED`, `REGENERATED`, `FIX_ACCEPTED`, `MANUAL` | How a question version was created |
 | `TestEventType` | `TEST_CREATED`, `TEST_GENERATED`, `TEST_REQUIRES_REVIEW`, `TEST_REVIEWED`, `TEST_FAILED`, `TEST_PUBLISHED`, `TEST_UNPUBLISHED`, `QUESTION_GENERATED`, `OPTION_FLAGGED`, `FIX_ACCEPTED`, `QUESTION_REGENERATED`, `REGENERATION_FAILED`, `QUESTION_MANUALLY_REPLACED` | History trail |
 | `GenerationRunPurpose` | `TEST_GENERATION`, `REGENERATION`, `VERIFICATION` | Why an LLM call was made |
-| `AttemptStatus` | `STARTED`, `SUBMITTED`, `SCORED` | Attempts (not wired) |
+| `AttemptStatus` | `STARTED`, `SUBMITTED`, `SCORED` | Attempts. Submit goes straight from `STARTED` to `SCORED`; `SUBMITTED` is unused for now |
 | `GenerationRunStatus` | `SUCCESS`, `FAILED` | Outcome of an LLM call |
 | `Role` | `APPLICATION_ADMIN`, `TENANT_ADMIN`, `TENANT_USER` | Planned auth |
 | `TenantType` | `INDIVIDUAL`, `ORGANIZATION` | Planned tenancy |

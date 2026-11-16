@@ -35,8 +35,7 @@ operability, not effort.
   option verdict logic, the response mappers, and Testcontainers for both Flyway schemas.
 - **Schema evolution**: `V1__create_initial_schema.sql` is edited in place and databases are recreated after each
   change. Switch to incremental migrations before any persistent environment exists.
-- **Unused model pieces**: `Attempt`/`AttemptAnswer`, `DocumentSection`, `User` and `Tenant` have no services or
-  endpoints. `rest-client` is a placeholder.
+- **Unused model pieces**: `DocumentSection`, `User` and `Tenant` have no services or endpoints. `rest-client` is a placeholder.
 - **Per-call `OpenAiChatModel` construction**: simple and flexible, but it rebuilds the HTTP client every call.
 - **Package naming**: the backlog item to move all adapters under `com.knowgauge.infra.*` is already done.
 
@@ -47,7 +46,7 @@ operability, not effort.
 | Retrieval | `FOCUSED` similarity search on the existing IVFFlat index. Avoid-repeats using `test_used_chunks`. Optional re-ranking |
 | Generation | Resilience4j on the LLM adapters (retry, CB, bulkhead, timeouts). More question types (multi-select UX, short answer). Better difficulty and coverage control. A Spring AI adapter to compare with LangChain4j |
 | Review workflow | **Done** ([ADR001](../adr/ADR001-review-process.md)): versions, event log, accept fix / regenerate / manual replace, and keep as is ([ADR008](../adr/ADR008-keep-question-as-is.md)). Next: LLM second opinion on manual questions, real user identity in `actorUserId` |
-| Attempts | Start, answer, submit and score attempts using the existing tables. Only `PUBLISHED` tests accept attempts ([ADR005](../adr/ADR005-publish-tests.md)). The attempt service must lock the test row before inserting, like unpublish does. Block or archive deletes of tests with attempts. "Clone to draft" to fix a published test that has attempts |
+| Attempts | Done: start, submit and score attempts on `PUBLISHED` tests (`AttemptService`, `/api/tests/{testId}/attempts`, `/api/attempts`). Next: save answers while an attempt is running, time limits, per-user identity once users exist, block or archive deletes of tests with attempts, "clone to draft" to fix a published test that has attempts |
 | Ingestion | Layout-aware PDF extraction, section detection, semantic Markdown-aware splitter (A/B against the recursive one), async workers |
 | Tenancy & auth | Tenant entity, Keycloak OIDC, roles, tenant-scoped queries everywhere, Spring Data auditing |
 | API quality | Consistent validation and enum error payloads, proper 404s, storage error mapping |

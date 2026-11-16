@@ -1,5 +1,7 @@
 package com.knowgauge.infra.repository.jpa.repository;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,6 +11,8 @@ import com.knowgauge.infra.repository.jpa.entity.AttemptAnswerEntity;
 
 @Repository
 public interface AttemptAnswerJpaRepository extends JpaRepository<AttemptAnswerEntity, Long> {
-	
+
 	Page<AttemptAnswerEntity> findByAttemptId(Long attemptId, Pageable pageable);
+
+	List<AttemptAnswerEntity> findByTenantIdAndAttemptId(Long tenantId, Long attemptId);
 }

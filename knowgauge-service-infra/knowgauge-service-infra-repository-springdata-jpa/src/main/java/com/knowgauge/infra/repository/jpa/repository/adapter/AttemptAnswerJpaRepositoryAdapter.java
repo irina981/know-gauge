@@ -1,6 +1,6 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
-
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -15,32 +15,39 @@ import com.knowgauge.infra.repository.jpa.repository.AttemptAnswerJpaRepository;
 @Repository
 public class AttemptAnswerJpaRepositoryAdapter implements AttemptAnswerRepository {
 
-    private final AttemptAnswerJpaRepository jpaRepository;
-    private final AttemptAnswerEntityMapper mapper;
+	private final AttemptAnswerJpaRepository jpaRepository;
+	private final AttemptAnswerEntityMapper mapper;
 
-    public AttemptAnswerJpaRepositoryAdapter(
-    		AttemptAnswerJpaRepository jpaRepository,
-            AttemptAnswerEntityMapper mapper
-    ) {
-        this.jpaRepository = jpaRepository;
-        this.mapper = mapper;
-    }
+	public AttemptAnswerJpaRepositoryAdapter(AttemptAnswerJpaRepository jpaRepository,
+			AttemptAnswerEntityMapper mapper) {
+		this.jpaRepository = jpaRepository;
+		this.mapper = mapper;
+	}
 
-    @Override
-    public AttemptAnswer save(AttemptAnswer domain) {
-        return mapper.toDomain(
-                jpaRepository.save(mapper.toEntity(domain))
-        );
-    }
+	@Override
+	public AttemptAnswer save(AttemptAnswer domain) {
+		return mapper.toDomain(jpaRepository.save(mapper.toEntity(domain)));
+	}
 
-    @Override
-    public Optional<AttemptAnswer> findById(Long id) {
-        return jpaRepository.findById(id).map(mapper::toDomain);
-    }
+	@Override
+	public List<AttemptAnswer> saveAll(List<AttemptAnswer> answers) {
+		return jpaRepository.saveAll(answers.stream().map(mapper::toEntity).toList()).stream()
+				.map(mapper::toDomain).toList();
+	}
 
-    @Override
-    public Page<AttemptAnswer> findByAttemptId(Long attemptId, Pageable pageable) {
-        return jpaRepository.findByAttemptId(attemptId, pageable)
-                .map(mapper::toDomain);
-    }
+	@Override
+	public Optional<AttemptAnswer> findById(Long id) {
+		return jpaRepository.findById(id).map(mapper::toDomain);
+	}
+
+	@Override
+	public Page<AttemptAnswer> findByAttemptId(Long attemptId, Pageable pageable) {
+		return jpaRepository.findByAttemptId(attemptId, pageable).map(mapper::toDomain);
+	}
+
+	@Override
+	public List<AttemptAnswer> findByTenantIdAndAttemptId(Long tenantId, Long attemptId) {
+		return jpaRepository.findByTenantIdAndAttemptId(tenantId, attemptId).stream().map(mapper::toDomain)
+				.toList();
+	}
 }

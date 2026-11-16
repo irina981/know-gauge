@@ -291,6 +291,8 @@ Tracks user test attempts and scoring results.
 - `STARTED`: Answer sheet created, user is answering questions
 - `SUBMITTED`: User submitted all answers
 - `SCORED`: Answer sheet evaluated, results calculated
+- Today `POST /api/attempts/{id}/submit` saves the answers and scores in one step (`STARTED` → `SCORED`); only `PUBLISHED`
+  tests can be attempted, and an attempt runs as the configured user (`kg.context.user-id`)
 
 **Relationship:**
 - One-to-Many with AttemptAnswer (one answer record per question)
@@ -304,7 +306,8 @@ Records user's answer to a single question in an attempt.
 - `attemptId` (Long) - Foreign key to Attempt
 - `questionId` (Long) - Foreign key to TestQuestion
 - `questionVersionId` (Long) - Exact question version the user answered
-- `correct` (Boolean) - Whether the answer was correct (based on verdict comparison)
+- `chosenOptions` (List<OptionLetter>) - Options the user selected; empty when unanswered (`attempt_answer_chosen_options`)
+- `correct` (Boolean) - Whether the answer was correct: the chosen options exactly match the answer key
 - `createdAt`, `updatedAt` (Instant) - Timestamps
 - `createdBy` (Long) - System who created the answer record
 - `updatedBy` (Long) - User/system who last updated it
