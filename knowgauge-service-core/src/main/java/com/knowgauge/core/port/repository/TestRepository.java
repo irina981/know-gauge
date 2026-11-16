@@ -42,6 +42,12 @@ public interface TestRepository {
 	 */
 	int updateStatus(Long tenantId, Long testId, TestStatus status);
 
+	/** Sets only the name and description (the editable details of a test). */
+	int updateDetails(Long tenantId, Long testId, String name, String description);
+
+	/** Sets only the token of the shared link (ADR009). */
+	int updatePublicToken(Long tenantId, Long testId, String publicToken);
+
 	/**
 	 * @return ids of the chunks retrieved for the test's generation
 	 */

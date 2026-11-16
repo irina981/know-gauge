@@ -54,12 +54,14 @@ public class SharedLinkService {
 					+ "). Publish it before sharing it.");
 		}
 		boolean regenerated = test.getPublicToken() != null;
-		test.setPublicToken(PublicTokens.newToken());
-		Test saved = testRepository.save(test);
+		String token = PublicTokens.newToken();
+		// Only the token column: a full save would rewrite the test and its join tables for nothing.
+		testRepository.updatePublicToken(tenantId, testId, token);
+		test.setPublicToken(token);
 		history.testEvent(tenantId, testId,
 				regenerated ? TestEventType.SHARED_LINK_REGENERATED : TestEventType.SHARED_LINK_CREATED,
 				executionContext.userId().isPresent() ? executionContext.userId().getAsLong() : null, Map.of());
 		log.info("Test {} - shared link {}", testId, regenerated ? "regenerated, the old link no longer works" : "created");
-		return saved;
+		return test;
 	}
 }

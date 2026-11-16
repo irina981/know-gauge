@@ -40,7 +40,6 @@ class SharedLinkServiceTest {
 		ExecutionContext context = mock(ExecutionContext.class);
 		when(context.tenantId()).thenReturn(TENANT);
 		when(context.userId()).thenReturn(OptionalLong.of(7L));
-		when(testRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 		service = new SharedLinkService(testRepository, history, context);
 	}
 
@@ -71,7 +70,7 @@ class SharedLinkServiceTest {
 
 		assertThatThrownBy(() -> service.createOrRegenerate(TEST_ID)).isInstanceOf(AttemptConflictException.class)
 				.hasMessageContaining("not published");
-		verify(testRepository, never()).save(any());
+		verify(testRepository, never()).updatePublicToken(anyLong(), anyLong(), any());
 		verify(history, never()).testEvent(anyLong(), anyLong(), any(), any(), anyMap());
 	}
 

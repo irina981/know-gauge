@@ -97,6 +97,16 @@ public class TestJpaRepositoryAdapter implements TestRepository {
 	}
 
 	@Override
+	public int updateDetails(Long tenantId, Long testId, String name, String description) {
+		return jpaRepository.updateDetails(tenantId, testId, name, description);
+	}
+
+	@Override
+	public int updatePublicToken(Long tenantId, Long testId, String publicToken) {
+		return jpaRepository.updatePublicToken(tenantId, testId, publicToken);
+	}
+
+	@Override
 	public List<Long> findUsedChunkIds(Long tenantId, Long testId) {
 		return jpaRepository.findUsedChunkIds(tenantId, testId);
 	}

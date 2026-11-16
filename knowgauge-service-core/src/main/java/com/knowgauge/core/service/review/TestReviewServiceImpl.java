@@ -31,6 +31,7 @@ import com.knowgauge.core.port.repository.GenerationRunRepository;
 import com.knowgauge.core.port.repository.TestEventRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
+import com.knowgauge.core.service.testgeneration.validation.TestDetailsRules;
 import com.knowgauge.core.service.review.ManualQuestionDraft.ManualOption;
 import com.knowgauge.core.service.review.TestReviewTransactionalServiceImpl.VersionChange;
 import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator;
@@ -249,6 +250,15 @@ public class TestReviewServiceImpl implements TestReviewService {
 		log.info("Review: test {} question {} - manually replaced by user {} (version {} -> {})", testId, questionId,
 				ctx.actorUserId(), input.expectedCurrentVersionId(), result.getCurrentVersionId());
 		return result;
+	}
+
+	@Override
+	public Test updateDetails(Long testId, String name, String description) {
+		Long actorUserId = actorUserId();
+		Test updated = tx.updateDetails(executionContext.tenantId(), testId, actorUserId,
+				TestDetailsRules.normalizeName(name), TestDetailsRules.normalizeDescription(description));
+		log.info("Review: test {} - details updated by user {}", testId, actorUserId);
+		return updated;
 	}
 
 	@Override

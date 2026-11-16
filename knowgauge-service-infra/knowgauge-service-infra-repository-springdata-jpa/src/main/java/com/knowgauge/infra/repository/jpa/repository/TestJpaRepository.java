@@ -81,6 +81,26 @@ public interface TestJpaRepository extends JpaRepository<TestEntity, Long> {
 	int updateStatus(@Param("tenantId") Long tenantId, @Param("testId") Long testId,
 			@Param("status") TestStatus status);
 
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("""
+			    update TestEntity t
+			       set t.name = :name, t.description = :description
+			     where t.tenantId = :tenantId
+			       and t.id = :testId
+			""")
+	int updateDetails(@Param("tenantId") Long tenantId, @Param("testId") Long testId, @Param("name") String name,
+			@Param("description") String description);
+
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("""
+			    update TestEntity t
+			       set t.publicToken = :publicToken
+			     where t.tenantId = :tenantId
+			       and t.id = :testId
+			""")
+	int updatePublicToken(@Param("tenantId") Long tenantId, @Param("testId") Long testId,
+			@Param("publicToken") String publicToken);
+
 	@Query(value = """
 			select tuc.chunk_id
 			  from test_used_chunks tuc

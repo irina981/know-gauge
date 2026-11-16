@@ -44,6 +44,17 @@ public interface TestReviewService {
 	TestQuestion manualReplace(Long testId, Long questionId, ManualQuestionDraft draft);
 
 	/**
+	 * Changes the test's name and description. Allowed in every status except
+	 * {@code PUBLISHED}: a published test is frozen, so participants always see
+	 * the details it was published with. The name is required; a blank
+	 * description removes it.
+	 *
+	 * @throws com.knowgauge.core.exception.ReviewConflictException if the test is published
+	 * @throws IllegalArgumentException                             if the name is blank or a value is too long
+	 */
+	Test updateDetails(Long testId, String name, String description);
+
+	/**
 	 * Publishes the test (ADR005): its content is frozen, no review action can
 	 * change it any more, and attempts can be started. Allowed only from
 	 * {@code GENERATED} or {@code REVIEWED}, with no question needing review.

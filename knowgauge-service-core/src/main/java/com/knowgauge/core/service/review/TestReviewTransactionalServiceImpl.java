@@ -1,8 +1,10 @@
 package com.knowgauge.core.service.review;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,6 +89,34 @@ public class TestReviewTransactionalServiceImpl {
 		syncTestStatus(tenantId, question.getTestId(), test.getStatus(), change.actorUserId());
 
 		return questionRepository.findByTenantIdAndId(tenantId, question.getId()).orElseThrow();
+	}
+
+	/**
+	 * Sets the name and description (already normalised) unless the test is
+	 * published, and records a {@code TEST_DETAILS_UPDATED} event with the old
+	 * and new values. Locks the test row, so it cannot race with publishing.
+	 */
+	@Transactional
+	public Test updateDetails(Long tenantId, Long testId, Long actorUserId, String name, String description) {
+		Test test = testRepository.findByTenantIdAndIdForUpdate(tenantId, testId)
+				.orElseThrow(() -> new ResourceNotFoundException("Test not found: " + testId));
+		if (test.getStatus() == TestStatus.PUBLISHED) {
+			throw new ReviewConflictException("Test " + testId
+					+ " is published, so its name and description cannot be changed. Unpublish it first.");
+		}
+		if (name.equals(test.getName()) && Objects.equals(description, test.getDescription())) {
+			return test; // nothing changed, nothing to record
+		}
+
+		testRepository.updateDetails(tenantId, testId, name, description);
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("previousName", test.getName());
+		payload.put("name", name);
+		payload.put("descriptionChanged", !Objects.equals(description, test.getDescription()));
+		history.testEvent(tenantId, testId, TestEventType.TEST_DETAILS_UPDATED, actorUserId, payload);
+		test.setName(name);
+		test.setDescription(description);
+		return test;
 	}
 
 	/**

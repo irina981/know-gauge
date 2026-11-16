@@ -21,5 +21,7 @@ public enum TestEventType {
 	/** The shared link of a published test was created (ADR009). */
 	SHARED_LINK_CREATED,
 	/** The shared link was replaced; the old one stopped working (ADR009). */
-	SHARED_LINK_REGENERATED
+	SHARED_LINK_REGENERATED,
+	/** The name or description of the test was changed (before publishing). */
+	TEST_DETAILS_UPDATED
 }

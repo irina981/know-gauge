@@ -33,8 +33,8 @@ import com.knowgauge.core.service.content.TopicService;
 @Component
 public class TestDraftValidator {
 
-    static final int MAX_NAME_LENGTH = 200;
-    static final int MAX_DESCRIPTION_LENGTH = 2000;
+    static final int MAX_NAME_LENGTH = TestDetailsRules.MAX_NAME_LENGTH;
+    static final int MAX_DESCRIPTION_LENGTH = TestDetailsRules.MAX_DESCRIPTION_LENGTH;
     static final int MAX_FOCUS_QUERY_LENGTH = 2000;
 
     private final DocumentService documentService;
@@ -119,21 +119,8 @@ public class TestDraftValidator {
      * default); a blank description is stored as null.
      */
     private void normalizeAndValidateNameAndDescription(Test test) {
-        String name = test.getName() == null ? "" : test.getName().strip();
-        if (name.isEmpty()) {
-            throw new IllegalArgumentException("Test.name must not be blank.");
-        }
-        if (name.length() > MAX_NAME_LENGTH) {
-            throw new IllegalArgumentException("Test.name must be at most " + MAX_NAME_LENGTH + " characters.");
-        }
-        test.setName(name);
-
-        String description = test.getDescription() == null ? null : test.getDescription().strip();
-        if (description != null && description.length() > MAX_DESCRIPTION_LENGTH) {
-            throw new IllegalArgumentException(
-                    "Test.description must be at most " + MAX_DESCRIPTION_LENGTH + " characters.");
-        }
-        test.setDescription(description == null || description.isEmpty() ? null : description);
+        test.setName(TestDetailsRules.normalizeName(test.getName()));
+        test.setDescription(TestDetailsRules.normalizeDescription(test.getDescription()));
     }
 
     /**

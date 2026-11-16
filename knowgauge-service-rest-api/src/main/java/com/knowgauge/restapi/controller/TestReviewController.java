@@ -6,11 +6,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.knowgauge.contract.dto.TestDetailsInput;
 import com.knowgauge.contract.dto.DismissFlagsInput;
 import com.knowgauge.contract.dto.GenerationRunDto;
 import com.knowgauge.contract.dto.ManualQuestionInput;
@@ -100,6 +102,17 @@ public class TestReviewController {
 			@RequestBody @Valid ManualQuestionInput input) {
 		return ResponseEntity
 				.ok(questionMapper.toDto(reviewService.manualReplace(testId, questionId, reviewMapper.toDraft(input))));
+	}
+
+	@PutMapping("/details")
+	@Operation(summary = "Edit the test's name and description", description = "Allowed in every status except PUBLISHED. Recorded as a TEST_DETAILS_UPDATED event.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Details updated; returns the test"),
+			@ApiResponse(responseCode = "400", description = "Blank name, or a value that is too long"),
+			@ApiResponse(responseCode = "404", description = "Test not found"),
+			@ApiResponse(responseCode = "409", description = "Test is published") })
+	public ResponseEntity<TestDto> updateDetails(@PathVariable Long testId, @RequestBody @Valid TestDetailsInput input) {
+		return ResponseEntity
+				.ok(testMapper.toDto(reviewService.updateDetails(testId, input.name(), input.description())));
 	}
 
 	@PostMapping("/publish")

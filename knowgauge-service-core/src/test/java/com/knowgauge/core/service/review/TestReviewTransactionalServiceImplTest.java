@@ -262,4 +262,41 @@ class TestReviewTransactionalServiceImplTest {
 		assertThatThrownBy(() -> tx.unpublish(TENANT, TEST_ID, 42L, null))
 				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("not published");
 	}
+
+	// ---------------- details ----------------
+
+	@Test
+	void editingDetailsUpdatesThemAndRecordsAnEvent() {
+		givenLockedTest(TestStatus.REVIEWED);
+
+		com.knowgauge.core.model.Test updated = tx.updateDetails(TENANT, TEST_ID, 42L, "Fire safety", "For new staff");
+
+		verify(testRepository).updateDetails(TENANT, TEST_ID, "Fire safety", "For new staff");
+		verify(history).testEvent(eq(TENANT), eq(TEST_ID), eq(TestEventType.TEST_DETAILS_UPDATED), eq(42L), any());
+		assertThat(updated.getName()).isEqualTo("Fire safety");
+		assertThat(updated.getDescription()).isEqualTo("For new staff");
+	}
+
+	@Test
+	void aPublishedTestCannotBeEdited() {
+		givenLockedTest(TestStatus.PUBLISHED);
+
+		assertThatThrownBy(() -> tx.updateDetails(TENANT, TEST_ID, 42L, "Fire safety", null))
+				.isInstanceOf(ReviewConflictException.class).hasMessageContaining("published");
+		verify(testRepository, never()).updateDetails(anyLong(), anyLong(), any(), any());
+	}
+
+	@Test
+	void unchangedDetailsRecordNothing() {
+		givenLockedTest(TestStatus.GENERATED);
+		com.knowgauge.core.model.Test current = testRepository.findByTenantIdAndIdForUpdate(TENANT, TEST_ID).orElseThrow();
+
+		current.setName("Safety basics");
+		current.setDescription(null);
+
+		tx.updateDetails(TENANT, TEST_ID, 42L, "Safety basics", null);
+
+		verify(testRepository, never()).updateDetails(anyLong(), anyLong(), any(), any());
+		verify(history, never()).testEvent(anyLong(), anyLong(), eq(TestEventType.TEST_DETAILS_UPDATED), any(), any());
+	}
 }
