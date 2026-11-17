@@ -130,17 +130,19 @@ source here): System Design Fundamentals, Scalability and Performance, Data Stor
 Systems and Messaging, and Reliability, Security, and Observability. Each lesson has four pages; all five are
 documents directly in System Design, uploaded (and so listed) in lesson order.
 
-Some focus texts cut across lessons, others select one lesson's section (checked with the embedding model):
+Each focus text names a subject a whole test is realistically about, and selects enough passages for one
+(checked with the embedding model):
 
 | Focus text | Selects |
 |---|---|
-| Capacity estimates: QPS, peak factor, storage growth and headroom | Lessons 1 and 2 (12 passages) |
-| Idempotency keys, retries with backoff and duplicate messages | Mostly Lesson 4 (12 passages) |
-| Load balancing, stateless services and autoscaling | Mostly Lesson 2 (10 passages) |
-| Transactional outbox and the dual-write problem | Lessons 3 and 4 (9 passages) |
-| Caching: cache-aside, TTL, invalidation and cache stampedes | Lesson 2's caching page only |
-| Replication, read replicas, partitioning and sharding | Lesson 3's replication page only |
-| SLIs, SLOs, SLAs and error budgets | Lesson 5's reliability page only |
+| Scalability and performance | Mostly Lesson 2, some of Lesson 1 (17 passages) |
+| Caching and load balancing | Lesson 2 (11 passages) |
+| Databases: storage, replication, sharding and consistency | Mostly Lesson 3 (17 passages) |
+| Data consistency and transactions | Lessons 3 and 4 (15 passages) |
+| Messaging and asynchronous communication between services | Lesson 4 (11 passages) |
+| Reliability and fault tolerance | Mostly Lessons 5 and 4 (22 passages) |
+| Security and observability of production systems | Mostly Lesson 5's security and observability pages (11 passages) |
+| Capacity estimation and requirements | Lessons 1 and 2 (19 passages) |
 
 The generate form offers these as suggestions (`DevFocusSuggestionsController`, dev profile only).
 
@@ -151,19 +153,20 @@ Fundamentals; Modern Java: Streams, Records, Optionals; JVM Memory and Garbage C
 Java Concurrency; Spring Framework Fundamentals; Spring Boot Practical Guide; and Quarkus Fundamentals and
 Architecture. Each lesson has four pages; all seven are documents directly in Java, in lesson order.
 
-Some focus texts cut across the framework lessons, others select one lesson's pages (checked with the embedding
-model):
+Each focus text names a subject a whole test is realistically about, and selects enough passages for one
+(checked with the embedding model):
 
 | Focus text | Selects |
 |---|---|
-| Transactions with @Transactional: boundaries, rollback and proxies | Spring's transactions page, plus the Spring Boot and Quarkus persistence pages (5 passages) |
-| Dependency injection, beans and scopes | Spring's bean pages and Quarkus CDI (6 passages) |
-| Configuration properties, profiles and secrets | Spring, Spring Boot and Quarkus configuration (7 passages) |
-| Garbage collection: heap, reachability, memory leaks and collectors | The JVM lesson only (6 passages) |
-| Race conditions, synchronization, locks and atomic variables | The concurrency lesson only (5 passages) |
-| Virtual threads, thread pools and CompletableFuture | The concurrency lesson only (6 passages) |
-| Records, switch expressions and Optional | The modern Java lesson only (6 passages) |
-| Health checks, readiness, liveness and graceful shutdown | Mostly Spring Boot's Actuator page (5 passages) |
-| Native executables, build-time processing and dev mode in Quarkus | The Quarkus lesson (9 passages) |
+| Threads, synchronization and concurrency in Java | Mostly the concurrency lesson (16 passages) |
+| Memory management and garbage collection in the JVM | The JVM lesson (11 passages) |
+| Classes, objects, inheritance and interfaces in Java | Mostly the fundamentals lesson (11 passages) |
+| Lambdas, streams, records and Optional in modern Java | Mostly the modern Java lesson (20 passages) |
+| Spring Framework and Spring Boot | The Spring and Spring Boot lessons (16 passages) |
+| Dependency injection and beans in Spring | Spring and Spring Boot, plus Quarkus CDI (18 passages) |
+| Transactions and database access | Spring, Spring Boot and Quarkus persistence pages (8 passages) |
+| Web applications and REST endpoints | Spring MVC, Spring Boot and Quarkus REST (10 passages) |
+| Monitoring, health checks and observability of Java services | JVM tooling, Actuator and Quarkus deployment (18 passages) |
+| Quarkus and cloud-native Java | The Quarkus lesson (8 passages) |
 
 The generate form offers these as suggestions (`DevFocusSuggestionsController`, dev profile only).

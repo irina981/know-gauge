@@ -26,22 +26,19 @@ public class DevFocusSuggestionsController {
 
 	/** Topic id (from the dev seed) to its focus suggestions. */
 	static final Map<Long, List<String>> SUGGESTIONS = Map.of(
-			// Programming › Java
-			2000L, List.of("Transactions with @Transactional: boundaries, rollback and proxies",
-					"Dependency injection, beans and scopes", "Configuration properties, profiles and secrets",
-					"Garbage collection: heap, reachability, memory leaks and collectors",
-					"Race conditions, synchronization, locks and atomic variables",
-					"Virtual threads, thread pools and CompletableFuture", "Records, switch expressions and Optional",
-					"Health checks, readiness, liveness and graceful shutdown",
-					"Native executables, build-time processing and dev mode in Quarkus"),
-			// Programming › System Design
-			3000L, List.of("Capacity estimates: QPS, peak factor, storage growth and headroom",
-					"Idempotency keys, retries with backoff and duplicate messages",
-					"Load balancing, stateless services and autoscaling",
-					"Transactional outbox and the dual-write problem",
-					"Caching: cache-aside, TTL, invalidation and cache stampedes",
-					"Replication, read replicas, partitioning and sharding", "SLIs, SLOs, SLAs and error budgets",
-					"Authentication, authorization, TLS and secrets"),
+			// Programming › Java: subjects a whole test is realistically about, each selecting 8-20 passages
+			2000L, List.of("Threads, synchronization and concurrency in Java",
+					"Memory management and garbage collection in the JVM",
+					"Classes, objects, inheritance and interfaces in Java",
+					"Lambdas, streams, records and Optional in modern Java", "Spring Framework and Spring Boot",
+					"Dependency injection and beans in Spring", "Transactions and database access",
+					"Web applications and REST endpoints",
+					"Monitoring, health checks and observability of Java services", "Quarkus and cloud-native Java"),
+			// Programming › System Design: the same, 11-22 passages each
+			3000L, List.of("Scalability and performance", "Caching and load balancing",
+					"Databases: storage, replication, sharding and consistency", "Data consistency and transactions",
+					"Messaging and asynchronous communication between services", "Reliability and fault tolerance",
+					"Security and observability of production systems", "Capacity estimation and requirements"),
 			// Corvane Systems › Employee Onboarding & Compliance
 			7000L, List.of("Passwords, passphrases and multi-factor authentication",
 					"Recognising and reporting phishing emails",
