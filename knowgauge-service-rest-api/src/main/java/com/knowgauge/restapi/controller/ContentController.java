@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -175,8 +176,9 @@ public class ContentController {
 	}
 
 	@GetMapping("/documents/all/{topicId}")
-	@Operation(summary = "List documents for topic (paged)")
-	public ResponseEntity<Page<DocumentDto>> getAllDocuments(@PathVariable Long topicId, Pageable pageable) {
+	@Operation(summary = "List documents for topic (paged)", description = "In upload order (by id) unless a sort is given.")
+	public ResponseEntity<Page<DocumentDto>> getAllDocuments(@PathVariable Long topicId,
+			@PageableDefault(sort = "id") Pageable pageable) {
 		Page<DocumentDto> documents = documentService.getAllDocuments(topicId, pageable).map(documentMaper::toDto);
 		return ResponseEntity.status(200).body(documents);
 	}
