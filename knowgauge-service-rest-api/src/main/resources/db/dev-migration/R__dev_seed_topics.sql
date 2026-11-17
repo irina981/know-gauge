@@ -13,8 +13,8 @@
 -- └── Office Guides (9000): one guide per office, Rotterdam (9100), Lisbon (9200), Kraków (9300), for FOCUSED tests
 -- Gradovi Srbije (10000): Serbian (Latin script) city guides, Beograd (10100), Novi Sad (10200), Niš (10300),
 --   Kragujevac (10400); real, well-known facts
--- AI in Day-to-Day Work (11000): English guides, Coding Assistants (11100), Writing and Translation (11200),
---   Chatbots (11300), Images, Audio and Video (11400)
+-- AI in Day-to-Day Work (11000): nine tutorials from basics to advanced practice in three sub-topics, AI Foundations
+--   (11010), Everyday AI Workflows (11020), Reliability and Governance (11030)
 -- English Lessons (B1–B2) (12000): Lesson 1 Travel (12100), Lesson 2 Work (12200), Lesson 3 Health (12300),
 --   Lesson 4 Technology (12400)
 --
@@ -72,13 +72,12 @@ VALUES
   (10300, 10000, 1, 'Niš', 'Najveći grad na jugu Srbije, na Nišavi', '/10000/10300', 1, 1, now(), now()),
   (10400, 10000, 1, 'Kragujevac', 'Najveći grad Šumadije, prva prestonica moderne Srbije', '/10000/10400', 1, 1, now(), now()),
 
-  -- AI in Day-to-Day Work (root; English). Every guide has the same four sections: how it works, good uses, risks
-  -- and limitations, privacy and data security. General information, no product versions or prices.
-  (11000, NULL, 1, 'AI in Day-to-Day Work', 'Using generative AI tools at work: how they work, good uses, risks, and privacy', '/11000', 1, 1, now(), now()),
-  (11100, 11000, 1, 'Coding Assistants', 'AI assistants that suggest, explain and change code', '/11000/11100', 1, 1, now(), now()),
-  (11200, 11000, 1, 'Writing and Translation', 'AI for drafting, editing and translating text', '/11000/11200', 1, 1, now(), now()),
-  (11300, 11000, 1, 'Chatbots', 'AI chatbots for customer service and internal help desks', '/11000/11300', 1, 1, now(), now()),
-  (11400, 11000, 1, 'Images, Audio and Video', 'Generative AI for images, voices and video', '/11000/11400', 1, 1, now(), now()),
+  -- AI in Day-to-Day Work (root; English). Nine four-page tutorials (PDFs only, no Markdown source), three per
+  -- sub-topic, ordered from basics to advanced practice. General practice, no product versions or prices.
+  (11000, NULL, 1, 'AI in Day-to-Day Work', 'Using AI at work, from the basics to reliable practice: foundations, everyday workflows, reliability and governance', '/11000', 1, 1, now(), now()),
+  (11010, 11000, 1, 'AI Foundations', 'What AI can and cannot do, prompting, and choosing tools and workflows', '/11000/11010', 1, 1, now(), now()),
+  (11020, 11000, 1, 'Everyday AI Workflows', 'Emails, meeting notes and status updates; research and learning; coding, debugging and code reviews', '/11000/11020', 1, 1, now(), now()),
+  (11030, 11000, 1, 'Reliability and Governance', 'Privacy and safe use, grounding and RAG, automation, evaluation and human review', '/11000/11030', 1, 1, now(), now()),
 
   -- English Lessons (root; B1-B2 learners). Every lesson has the same four sections: vocabulary, grammar (one point
   -- per lesson), common mistakes, useful phrases.
@@ -124,10 +123,12 @@ WHERE t.id = tree.id
 -- Algorithms for Coding Interviews (5000-5400) was removed for now; its sources stay in demo-content/algorithms.
 -- The first System Design sub-topics (3100-3300) were replaced by five lesson sub-topics (3010-3050), and those by
 -- the lessons directly in System Design. The Java sub-topics Core Java (2100), Multithreading (2200) and Spring &
--- Spring Boot (4000) were replaced by the seven lessons directly in Java. Sub-topics that still hold documents
+-- Spring Boot (4000) were replaced by the seven lessons directly in Java. The AI guides (11100-11400) were replaced
+-- by the nine tutorials in 11010-11030. Sub-topics that still hold documents
 -- stay until they are deleted in the Library (which also removes their passages from the vector store).
 DELETE FROM topics t
-WHERE t.id IN (2100, 2200, 2300, 3010, 3020, 3030, 3040, 3050, 3100, 3200, 3300, 4000, 5100, 5200, 5300, 5400, 6100, 6200)
+WHERE t.id IN (2100, 2200, 2300, 3010, 3020, 3030, 3040, 3050, 3100, 3200, 3300, 4000, 5100, 5200, 5300, 5400, 6100, 6200,
+               11100, 11200, 11300, 11400)
   AND NOT EXISTS (SELECT 1 FROM topics c WHERE c.parent_id = t.id)
   AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.topic_id = t.id)
   AND NOT EXISTS (SELECT 1 FROM test_covered_topics tc WHERE tc.topic_id = t.id);

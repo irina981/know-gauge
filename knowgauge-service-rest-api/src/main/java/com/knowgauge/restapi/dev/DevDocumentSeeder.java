@@ -113,11 +113,24 @@ public class DevDocumentSeeder {
 			new SeedDocument(10300L, "Niš – vodič kroz grad", "Gradovi Srbije - Nis.pdf"),
 			new SeedDocument(10400L, "Kragujevac – vodič kroz grad", "Gradovi Srbije - Kragujevac.pdf"),
 
-			// AI in Day-to-Day Work (sources in demo-content/ai-day-to-day): same four sections per guide
-			new SeedDocument(11100L, "AI Coding Assistants", "AI at Work - Coding Assistants.pdf"),
-			new SeedDocument(11200L, "AI for Writing and Translation", "AI at Work - Writing and Translation.pdf"),
-			new SeedDocument(11300L, "AI Chatbots for Customer Service", "AI at Work - Chatbots.pdf"),
-			new SeedDocument(11400L, "AI for Images, Audio and Video", "AI at Work - Images and Media.pdf"),
+			// AI in Day-to-Day Work: nine tutorials provided as PDFs (no Markdown source), three per sub-topic, in order
+			new SeedDocument(11010L, "AI at Work: Capabilities and Limits", "AI at Work - 01 What AI Can and Cannot Do.pdf"),
+			new SeedDocument(11010L, "Prompting: From Vague Requests to Useful Outputs",
+					"AI at Work - 02 Prompting for Useful Results.pdf"),
+			new SeedDocument(11010L, "AI Tools, Context, and Human Oversight",
+					"AI at Work - 03 AI Tools and Workflow Selection.pdf"),
+			new SeedDocument(11020L, "AI for Emails, Meetings, and Status Updates",
+					"AI at Work - 04 Writing Email and Meeting Notes.pdf"),
+			new SeedDocument(11020L, "AI for Research, Learning, and Comparing Options",
+					"AI at Work - 05 Research Learning and Synthesis.pdf"),
+			new SeedDocument(11020L, "AI for Coding, Debugging, and Code Reviews",
+					"AI at Work - 06 AI for Developer Productivity.pdf"),
+			new SeedDocument(11030L, "Privacy, Security, and Safe AI Usage",
+					"AI at Work - 07 Data Privacy and AI Safety.pdf"),
+			new SeedDocument(11030L, "Grounded AI, Search, and Retrieval-Augmented Generation",
+					"AI at Work - 08 Grounding and RAG in Workflows.pdf"),
+			new SeedDocument(11030L, "Reliable AI Automation and Quality Evaluation",
+					"AI at Work - 09 Automation Evaluation and Human Review.pdf"),
 
 			// English Lessons (sources in demo-content/english-lessons): same four sections per lesson
 			new SeedDocument(12100L, "Lesson 1 – Travel and Holidays", "English Lessons - Lesson 1 Travel.pdf"),

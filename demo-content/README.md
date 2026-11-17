@@ -7,9 +7,9 @@ Sources for the sample documents that the `local` profile uploads at startup (`D
 | `employee-onboarding/` | Corvane Systems › Employee Onboarding & Compliance (7000) | 15 workplace policies for **Corvane Systems**, a fictional software company |
 | `office-guides/` | Corvane Systems › Office Guides (9000) | 3 office guides with the same 4 subjects each, written for **focused** tests |
 | `gradovi-srbije/` | Gradovi Srbije (10000) | 4 Serbian city guides (Latin script) with the same 4 sections each; real facts |
-| `ai-day-to-day/` | AI in Day-to-Day Work (11000) | 4 English guides on generative AI tools with the same 4 sections each |
 | `english-lessons/` | English Lessons (B1–B2) (12000) | 4 English lessons for intermediate learners with the same 4 sections each |
 | `algorithms/` | *Not seeded for now* (was Programming › Algorithms for Coding Interviews, 5000) | 4 documents of interview algorithm patterns; every pattern has idea, when to use it, complexity, sample tasks. Sources only; see `TODO.md` 3.1 |
+| – | AI in Day-to-Day Work (11000) | 9 tutorials in 3 sub-topics, provided as PDFs only (no source folder); see "AI in Day-to-Day Work" below |
 | – | Programming › Java (2000) | 7 lessons provided as PDFs only (no source folder); see "Java" below |
 | – | Programming › System Design (3000) | 5 lessons provided as PDFs only (no source folder); see "System Design" below |
 
@@ -17,8 +17,8 @@ Both Corvane sets sit under the root topic **Corvane Systems (demo company)** (6
 
 All text is original and written for KnowGauge. Corvane Systems, its products, tools (TripDesk, ExpenseHub,
 PeoplePortal, Corvane Vault and so on) and contacts are fictional. Email addresses use the reserved `.example` domain.
-Each PDF ends with a disclaimer saying so. The city guides and the AI guides are not about Corvane: they give general,
-real information, and their disclaimer says to check official sources.
+Each PDF ends with a disclaimer saying so. The city guides are not about Corvane: they give general, real information,
+and their disclaimer says to check official sources.
 
 Front matter can set `brand` (the line above the title, default Corvane Systems), `lang` (`en` or `sr`, for the
 header labels) and `disclaimer`.
@@ -88,10 +88,10 @@ so ask for **5 to 12 questions**: a focus with too few close passages fails with
 questions would fit) instead of padding the test with unrelated material. Compare with a balanced test over the same
 topic, whose questions mix all four subjects.
 
-## Gradovi Srbije and AI in Day-to-Day Work
+## Gradovi Srbije
 
-Both sets use the same four sections in every document, so a balanced test from the root topic covers all of them,
-and a focused test on one section draws it from every document. Real-world subjects overlap more than the office
+The city guides use the same four sections in every document, so a balanced test from the root topic covers all of
+them, and a focused test on one section draws it from every document. Real-world subjects overlap more than the office
 guides (landmarks are historic, festivals take place at landmarks), so some focus texts select more cleanly than
 others. These were checked with the embedding model:
 
@@ -101,12 +101,39 @@ others. These were checked with the embedding model:
 | Gradovi Srbije | Festivali i manifestacije: koncerti, film i pozorište | Festival sections of all four cities |
 | Gradovi Srbije | Istorija grada: osnivanje, vladari, ratovi i oslobođenje | Mostly history, some landmarks |
 | Gradovi Srbije | Znamenitosti za obilazak: tvrđave, spomenici, muzeji i parkovi | Mostly landmarks, some festivals |
-| AI in Day-to-Day Work | Privacy and data security: personal data, GDPR and confidential information | Privacy sections of all four guides |
-| AI in Day-to-Day Work | Risks and limitations: hallucinations, errors, deepfakes and copyright | Mostly risk sections |
-| AI in Day-to-Day Work | How AI tools work: language models, tokens, prompts and training | Mostly "how it works" sections |
-| AI in Day-to-Day Work | Deepfakes, voice cloning scams and labelling AI-generated media | The images and media guide only |
 
 Generate Serbian tests with **Language: Serbian**.
+
+## AI in Day-to-Day Work
+
+AI in Day-to-Day Work (11000) is a set of nine four-page tutorials provided as PDFs only, ordered from basics to
+advanced practice and grouped into three sub-topics:
+
+| Sub-topic | Documents |
+|---|---|
+| AI Foundations (11010) | 01 What AI Can and Cannot Do, 02 Prompting for Useful Results, 03 AI Tools and Workflow Selection |
+| Everyday AI Workflows (11020) | 04 Writing, Email, and Meeting Notes, 05 Research, Learning, and Synthesis, 06 AI for Developer Productivity |
+| Reliability and Governance (11030) | 07 Data Privacy and AI Safety, 08 Grounding and RAG in Workflows, 09 Automation, Evaluation, and Human Review |
+
+Each document has four lessons with a worked example, an exercise and an assessment target. Balanced tests over one
+sub-topic or the whole set show how evenly the questions spread across documents.
+
+The documents share themes (verification, human review, evidence), so focus texts select less cleanly than in the
+other sets. These were checked with the embedding model:
+
+| Focus text | Selects |
+|---|---|
+| What AI can and cannot do: language models, tokens, hallucinations and verification | Mostly document 01 (17 passages) |
+| Prompting: prompt components, few-shot examples and structured output | Document 02 (8 passages) |
+| Choosing AI tools and designing supervised AI workflows | Documents 01, 03 and 09 (9 passages) |
+| Meeting notes: decisions, action items, owners and status updates | Document 04 (6 passages) |
+| Code generation, debugging, unit tests and code review | Mostly document 06 (9 passages) |
+| Sensitive data, privacy and prompt injection | Mostly document 07, plus document 06's security lesson (13 passages) |
+| RAG and grounding: retrieval, chunking and evaluating retrieved evidence | Document 08 (5 passages) |
+| Evaluating AI quality: test datasets, metrics and monitoring | Documents 03 and 09 (9 passages) |
+
+Research and synthesis (document 05) has no suggestion: every wording also selected the retrieval and evaluation
+lessons, which use the same vocabulary.
 
 ## English Lessons (B1–B2)
 

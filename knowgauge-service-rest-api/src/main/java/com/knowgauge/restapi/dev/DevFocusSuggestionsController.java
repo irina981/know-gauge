@@ -56,10 +56,14 @@ public class DevFocusSuggestionsController {
 					"Istorija grada: osnivanje, vladari, ratovi i oslobođenje",
 					"Znamenitosti za obilazak: tvrđave, spomenici, muzeji i parkovi"),
 			// AI in Day-to-Day Work
-			11000L, List.of("Privacy and data security: personal data, GDPR and confidential information",
-					"Risks and limitations: hallucinations, errors, deepfakes and copyright",
-					"How AI tools work: language models, tokens, prompts and training",
-					"Deepfakes, voice cloning scams and labelling AI-generated media"),
+			11000L, List.of("What AI can and cannot do: language models, tokens, hallucinations and verification",
+					"Prompting: prompt components, few-shot examples and structured output",
+					"Choosing AI tools and designing supervised AI workflows",
+					"Meeting notes: decisions, action items, owners and status updates",
+					"Code generation, debugging, unit tests and code review",
+					"Sensitive data, privacy and prompt injection",
+					"RAG and grounding: retrieval, chunking and evaluating retrieved evidence",
+					"Evaluating AI quality: test datasets, metrics and monitoring"),
 			// English Lessons (B1–B2)
 			12000L, List.of("Common mistakes and their corrections", "Useful phrases for everyday situations",
 					"Present perfect and past simple",
