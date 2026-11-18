@@ -3,15 +3,10 @@ package com.knowgauge.core.port.repository;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
 import com.knowgauge.core.model.Attempt;
 
 public interface AttemptRepository {
 	Attempt save(Attempt attempt);
-
-	Optional<Attempt> findById(Long id);
 
 	Optional<Attempt> findByTenantIdAndId(Long tenantId, Long id);
 
@@ -33,8 +28,6 @@ public interface AttemptRepository {
 	 * {@code participantEmail} (case-insensitive) are optional filters ({@code null} = any).
 	 */
 	List<Attempt> findByTenantId(Long tenantId, Long testId, Long userId, String participantEmail);
-
-	Page<Attempt> findByTestId(Long testId, Pageable pageable);
 
 	/**
 	 * @return whether any attempt (in any status) exists for the test

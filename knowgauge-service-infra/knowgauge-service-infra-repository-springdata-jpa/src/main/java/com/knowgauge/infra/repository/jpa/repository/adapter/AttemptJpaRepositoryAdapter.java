@@ -3,8 +3,6 @@ package com.knowgauge.infra.repository.jpa.repository.adapter;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.Attempt;
@@ -26,11 +24,6 @@ public class AttemptJpaRepositoryAdapter implements AttemptRepository {
 	@Override
 	public Attempt save(Attempt domain) {
 		return mapper.toDomain(jpaRepository.save(mapper.toEntity(domain)));
-	}
-
-	@Override
-	public Optional<Attempt> findById(Long id) {
-		return jpaRepository.findById(id).map(mapper::toDomain);
 	}
 
 	@Override
@@ -56,11 +49,6 @@ public class AttemptJpaRepositoryAdapter implements AttemptRepository {
 	@Override
 	public List<Attempt> findByTenantId(Long tenantId, Long testId, Long userId, String participantEmail) {
 		return jpaRepository.findFiltered(tenantId, testId, userId, participantEmail).stream().map(mapper::toDomain).toList();
-	}
-
-	@Override
-	public Page<Attempt> findByTestId(Long testId, Pageable pageable) {
-		return jpaRepository.findByTestId(testId, pageable).map(mapper::toDomain);
 	}
 
 	@Override

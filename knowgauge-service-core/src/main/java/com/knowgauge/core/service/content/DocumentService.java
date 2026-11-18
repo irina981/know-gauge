@@ -2,6 +2,7 @@ package com.knowgauge.core.service.content;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Map;
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +36,7 @@ public interface DocumentService {
 
 	int markFailed(Long documentId, String errorMessage);
 	
-	List<Document> findByTopicIds(Long tenantId, List<Long> topicIds);
+	List<Document> findByTopicIds(Collection<Long> tenantIds, List<Long> topicIds);
 
 	/**
 	 * Ingested documents per topic of the current tenant, counting only documents

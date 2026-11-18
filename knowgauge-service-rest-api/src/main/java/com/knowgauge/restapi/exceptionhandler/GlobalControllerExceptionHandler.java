@@ -31,6 +31,7 @@ import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.exception.InsufficientContextException;
 import com.knowgauge.core.exception.QuestionValidationException;
 import com.knowgauge.core.exception.RegenerationFailedException;
+import com.knowgauge.core.exception.ReadOnlyContentException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.exception.AttemptConflictException;
 import com.knowgauge.core.exception.ReviewConflictException;
@@ -278,6 +279,14 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.NOT_FOUND, request, ex);
 		log.warn("Resource not found: {}", ex.getMessage());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
+	}
+
+	// Library content is read-only except for application admins (ADR010)
+	@ExceptionHandler(ReadOnlyContentException.class)
+	public ResponseEntity<Object> handleReadOnlyContentException(WebRequest request, ReadOnlyContentException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.FORBIDDEN, request, ex);
+		log.warn("Read-only content: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
 	}
 
 	@ExceptionHandler(ReviewConflictException.class)

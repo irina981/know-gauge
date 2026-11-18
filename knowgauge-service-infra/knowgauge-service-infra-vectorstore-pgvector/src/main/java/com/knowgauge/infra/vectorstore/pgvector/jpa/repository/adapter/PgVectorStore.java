@@ -93,17 +93,18 @@ public class PgVectorStore implements VectorStore {
 	}
 
 	@Override
-	public List<ChunkEmbedding> findCandidates(Long tenantId, Collection<Long> documentIds, int maxChunksPerDoc,
+	public List<ChunkEmbedding> findCandidates(Collection<Long> tenantIds, Collection<Long> documentIds, int maxChunksPerDoc,
 			String embeddingModel, boolean avoidRepeats) {
 
 		String sql = buildRankedCandidatesSql();
 
 		@SuppressWarnings("unchecked")
 		NativeQuery<ChunkEmbeddingEntity> q = em.createNativeQuery(sql, ChunkEmbeddingEntity.class)
-				.setParameter("tenantId", tenantId).setParameter("embeddingModel", embeddingModel)
+				.setParameter("embeddingModel", embeddingModel)
 				.setParameter("maxChunks", maxChunksPerDoc).unwrap(NativeQuery.class);
 
 		q.setParameterList("documentIds", documentIds);
+		q.setParameterList("tenantIds", tenantIds);
 
 		List<ChunkEmbeddingEntity> candidates = q.getResultList();
 		if (candidates.isEmpty()) {
@@ -123,7 +124,7 @@ public class PgVectorStore implements VectorStore {
 
 	@Override
 	@Transactional(transactionManager = "vectorTransactionManager", readOnly = true)
-	public List<ChunkEmbedding> findNearest(Long tenantId, Collection<Long> documentIds, float[] queryEmbedding,
+	public List<ChunkEmbedding> findNearest(Collection<Long> tenantIds, Collection<Long> documentIds, float[] queryEmbedding,
 			String embeddingModel, int limit) {
 		// Only for this transaction (is_local = true), so other queries keep their settings.
 		em.createNativeQuery("SELECT set_config('ivfflat.probes', :probes, true)")
@@ -134,7 +135,7 @@ public class PgVectorStore implements VectorStore {
 				       ce.chunk_id, ce.chunk_checksum, ce.embedding_model, ce.embedding,
 				       ce.created_at, ce.created_by, ce.updated_at, ce.updated_by
 				FROM chunk_embeddings ce
-				WHERE ce.tenant_id = :tenantId
+				WHERE ce.tenant_id IN (:tenantIds)
 				  AND ce.embedding_model = :embeddingModel
 				  AND ce.document_id IN (:documentIds)
 				ORDER BY ce.embedding <=> CAST(:query AS vector)
@@ -143,10 +144,11 @@ public class PgVectorStore implements VectorStore {
 
 		@SuppressWarnings("unchecked")
 		NativeQuery<ChunkEmbeddingEntity> q = em.createNativeQuery(sql, ChunkEmbeddingEntity.class)
-				.setParameter("tenantId", tenantId).setParameter("embeddingModel", embeddingModel)
+				.setParameter("embeddingModel", embeddingModel)
 				.setParameter("query", toVectorLiteral(queryEmbedding)).setParameter("limit", limit)
 				.unwrap(NativeQuery.class);
 		q.setParameterList("documentIds", documentIds);
+		q.setParameterList("tenantIds", tenantIds);
 
 		return q.getResultList().stream().map(mapper::toDomain).toList();
 	}
@@ -166,25 +168,26 @@ public class PgVectorStore implements VectorStore {
 	/**
 	 * Returns chunk counts per document within the active scope.
 	 *
-	 * Scope filters: - tenant_id - embedding_model - document_id IN (:documentIds)
+	 * Scope filters: - tenant_id IN (:tenantIds) - embedding_model - document_id IN (:documentIds)
 	 *
 	 * This is used to calculate per-document quotas (balanced selection).
 	 */
-	public List<DocChunkCount> loadDocChunkCounts(Long tenantId, String embeddingModel, Collection<Long> documentIds) {
+	public List<DocChunkCount> loadDocChunkCounts(Collection<Long> tenantIds, String embeddingModel, Collection<Long> documentIds) {
 
 		String sql = """
 				SELECT ce.document_id, count(*) AS cnt
 				FROM chunk_embeddings ce
-				WHERE ce.tenant_id = :tenantId
+				WHERE ce.tenant_id IN (:tenantIds)
 				  AND ce.embedding_model = :embeddingModel
 				  AND ce.document_id IN (:documentIds)
 				GROUP BY ce.document_id
 				""";
 
-		NativeQuery<?> q = em.createNativeQuery(sql).setParameter("tenantId", tenantId)
+		NativeQuery<?> q = em.createNativeQuery(sql)
 				.setParameter("embeddingModel", embeddingModel).unwrap(NativeQuery.class);
 
 		q.setParameterList("documentIds", documentIds);
+		q.setParameterList("tenantIds", tenantIds);
 
 		@SuppressWarnings("unchecked")
 		List<Object[]> rows = (List<Object[]>) q.getResultList();
@@ -207,7 +210,7 @@ public class PgVectorStore implements VectorStore {
 	 *
 	 * This keeps DB work bounded and avoids pulling the entire embeddings table.
 	 *
-	 * IMPORTANT: - parameter names must match code: :tenantId, :embeddingModel,
+	 * IMPORTANT: - parameter names must match code: :tenantIds, :embeddingModel,
 	 * :documentIds, :maxChunks
 	 */
 	private String buildRankedCandidatesSql() {
@@ -216,7 +219,7 @@ public class PgVectorStore implements VectorStore {
 				    SELECT ce.*,
 				           row_number() OVER (PARTITION BY ce.document_id ORDER BY random()) AS rn
 				    FROM chunk_embeddings ce
-				    WHERE ce.tenant_id = :tenantId
+				    WHERE ce.tenant_id IN (:tenantIds)
 				      AND ce.embedding_model = :embeddingModel
 				      AND ce.document_id IN (:documentIds)
 				)

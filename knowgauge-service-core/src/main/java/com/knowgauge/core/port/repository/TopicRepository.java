@@ -1,33 +1,33 @@
 package com.knowgauge.core.port.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.repository.query.Param;
-
 import com.knowgauge.core.model.Topic;
 
+/**
+ * Topics, always filtered by tenant. Reads take the tenants whose content may be read (the own tenant and the
+ * library, see {@code ContentScope}); writes and name checks take the one tenant written to.
+ */
 public interface TopicRepository {
-	public Topic save(Topic domain);
-	
-	public void delete (Long topicId);
-	
-	public Optional<Topic> findById(Long id);
+	Topic save(Topic domain);
 
-	List<Topic> findByParentId(Long parentId);
+	void deleteByTenantIdAndId(Long tenantId, Long topicId);
 
-	boolean existsByParentIdAndName(Long parentId, String name);
-	
-	boolean existsByParentIdIsNullAndName(String name);
+	Optional<Topic> findByTenantIdInAndId(Collection<Long> tenantIds, Long id);
 
-	void updatePath(Long id, String path);
+	List<Topic> findByTenantIdInAndParentId(Collection<Long> tenantIds, Long parentId);
+
+	boolean existsByTenantIdAndParentIdAndName(Long tenantId, Long parentId, String name);
+
+	boolean existsByTenantIdAndParentIdIsNullAndName(Long tenantId, String name);
+
+	void updatePath(Long tenantId, Long id, String path);
 
 	// roots
-	List<Topic> findByParentIdIsNull();
-
-	Optional<String> findPathById(Long id);
+	List<Topic> findByTenantIdInAndParentIdIsNull(Collection<Long> tenantIds);
 
 	// subtree by path prefix
-	List<Topic> findByPathPrefix(@Param("prefix") String prefix);
-
+	List<Topic> findByTenantIdInAndPathPrefix(Collection<Long> tenantIds, String prefix);
 }

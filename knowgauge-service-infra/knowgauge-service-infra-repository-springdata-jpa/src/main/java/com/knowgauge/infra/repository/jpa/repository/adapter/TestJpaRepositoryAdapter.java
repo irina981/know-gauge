@@ -1,6 +1,7 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,13 +67,13 @@ public class TestJpaRepositoryAdapter implements TestRepository {
 	}
 	
 	@Override
-	public void setUsedChunks(Long tenantId, Long testId, List<Long> chunkIds) {
+	public void setUsedChunks(Long tenantId, Long testId, Collection<Long> chunkTenantIds, List<Long> chunkIds) {
 
 	    TestEntity test = jpaRepository.findByTenantIdAndId(tenantId, testId)
 	            .orElseThrow(() -> new IllegalArgumentException("Test not found: " + testId));
 
 	    List<DocumentChunkEntity> chunkEntities =
-	    		documentChunkJpaRepository.findByTenantIdAndIdIn(tenantId, chunkIds);
+	    		documentChunkJpaRepository.findByTenantIdInAndIdIn(chunkTenantIds, chunkIds);
 
 	    // IMPORTANT: mutate in place (Hibernate PersistentBag stays mutable)
 	    test.getUsedChunks().clear();

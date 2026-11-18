@@ -11,43 +11,54 @@ import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.port.repository.TopicRepository;
 
+/**
+ * Topics of the own tenant and of the library (read-only unless the caller is an application admin, see
+ * {@link ContentScope}). A sub-topic always lives in its parent's tenant.
+ */
 @Service
 public class TopicServiceImpl implements TopicService {
 
 	private final TopicRepository topicRepository;
 	private final ExecutionContext executionContext;
+	private final ContentScope contentScope;
 
-	public TopicServiceImpl(TopicRepository topicRepository, ExecutionContext executionContext) {
+	public TopicServiceImpl(TopicRepository topicRepository, ExecutionContext executionContext,
+			ContentScope contentScope) {
 		this.topicRepository = topicRepository;
 		this.executionContext = executionContext;
+		this.contentScope = contentScope;
 	}
 
 	@Override
 	@Transactional
 	public Topic create(Topic topic) {
-		validateUniqueNameUnderParent(topic.getParentId(), topic.getName());
+		Long tenantId = executionContext.tenantId();
+		Topic parent = null;
+		if (topic.getParentId() != null) {
+			parent = requireTopic(topic.getParentId(), "Parent topic not found: ");
+			contentScope.requireWritable(parent.getTenantId(), "Topic " + parent.getId());
+			tenantId = parent.getTenantId();
+		}
+		validateUniqueNameUnderParent(tenantId, topic.getParentId(), topic.getName());
 
-		topic.setTenantId(executionContext.tenantId());
+		topic.setTenantId(tenantId);
 
 		Topic created = topicRepository.save(topic);
 
 		// Update path of created topic
-		String path = buildPath(created.getId(), created.getParentId());
-		updatePath(created.getId(), path);
+		String path = parent == null ? "/" + created.getId() : normalize(parent.getPath()) + created.getId();
+		topicRepository.updatePath(tenantId, created.getId(), path);
 		created.setPath(path);
 
 		return created;
-	}
-	
-	private void updatePath(Long topicId, String path) {
-		topicRepository.updatePath(topicId, path);
 	}
 
 	@Override
 	@Transactional
 	public Topic update(Topic topic) {
-		Topic existingTopic = topicRepository.findById(topic.getId())
-				.orElseThrow(() -> new ResourceNotFoundException("Topic not found: " + topic.getId()));
+		Topic existingTopic = requireTopic(topic.getId(), "Topic not found: ");
+		Long tenantId = existingTopic.getTenantId();
+		contentScope.requireWritable(tenantId, "Topic " + topic.getId());
 
 		// Only allow changing name + description (PATCH semantics: null = no change)
 		String newName = topic.getName() != null ? topic.getName() : existingTopic.getName();
@@ -56,7 +67,7 @@ public class TopicServiceImpl implements TopicService {
 
 		// Enforce uniqueness only if name actually changes
 		if (!existingTopic.getName().equals(newName)) {
-			validateUniqueNameUnderParent(existingTopic.getParentId(), newName);
+			validateUniqueNameUnderParent(tenantId, existingTopic.getParentId(), newName);
 		}
 
 		existingTopic.setName(newName);
@@ -115,61 +126,53 @@ public class TopicServiceImpl implements TopicService {
 	@Override
 	@Transactional
 	public List<Topic> getChildren(Long parentId) {
-		return topicRepository.findByParentId(parentId);
+		return topicRepository.findByTenantIdInAndParentId(contentScope.readableTenantIds(), parentId);
 	}
 
 	@Override
 	@Transactional
 	public List<Topic> getDescendants(Long rootId) {
-		Topic topic = topicRepository.findById(rootId)
-				.orElseThrow(() -> new IllegalArgumentException("Topic not found: " + rootId));
-		String path =  normalize(topic.getPath());
-		return topicRepository.findByPathPrefix(path);
+		Topic topic = requireTopic(rootId, "Topic not found: ");
+		// The subtree is in the root's tenant: a sub-topic always lives in its parent's tenant.
+		return topicRepository.findByTenantIdInAndPathPrefix(List.of(topic.getTenantId()), normalize(topic.getPath()));
 	}
 
 	@Override
 	@Transactional
 	public List<Topic> getRoots() {
-		return topicRepository.findByParentIdIsNull();
+		return topicRepository.findByTenantIdInAndParentIdIsNull(contentScope.readableTenantIds());
 	}
 
 	@Override
 	@Transactional
 	public void delete(Long topicId) {
-		topicRepository.delete(topicId);
-
+		Optional<Topic> topic = get(topicId);
+		if (topic.isEmpty()) {
+			return;
+		}
+		contentScope.requireWritable(topic.get().getTenantId(), "Topic " + topicId);
+		topicRepository.deleteByTenantIdAndId(topic.get().getTenantId(), topicId);
 	}
 
 	@Override
 	@Transactional
 	public Optional<Topic> get(Long id) {
-		return topicRepository.findById(id);
+		return topicRepository.findByTenantIdInAndId(contentScope.readableTenantIds(), id);
 	}
 
-	private String buildPath(Long topicId, Long parentId) {
-
-		if (topicId == null) {
-			throw new IllegalArgumentException("topicId must be set");
-		}
-
-		if (parentId == null) {
-			return "/" + topicId;
-		}
-
-		Topic parent = topicRepository.findById(parentId)
-				.orElseThrow(() -> new IllegalArgumentException("Parent topic not found: " + parentId));
-
-		return normalize(parent.getPath()) + topicId;
+	private Topic requireTopic(Long topicId, String message) {
+		return get(topicId).orElseThrow(() -> new ResourceNotFoundException(message + topicId));
 	}
 
-	private void validateUniqueNameUnderParent(Long parentId, String name) {
+	private void validateUniqueNameUnderParent(Long tenantId, Long parentId, String name) {
 		if (parentId == null) {
-			if (topicRepository.existsByParentIdIsNullAndName(name)) {
+			if (topicRepository.existsByTenantIdAndParentIdIsNullAndName(tenantId, name)) {
 				throw new IllegalArgumentException("Topic with name " + name + " already exists as a root topic.");
 			}
+			return;
 		}
 
-		if (topicRepository.existsByParentIdAndName(parentId, name)) {
+		if (topicRepository.existsByTenantIdAndParentIdAndName(tenantId, parentId, name)) {
 			throw new IllegalArgumentException("Topic with name " + name + " already exists for parent id " + parentId);
 		}
 	}

@@ -1,5 +1,6 @@
 package com.knowgauge.infra.repository.jpa.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,24 +15,28 @@ import com.knowgauge.infra.repository.jpa.entity.TopicEntity;
 @Repository
 public interface TopicJpaRepository extends JpaRepository<TopicEntity, Long> {
 
-	List<TopicEntity> findByParentId(Long parentId);
+	Optional<TopicEntity> findByTenantIdInAndId(Collection<Long> tenantIds, Long id);
 
-	boolean existsByParentIdAndName(Long parentId, String name);
-	
-	boolean existsByParentIdIsNullAndName(String name);
+	List<TopicEntity> findByTenantIdInAndParentId(Collection<Long> tenantIds, Long parentId);
+
+	boolean existsByTenantIdAndParentIdAndName(Long tenantId, Long parentId, String name);
+
+	boolean existsByTenantIdAndParentIdIsNullAndName(Long tenantId, String name);
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
-	@Query("update TopicEntity t set t.path = :path where t.id = :id")
-	void updatePath(@Param("id") Long id, @Param("path") String path);
-	
+	@Query("update TopicEntity t set t.path = :path where t.tenantId = :tenantId and t.id = :id")
+	void updatePath(@Param("tenantId") Long tenantId, @Param("id") Long id, @Param("path") String path);
+
+	// Subtopics and their documents go with it (ON DELETE CASCADE).
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("delete from TopicEntity t where t.tenantId = :tenantId and t.id = :id")
+	int deleteByTenantIdAndId(@Param("tenantId") Long tenantId, @Param("id") Long id);
+
 	// roots
-    List<TopicEntity> findByParentIdIsNull();
+	List<TopicEntity> findByTenantIdInAndParentIdIsNull(Collection<Long> tenantIds);
 
-    // get path for a topic (avoid loading full row)
-    @Query("select t.path from TopicEntity t where t.id = :id")
-    Optional<String> findPathById(@Param("id") Long id);
-
-    // subtree by path prefix
-    @Query("select t from TopicEntity t where t.path like concat(:prefix, '%')")
-    List<TopicEntity> findByPathPrefix(@Param("prefix") String prefix);
+	// subtree by path prefix
+	@Query("select t from TopicEntity t where t.tenantId in :tenantIds and t.path like concat(:prefix, '%')")
+	List<TopicEntity> findByTenantIdInAndPathPrefix(@Param("tenantIds") Collection<Long> tenantIds,
+			@Param("prefix") String prefix);
 }

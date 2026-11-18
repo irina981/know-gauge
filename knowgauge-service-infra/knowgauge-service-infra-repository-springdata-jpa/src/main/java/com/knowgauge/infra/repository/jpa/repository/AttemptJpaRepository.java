@@ -3,8 +3,6 @@ package com.knowgauge.infra.repository.jpa.repository;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -45,8 +43,6 @@ public interface AttemptJpaRepository extends JpaRepository<AttemptEntity, Long>
 			""")
 	List<AttemptEntity> findFiltered(@Param("tenantId") Long tenantId, @Param("testId") Long testId,
 			@Param("userId") Long userId, @Param("participantEmail") String participantEmail);
-
-	Page<AttemptEntity> findByTestId(Long testId, Pageable pageable);
 
 	boolean existsByTenantIdAndTestId(Long tenantId, Long testId);
 }

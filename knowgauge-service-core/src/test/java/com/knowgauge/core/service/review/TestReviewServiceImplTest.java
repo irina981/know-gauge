@@ -44,6 +44,7 @@ import com.knowgauge.core.service.review.TestReviewTransactionalServiceImpl.Vers
 import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator;
 import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator.BatchRequest;
 import com.knowgauge.core.service.testgeneration.validation.TestQuestionValidator;
+import com.knowgauge.core.support.ContentScopes;
 import com.knowgauge.core.support.QuestionFixtures;
 
 class TestReviewServiceImplTest {
@@ -74,7 +75,7 @@ class TestReviewServiceImplTest {
 
 		service = new TestReviewServiceImpl(testRepository, questionRepository, mock(TestEventRepository.class),
 				mock(GenerationRunRepository.class), chunkRepository, batchGenerator, new TestQuestionValidator(), tx,
-				ctx);
+				ctx, ContentScopes.ownTenantOnly(ctx));
 
 		TestQuestionVersion v = QuestionFixtures.defaultVersion();
 		v.getOption(OptionLetter.B).flag("ArrayDeque", "HashMap may keep order for small maps");
@@ -259,7 +260,7 @@ class TestReviewServiceImplTest {
 	void regenerateCreatesRegeneratedVersionFromOriginalContext() {
 		when(testRepository.findUsedChunkIds(QuestionFixtures.TENANT, QuestionFixtures.TEST_ID))
 				.thenReturn(List.of(11L, 12L));
-		when(chunkRepository.findByTenantIdAndIdIn(eq(QuestionFixtures.TENANT), any()))
+		when(chunkRepository.findByTenantIdInAndIdIn(eq(List.of(QuestionFixtures.TENANT)), any()))
 				.thenReturn(List.of(new DocumentChunk()));
 		TestQuestionVersion newContent = QuestionFixtures.version("Which interface does TreeMap implement?",
 				Set.of(OptionLetter.D), "List", "Queue", "Deque", "SortedMap");
@@ -287,7 +288,7 @@ class TestReviewServiceImplTest {
 	void failedRegenerationIsRecordedAndChangesNothing() {
 		when(testRepository.findUsedChunkIds(QuestionFixtures.TENANT, QuestionFixtures.TEST_ID))
 				.thenReturn(List.of(11L));
-		when(chunkRepository.findByTenantIdAndIdIn(eq(QuestionFixtures.TENANT), any()))
+		when(chunkRepository.findByTenantIdInAndIdIn(eq(List.of(QuestionFixtures.TENANT)), any()))
 				.thenReturn(List.of(new DocumentChunk()));
 		when(batchGenerator.generateBatch(any())).thenReturn(List.of());
 
@@ -302,7 +303,7 @@ class TestReviewServiceImplTest {
 	void duplicateRegenerationIsRejected() {
 		when(testRepository.findUsedChunkIds(QuestionFixtures.TENANT, QuestionFixtures.TEST_ID))
 				.thenReturn(List.of(11L));
-		when(chunkRepository.findByTenantIdAndIdIn(eq(QuestionFixtures.TENANT), any()))
+		when(chunkRepository.findByTenantIdInAndIdIn(eq(List.of(QuestionFixtures.TENANT)), any()))
 				.thenReturn(List.of(new DocumentChunk()));
 		when(batchGenerator.generateBatch(any()))
 				.thenReturn(List.of(QuestionFixtures.draft(QuestionFixtures.defaultVersion())));

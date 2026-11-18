@@ -22,6 +22,7 @@ import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
+import com.knowgauge.core.service.content.ContentScope;
 import com.knowgauge.core.service.retrieving.RetrievingService;
 import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator.BatchRequest;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
@@ -55,12 +56,14 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final ExecutionContext executionContext;
 	private final TestGenerationDefaultsProperties defaults;
 	private final TestQuestionValidator questionValidator;
+	private final ContentScope contentScope;
 
 	public TestGenerationServiceImpl(RetrievingService retrievingService, QuestionBatchGenerator batchGenerator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
-			TestGenerationDefaultsProperties defaults, TestQuestionValidator questionValidator) {
+			TestGenerationDefaultsProperties defaults, TestQuestionValidator questionValidator,
+			ContentScope contentScope) {
 		this.retrievingService = retrievingService;
 		this.batchGenerator = batchGenerator;
 		this.testDraftValidator = testDraftValidator;
@@ -71,6 +74,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		this.documentChunkRepository = documentChunkRepository;
 		this.executionContext = executionContext;
 		this.defaults = defaults;
+		this.contentScope = contentScope;
 	}
 
 	@Override
@@ -88,11 +92,13 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		Long actorUserId = currentUserId();
 		applyDefaults(testDraft);
 		testDraft.setTenantId(tenantId);
+		// Sources may be the own tenant's content or the library's; the test itself is always in the own tenant.
+		List<Long> sourceTenantIds = contentScope.readableTenantIds(tenantId);
 		log.info("*** Test generation - Started for tenantId={}, topicIds={}, documentIds={}. questionCount={}",
 				tenantId, testDraft.getTopicIds(), testDraft.getDocumentIds(), testDraft.getQuestionCount());
 
 		// 0) Validate test and expand topic and document scope
-		testDraft = testDraftValidator.validateAndExpandTopicsAndDocuments(tenantId, testDraft);
+		testDraft = testDraftValidator.validateAndExpandTopicsAndDocuments(sourceTenantIds, testDraft);
 		List<Long> topicIds = testDraft.getTopicIds();
 		List<Long> documentIds = testDraft.getDocumentIds();
 		log.info("    Test generation - Expanded topic IDs: [{}], document IDs: [{}]", topicIds, documentIds);
@@ -106,7 +112,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 		try {
 			// 2) Retrieve and load chunks
-			ChunksContext ctx = retrieveAndLoadChunks(tenantId, test, documentIds, topicIds);
+			ChunksContext ctx = retrieveAndLoadChunks(tenantId, sourceTenantIds, test, documentIds, topicIds);
 
 			// 3) Generate, validate and verify questions in batches
 			List<TestQuestion> questions = generateAllBatches(test, ctx);
@@ -140,8 +146,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	record ChunksContext(List<DocumentChunk> chunks, List<Long> chunkIds) {
 	}
 
-	private ChunksContext retrieveAndLoadChunks(Long tenantId, Test test, List<Long> documentIds, List<Long> topicIds) {
-		List<ChunkEmbedding> embeddings = retrievingService.retrieveTop(tenantId, documentIds,
+	private ChunksContext retrieveAndLoadChunks(Long tenantId, List<Long> sourceTenantIds, Test test, List<Long> documentIds, List<Long> topicIds) {
+		List<ChunkEmbedding> embeddings = retrievingService.retrieveTop(sourceTenantIds, documentIds,
 				recommendedChunkLimit(test), test.getCoverageMode(), test.getFocusQuery(),
 				Boolean.TRUE.equals(test.getAvoidRepeats()));
 		List<Long> chunkIds = embeddings == null ? List.of()
@@ -149,9 +155,9 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		log.info("    Test generation {} - Retrieved {} chunks: [{}]", test.getId(), chunkIds.size(), chunkIds);
 		requireEnoughChunks(test, chunkIds.size());
 
-		List<DocumentChunk> loaded = documentChunkRepository.findByTenantIdAndIdIn(tenantId, chunkIds);
+		List<DocumentChunk> loaded = documentChunkRepository.findByTenantIdInAndIdIn(sourceTenantIds, chunkIds);
 		if (loaded == null || loaded.isEmpty()) {
-			throw new IllegalStateException("No chunks could be loaded for retrieved embeddings (tenantId=" + tenantId
+			throw new IllegalStateException("No chunks could be loaded for retrieved embeddings (tenantIds=" + sourceTenantIds
 					+ ", chunkIds=" + chunkIds.size() + ").");
 		}
 		// Keep retrieval order (random, mixed across documents) so batch slices mix documents too
@@ -161,7 +167,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		List<Long> loadedIds = chunks.stream().map(DocumentChunk::getId).toList();
 		requireEnoughChunks(test, loadedIds.size());
 
-		tx.setUsedChunks(tenantId, test.getId(), loadedIds);
+		tx.setUsedChunks(tenantId, test.getId(), sourceTenantIds, loadedIds);
 		return new ChunksContext(chunks, loadedIds);
 	}
 

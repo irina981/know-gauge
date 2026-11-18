@@ -28,13 +28,12 @@ public class DocumentSectionJpaRepositoryAdapter implements DocumentSectionRepos
     }
 
     @Override
-    public Optional<DocumentSection> findById(Long id) {
-        return jpaRepository.findById(id).map(mapper::toDomain);
+    public Optional<DocumentSection> findByTenantIdAndId(Long tenantId, Long id) {
+        return jpaRepository.findByTenantIdAndId(tenantId, id).map(mapper::toDomain);
     }
 
     @Override
-    public Page<DocumentSection> findByDocumentId(Long documentId, Pageable pageable) {
-        return jpaRepository.findByDocumentId(documentId, pageable)
-                .map(mapper::toDomain);
+    public Page<DocumentSection> findByTenantIdAndDocumentId(Long tenantId, Long documentId, Pageable pageable) {
+        return jpaRepository.findByTenantIdAndDocumentId(tenantId, documentId, pageable).map(mapper::toDomain);
     }
 }

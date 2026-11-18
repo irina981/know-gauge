@@ -7,10 +7,11 @@ import org.springframework.data.domain.Pageable;
 
 import com.knowgauge.core.model.DocumentSection;
 
+/** Sections of one tenant's documents (scoped through the document's {@code tenantId}). */
 public interface DocumentSectionRepository {
 	DocumentSection save(DocumentSection section);
 
-	Optional<DocumentSection> findById(Long id);
+	Optional<DocumentSection> findByTenantIdAndId(Long tenantId, Long id);
 
-	Page<DocumentSection> findByDocumentId(Long documentId, Pageable pageable);
+	Page<DocumentSection> findByTenantIdAndDocumentId(Long tenantId, Long documentId, Pageable pageable);
 }

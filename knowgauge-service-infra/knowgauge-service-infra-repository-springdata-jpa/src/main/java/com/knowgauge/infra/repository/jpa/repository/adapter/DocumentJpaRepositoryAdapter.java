@@ -1,5 +1,6 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
@@ -33,62 +34,63 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 	}
 
 	@Override
-	public Optional<Document> findById(Long id) {
-		return jpaRepository.findById(id).map(mapper::toDomain);
+	public Optional<Document> findByTenantIdInAndId(Collection<Long> tenantIds, Long id) {
+		return jpaRepository.findByTenantIdInAndId(tenantIds, id).map(mapper::toDomain);
 	}
 
 	@Override
-	public Page<Document> findByTopicId(Long topicId, Pageable pageable) {
-		return jpaRepository.findByTopicId(topicId, pageable).map(mapper::toDomain);
-	}
-
-	public void updateStorageKey(Long id, String storageKey) {
-		jpaRepository.updateStorageKey(id, storageKey);
+	public Page<Document> findByTenantIdInAndTopicId(Collection<Long> tenantIds, Long topicId, Pageable pageable) {
+		return jpaRepository.findByTenantIdInAndTopicId(tenantIds, topicId, pageable).map(mapper::toDomain);
 	}
 
 	@Override
-	public void deleteById(Long id) {
-		jpaRepository.deleteById(id);
-
+	public void updateStorageKey(Long tenantId, Long id, String storageKey) {
+		jpaRepository.updateStorageKey(tenantId, id, storageKey);
 	}
 
 	@Override
-	public boolean existsByTopicIdAndOriginalFileName(Long topicId, String originalFileName) {
-		return jpaRepository.existsByTopicIdAndOriginalFileName(topicId, originalFileName);
+	public void deleteByTenantIdAndId(Long tenantId, Long id) {
+		jpaRepository.deleteByTenantIdAndId(tenantId, id);
 	}
 
 	@Override
-	public boolean existsByTopicIdAndChecksum(Long topicId, String contentHash) {
-		return jpaRepository.existsByTopicIdAndChecksum(topicId, contentHash);
+	public boolean existsByTenantIdAndTopicIdAndOriginalFileName(Long tenantId, Long topicId,
+			String originalFileName) {
+		return jpaRepository.existsByTenantIdAndTopicIdAndOriginalFileName(tenantId, topicId, originalFileName);
 	}
 
 	@Override
-	public int markIngesting(Long documentId) {
-		return jpaRepository.markIngesting(documentId);
+	public boolean existsByTenantIdAndTopicIdAndChecksum(Long tenantId, Long topicId, String contentHash) {
+		return jpaRepository.existsByTenantIdAndTopicIdAndChecksum(tenantId, topicId, contentHash);
 	}
 
 	@Override
-	public int markIngested(Long documentId) {
-		return jpaRepository.markIngested(documentId);
+	public int markIngesting(Long tenantId, Long documentId) {
+		return jpaRepository.markIngesting(tenantId, documentId);
 	}
 
 	@Override
-	public int markFailed(Long documentId, String errorMessage) {
-		return jpaRepository.markFailed(documentId, errorMessage);
+	public int markIngested(Long tenantId, Long documentId) {
+		return jpaRepository.markIngested(tenantId, documentId);
 	}
 
 	@Override
-	public Map<Long, Long> countByTopicId(Long tenantId, DocumentStatus status) {
+	public int markFailed(Long tenantId, Long documentId, String errorMessage) {
+		return jpaRepository.markFailed(tenantId, documentId, errorMessage);
+	}
+
+	@Override
+	public Map<Long, Long> countByTopicId(Collection<Long> tenantIds, DocumentStatus status) {
 		Map<Long, Long> counts = new LinkedHashMap<>();
-		for (Object[] row : jpaRepository.countByTopicId(tenantId, status)) {
+		for (Object[] row : jpaRepository.countByTopicId(tenantIds, status)) {
 			counts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
 		}
 		return counts;
 	}
 
 	@Override
-	public List<Document> findByTenantIdAndTopicIdIn(Long tenantId, List<Long> topicIds) {
-		return jpaRepository.findByTenantIdAndTopicIdIn(tenantId, topicIds).stream().map(mapper::toDomain).toList();
+	public List<Document> findByTenantIdInAndTopicIdIn(Collection<Long> tenantIds, List<Long> topicIds) {
+		return jpaRepository.findByTenantIdInAndTopicIdIn(tenantIds, topicIds).stream().map(mapper::toDomain).toList();
 	}
 
 	@Override

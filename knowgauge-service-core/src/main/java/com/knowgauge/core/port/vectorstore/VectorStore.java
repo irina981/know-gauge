@@ -24,9 +24,9 @@ public interface VectorStore {
 
 	long deleteByTenantIdAndChunkId(Long tenantId, Long chunkId);
 
-	List<DocChunkCount> loadDocChunkCounts(Long tenantId, String embeddingModel, Collection<Long> documentIds);
+	List<DocChunkCount> loadDocChunkCounts(Collection<Long> tenantIds, String embeddingModel, Collection<Long> documentIds);
 
-	public List<ChunkEmbedding> findCandidates(Long tenantId, Collection<Long> documentIds, int maxChunksPerDoc,
+	public List<ChunkEmbedding> findCandidates(Collection<Long> tenantIds, Collection<Long> documentIds, int maxChunksPerDoc,
 			String embeddingModel, boolean avoidRepeats);
 
 	/**
@@ -36,6 +36,6 @@ public interface VectorStore {
 	 * @param queryEmbedding embedding of the focus text, made with {@code embeddingModel}
 	 * @param limit          most rows returned
 	 */
-	List<ChunkEmbedding> findNearest(Long tenantId, Collection<Long> documentIds, float[] queryEmbedding,
+	List<ChunkEmbedding> findNearest(Collection<Long> tenantIds, Collection<Long> documentIds, float[] queryEmbedding,
 			String embeddingModel, int limit);
 }

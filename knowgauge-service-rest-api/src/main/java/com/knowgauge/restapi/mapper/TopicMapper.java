@@ -12,7 +12,8 @@ import com.knowgauge.core.model.Topic;
 
 @Mapper(
     componentModel = "spring",
-    unmappedTargetPolicy = ReportingPolicy.ERROR
+    unmappedTargetPolicy = ReportingPolicy.ERROR,
+    uses = ContentAccessMapping.class
 )
 public interface TopicMapper {
 
@@ -61,5 +62,7 @@ public interface TopicMapper {
      * Domain -> Response DTO
      * If Topic has children, MapStruct will map List<Topic> -> List<TopicDto> automatically.
      */
+    @Mapping(target = "readOnly", source = "tenantId", qualifiedByName = "readOnly")
+    @Mapping(target = "shared", source = "tenantId", qualifiedByName = "shared")
     TopicDto toDto(Topic topic);
 }

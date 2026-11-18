@@ -9,7 +9,7 @@ import com.knowgauge.contract.dto.DocumentDto;
 import com.knowgauge.contract.dto.DocumentInput;
 import com.knowgauge.core.model.Document;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR, uses = ContentAccessMapping.class)
 public interface DocumentMapper {
 
 	/**
@@ -37,5 +37,7 @@ public interface DocumentMapper {
 	/**
 	 * Domain -> Response DTO
 	 */
+	@Mapping(target = "readOnly", source = "tenantId", qualifiedByName = "readOnly")
+	@Mapping(target = "shared", source = "tenantId", qualifiedByName = "shared")
 	DocumentDto toDto(Document document);
 }

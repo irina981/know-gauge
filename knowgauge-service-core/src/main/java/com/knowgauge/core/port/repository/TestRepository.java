@@ -1,6 +1,7 @@
 package com.knowgauge.core.port.repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,7 +29,8 @@ public interface TestRepository {
 
 	void deleteByTenantIdAndId(Long tenantId, Long id);
 
-	void setUsedChunks(Long tenantId, Long testId, List<Long> chunkIds);
+	/** Links the chunks the test was generated from; they may be in other tenants (the library). */
+	void setUsedChunks(Long tenantId, Long testId, Collection<Long> chunkTenantIds, List<Long> chunkIds);
 
 	int markGenerated(Long tenantId, Long testId, Instant finishedAt);
 

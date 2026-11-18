@@ -155,7 +155,8 @@ public class DevDocumentSeeder {
 			String title, String originalFileName, String classpathLocation) throws Exception {
 
 		// ---------- idempotency check ----------
-		boolean exists = documentRepository.existsByTopicIdAndOriginalFileName(topicId, originalFileName);
+		boolean exists = documentRepository.existsByTenantIdAndTopicIdAndOriginalFileName(DEV_TENANT_ID, topicId,
+				originalFileName);
 
 		if (exists) {
 			log.info("Dev seed skipped (already exists): [{}] {}", topicId, title);

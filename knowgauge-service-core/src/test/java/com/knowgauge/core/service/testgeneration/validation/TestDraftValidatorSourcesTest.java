@@ -40,10 +40,10 @@ class TestDraftValidatorSourcesTest {
 
 	@Test
 	void aParentTopicWithoutOwnDocumentsUsesTheDocumentsOfItsSubTopics() {
-		when(documentService.findByTopicIds(TENANT, List.of(ROOT, CHILD_A, CHILD_B)))
+		when(documentService.findByTopicIds(List.of(TENANT), List.of(ROOT, CHILD_A, CHILD_B)))
 				.thenReturn(List.of(doc(1L, CHILD_A, DocumentStatus.INGESTED), doc(2L, CHILD_B, DocumentStatus.INGESTED)));
 
-		com.knowgauge.core.model.Test test = validator.validateAndExpandTopicsAndDocuments(TENANT, draft(List.of(ROOT)));
+		com.knowgauge.core.model.Test test = validator.validateAndExpandTopicsAndDocuments(List.of(TENANT), draft(List.of(ROOT)));
 
 		assertThat(test.getDocumentIds()).containsExactly(1L, 2L);
 		assertThat(test.getTopicIds()).containsExactly(ROOT, CHILD_A, CHILD_B);
@@ -51,20 +51,20 @@ class TestDraftValidatorSourcesTest {
 
 	@Test
 	void documentsOfTopicsThatAreNotIngestedAreSkipped() {
-		when(documentService.findByTopicIds(TENANT, List.of(ROOT, CHILD_A, CHILD_B)))
+		when(documentService.findByTopicIds(List.of(TENANT), List.of(ROOT, CHILD_A, CHILD_B)))
 				.thenReturn(List.of(doc(1L, CHILD_A, DocumentStatus.INGESTED), doc(2L, CHILD_B, DocumentStatus.UPLOADED)));
 
-		com.knowgauge.core.model.Test test = validator.validateAndExpandTopicsAndDocuments(TENANT, draft(List.of(ROOT)));
+		com.knowgauge.core.model.Test test = validator.validateAndExpandTopicsAndDocuments(List.of(TENANT), draft(List.of(ROOT)));
 
 		assertThat(test.getDocumentIds()).containsExactly(1L);
 	}
 
 	@Test
 	void failsWhenNoDocumentInTheSubtreeIsIngested() {
-		when(documentService.findByTopicIds(TENANT, List.of(ROOT, CHILD_A, CHILD_B)))
+		when(documentService.findByTopicIds(List.of(TENANT), List.of(ROOT, CHILD_A, CHILD_B)))
 				.thenReturn(List.of(doc(2L, CHILD_B, DocumentStatus.FAILED)));
 
-		assertThatThrownBy(() -> validator.validateAndExpandTopicsAndDocuments(TENANT, draft(List.of(ROOT))))
+		assertThatThrownBy(() -> validator.validateAndExpandTopicsAndDocuments(List.of(TENANT), draft(List.of(ROOT))))
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("no ingested documents");
 	}
 
@@ -74,7 +74,7 @@ class TestDraftValidatorSourcesTest {
 		com.knowgauge.core.model.Test draft = draft(List.of());
 		draft.setDocumentIds(List.of(5L));
 
-		assertThatThrownBy(() -> validator.validateAndExpandTopicsAndDocuments(TENANT, draft))
+		assertThatThrownBy(() -> validator.validateAndExpandTopicsAndDocuments(List.of(TENANT), draft))
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("not INGESTED");
 	}
 

@@ -36,14 +36,14 @@ class TestDraftValidatorFocusTest {
 	void focusedKeepsTheTrimmedFocusText() {
 		com.knowgauge.core.model.Test test = draft(TestCoverageMode.FOCUSED, "  thread pools  ");
 
-		validator.validateAndExpandTopicsAndDocuments(TENANT, test);
+		validator.validateAndExpandTopicsAndDocuments(List.of(TENANT), test);
 
 		assertThat(test.getFocusQuery()).isEqualTo("thread pools");
 	}
 
 	@Test
 	void focusedRequiresAFocusText() {
-		assertThatThrownBy(() -> validator.validateAndExpandTopicsAndDocuments(TENANT,
+		assertThatThrownBy(() -> validator.validateAndExpandTopicsAndDocuments(List.of(TENANT),
 				draft(TestCoverageMode.FOCUSED, "   "))).isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("focusQuery is required");
 	}
@@ -52,7 +52,7 @@ class TestDraftValidatorFocusTest {
 	void focusedRejectsAnOverlongFocusText() {
 		String tooLong = "x".repeat(TestDraftValidator.MAX_FOCUS_QUERY_LENGTH + 1);
 
-		assertThatThrownBy(() -> validator.validateAndExpandTopicsAndDocuments(TENANT,
+		assertThatThrownBy(() -> validator.validateAndExpandTopicsAndDocuments(List.of(TENANT),
 				draft(TestCoverageMode.FOCUSED, tooLong))).isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("at most");
 	}
@@ -61,7 +61,7 @@ class TestDraftValidatorFocusTest {
 	void balancedModesDropTheFocusText() {
 		com.knowgauge.core.model.Test test = draft(TestCoverageMode.BALANCED_PER_DOCS, "thread pools");
 
-		validator.validateAndExpandTopicsAndDocuments(TENANT, test);
+		validator.validateAndExpandTopicsAndDocuments(List.of(TENANT), test);
 
 		assertThat(test.getFocusQuery()).isNull();
 	}

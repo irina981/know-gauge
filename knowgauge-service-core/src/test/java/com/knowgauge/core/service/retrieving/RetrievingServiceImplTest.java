@@ -88,13 +88,13 @@ class RetrievingServiceImplTest {
 
 		focused(40);
 
-		verify(vectorStore).findNearest(TENANT, DOCS, QUERY, "text-embedding-3-small", 85);
+		verify(vectorStore).findNearest(List.of(TENANT), DOCS, QUERY, "text-embedding-3-small", 85);
 		verify(vectorStore, never()).findCandidates(any(), any(), anyInt(), anyString(), anyBoolean());
 	}
 
 	@Test
 	void needsAFocusText() {
-		assertThatThrownBy(() -> service.retrieveTop(TENANT, DOCS, 5, TestCoverageMode.FOCUSED, " ", false))
+		assertThatThrownBy(() -> service.retrieveTop(List.of(TENANT), DOCS, 5, TestCoverageMode.FOCUSED, " ", false))
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("focus text");
 		verify(embeddingService, never()).embed(anyString());
 	}
@@ -107,11 +107,11 @@ class RetrievingServiceImplTest {
 	}
 
 	private List<ChunkEmbedding> focused(int limit) {
-		return service.retrieveTop(TENANT, DOCS, limit, TestCoverageMode.FOCUSED, "on-call rotation", false);
+		return service.retrieveTop(List.of(TENANT), DOCS, limit, TestCoverageMode.FOCUSED, "on-call rotation", false);
 	}
 
 	private void givenNearest(ChunkEmbedding... chunks) {
-		when(vectorStore.findNearest(eq(TENANT), eq(DOCS), eq(QUERY), eq("text-embedding-3-small"), anyInt()))
+		when(vectorStore.findNearest(eq(List.of(TENANT)), eq(DOCS), eq(QUERY), eq("text-embedding-3-small"), anyInt()))
 				.thenReturn(List.of(chunks));
 	}
 

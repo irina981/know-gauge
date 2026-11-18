@@ -1,5 +1,6 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,51 +29,44 @@ public class TopicJpaRepositoryAdapter implements TopicRepository {
 		TopicEntity saved = jpaRepository.save(entity);
 		return mapper.toDomain(saved);
 	}
-	
+
 	@Override
-	public void delete (Long topicId) {
-		jpaRepository.deleteById(topicId);
+	public void deleteByTenantIdAndId(Long tenantId, Long topicId) {
+		jpaRepository.deleteByTenantIdAndId(tenantId, topicId);
 	}
 
 	@Override
-	public void updatePath(Long id, String path) {
-		jpaRepository.updatePath(id, path);
+	public void updatePath(Long tenantId, Long id, String path) {
+		jpaRepository.updatePath(tenantId, id, path);
 	}
 
 	@Override
-	public Optional<Topic> findById(Long id) {
-		return jpaRepository.findById(id).map(mapper::toDomain);
+	public Optional<Topic> findByTenantIdInAndId(Collection<Long> tenantIds, Long id) {
+		return jpaRepository.findByTenantIdInAndId(tenantIds, id).map(mapper::toDomain);
 	}
 
 	@Override
-	public List<Topic> findByParentId(Long parentId) {
-		return jpaRepository.findByParentId(parentId).stream().map(mapper::toDomain).toList();
+	public List<Topic> findByTenantIdInAndParentId(Collection<Long> tenantIds, Long parentId) {
+		return jpaRepository.findByTenantIdInAndParentId(tenantIds, parentId).stream().map(mapper::toDomain).toList();
 	}
 
 	@Override
-	public boolean existsByParentIdAndName(Long parentId, String name) {
-		return jpaRepository.existsByParentIdAndName(parentId, name);
+	public boolean existsByTenantIdAndParentIdAndName(Long tenantId, Long parentId, String name) {
+		return jpaRepository.existsByTenantIdAndParentIdAndName(tenantId, parentId, name);
 	}
 
 	@Override
-	public List<Topic> findByParentIdIsNull() {
-		return jpaRepository.findByParentIdIsNull().stream().map(mapper::toDomain).toList();
+	public boolean existsByTenantIdAndParentIdIsNullAndName(Long tenantId, String name) {
+		return jpaRepository.existsByTenantIdAndParentIdIsNullAndName(tenantId, name);
 	}
 
 	@Override
-	public Optional<String> findPathById(Long id) {
-		return jpaRepository.findPathById(id);
+	public List<Topic> findByTenantIdInAndParentIdIsNull(Collection<Long> tenantIds) {
+		return jpaRepository.findByTenantIdInAndParentIdIsNull(tenantIds).stream().map(mapper::toDomain).toList();
 	}
 
 	@Override
-	public List<Topic> findByPathPrefix(String prefix) {
-		return jpaRepository.findByPathPrefix(prefix).stream().map(mapper::toDomain).toList();
+	public List<Topic> findByTenantIdInAndPathPrefix(Collection<Long> tenantIds, String prefix) {
+		return jpaRepository.findByTenantIdInAndPathPrefix(tenantIds, prefix).stream().map(mapper::toDomain).toList();
 	}
-
-	@Override
-	public boolean existsByParentIdIsNullAndName(String name) {
-		return jpaRepository.existsByParentIdIsNullAndName(name);
-	}
-	
-	
 }

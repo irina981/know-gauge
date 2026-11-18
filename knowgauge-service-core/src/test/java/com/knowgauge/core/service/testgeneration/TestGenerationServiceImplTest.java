@@ -44,6 +44,7 @@ import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator.BatchReq
 import com.knowgauge.core.service.testgeneration.TestGenerationServiceImpl.ChunksContext;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
 import com.knowgauge.core.service.testgeneration.validation.TestQuestionValidator;
+import com.knowgauge.core.support.ContentScopes;
 import com.knowgauge.core.support.QuestionFixtures;
 
 class TestGenerationServiceImplTest {
@@ -81,7 +82,7 @@ class TestGenerationServiceImplTest {
 		defaults.setPromptTemplateId("mcq-default");
 		defaults.setGenerationModel("gpt-4.1");
 
-		when(draftValidator.validateAndExpandTopicsAndDocuments(eq(TENANT), any()))
+		when(draftValidator.validateAndExpandTopicsAndDocuments(eq(List.of(TENANT)), any()))
 				.thenAnswer(inv -> inv.getArgument(1));
 		when(tx.persistTest(eq(TENANT), any(), any())).thenAnswer(inv -> {
 			com.knowgauge.core.model.Test t = inv.getArgument(1);
@@ -95,7 +96,7 @@ class TestGenerationServiceImplTest {
 
 		service = new TestGenerationServiceImpl(retrievingService, batchGenerator, draftValidator, tx,
 				mock(TestRepository.class), mock(TestQuestionRepository.class), chunkRepository, ctx, defaults,
-				new TestQuestionValidator());
+				new TestQuestionValidator(), ContentScopes.ownTenantOnly(ctx));
 	}
 
 	private static com.knowgauge.core.model.Test draft(int questionCount) {
@@ -112,10 +113,10 @@ class TestGenerationServiceImplTest {
 			embeddings.add(ChunkEmbedding.builder().chunkId(id).documentId(3L).build());
 			loaded.add(DocumentChunk.builder().id(id).chunkText("chunk " + id).build());
 		}
-		when(retrievingService.retrieveTop(eq(TENANT), anyList(), anyInt(), any(), any(), anyBoolean()))
+		when(retrievingService.retrieveTop(eq(List.of(TENANT)), anyList(), anyInt(), any(), any(), anyBoolean()))
 				.thenReturn(embeddings);
 		java.util.Collections.reverse(loaded);
-		when(chunkRepository.findByTenantIdAndIdIn(eq(TENANT), anyList())).thenReturn(loaded);
+		when(chunkRepository.findByTenantIdInAndIdIn(eq(List.of(TENANT)), anyList())).thenReturn(loaded);
 		return ids;
 	}
 
@@ -185,7 +186,7 @@ class TestGenerationServiceImplTest {
 
 		verify(tx).markTestFailed(eq(TENANT), eq(TEST_ID), anyString());
 		verify(batchGenerator, never()).generateBatch(any());
-		verify(tx, never()).setUsedChunks(anyLong(), anyLong(), anyList());
+		verify(tx, never()).setUsedChunks(anyLong(), anyLong(), any(), anyList());
 	}
 
 	@Test

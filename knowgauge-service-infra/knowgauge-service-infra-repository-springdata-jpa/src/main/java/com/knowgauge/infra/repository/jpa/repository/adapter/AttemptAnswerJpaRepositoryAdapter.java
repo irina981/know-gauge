@@ -1,10 +1,7 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
 import java.util.List;
-import java.util.Optional;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.AttemptAnswer;
@@ -33,16 +30,6 @@ public class AttemptAnswerJpaRepositoryAdapter implements AttemptAnswerRepositor
 	public List<AttemptAnswer> saveAll(List<AttemptAnswer> answers) {
 		return jpaRepository.saveAll(answers.stream().map(mapper::toEntity).toList()).stream()
 				.map(mapper::toDomain).toList();
-	}
-
-	@Override
-	public Optional<AttemptAnswer> findById(Long id) {
-		return jpaRepository.findById(id).map(mapper::toDomain);
-	}
-
-	@Override
-	public Page<AttemptAnswer> findByAttemptId(Long attemptId, Pageable pageable) {
-		return jpaRepository.findByAttemptId(attemptId, pageable).map(mapper::toDomain);
 	}
 
 	@Override

@@ -31,6 +31,7 @@ import com.knowgauge.core.port.repository.GenerationRunRepository;
 import com.knowgauge.core.port.repository.TestEventRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
+import com.knowgauge.core.service.content.ContentScope;
 import com.knowgauge.core.service.testgeneration.validation.TestDetailsRules;
 import com.knowgauge.core.service.review.ManualQuestionDraft.ManualOption;
 import com.knowgauge.core.service.review.TestReviewTransactionalServiceImpl.VersionChange;
@@ -57,12 +58,13 @@ public class TestReviewServiceImpl implements TestReviewService {
 	private final TestQuestionValidator validator;
 	private final TestReviewTransactionalServiceImpl tx;
 	private final ExecutionContext executionContext;
+	private final ContentScope contentScope;
 
 	public TestReviewServiceImpl(TestRepository testRepository, TestQuestionRepository questionRepository,
 			TestEventRepository eventRepository, GenerationRunRepository generationRunRepository,
 			DocumentChunkRepository chunkRepository, QuestionBatchGenerator batchGenerator,
 			TestQuestionValidator validator, TestReviewTransactionalServiceImpl tx,
-			ExecutionContext executionContext) {
+			ExecutionContext executionContext, ContentScope contentScope) {
 		this.testRepository = testRepository;
 		this.questionRepository = questionRepository;
 		this.eventRepository = eventRepository;
@@ -72,6 +74,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 		this.validator = validator;
 		this.tx = tx;
 		this.executionContext = executionContext;
+		this.contentScope = contentScope;
 	}
 
 	private record ReviewContext(Long tenantId, Long actorUserId, Test test, TestQuestion question) {
@@ -157,7 +160,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 		List<Long> chunkIds = testRepository.findUsedChunkIds(ctx.tenantId(), testId);
 		List<DocumentChunk> chunks = chunkIds.isEmpty() ? List.of()
-				: chunkRepository.findByTenantIdAndIdIn(ctx.tenantId(), chunkIds);
+				: chunkRepository.findByTenantIdInAndIdIn(contentScope.readableTenantIds(ctx.tenantId()), chunkIds);
 		if (chunks.isEmpty()) {
 			throw regenerationFailed(ctx, comment,
 					"The test's source chunks are no longer available (documents were re-ingested or deleted).");

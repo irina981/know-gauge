@@ -34,16 +34,16 @@ public class RetrievingServiceImpl implements RetrievingService {
 	}
 
 	@Override
-	public List<ChunkEmbedding> retrieveTop(Long tenantId, Collection<Long> documentIds, int limit,
+	public List<ChunkEmbedding> retrieveTop(Collection<Long> tenantIds, Collection<Long> documentIds, int limit,
 			TestCoverageMode coverageMode, String focusQuery, boolean avoidRepeats) {
 		// =========================
 		// Step 0: Validate inputs
 		// =========================
-		// tenantId is mandatory for isolation.
+		// tenantIds are mandatory for isolation.
 		// limit<=0 returns empty.
 		// empty documentIds means "no corpus scope" -> return empty (no candidates).
-		if (tenantId == null) {
-			throw new IllegalArgumentException("tenantId must not be null");
+		if (tenantIds == null || tenantIds.isEmpty()) {
+			throw new IllegalArgumentException("tenantIds must not be empty");
 		}
 		if (limit <= 0) {
 			return List.of();
@@ -56,7 +56,7 @@ public class RetrievingServiceImpl implements RetrievingService {
 		// Step 1: FOCUSED is a similarity search, not balanced sampling
 		// =========================
 		if (coverageMode == TestCoverageMode.FOCUSED) {
-			return retrieveFocused(tenantId, documentIds, limit, focusQuery);
+			return retrieveFocused(tenantIds, documentIds, limit, focusQuery);
 		}
 
 		// =========================
@@ -77,7 +77,7 @@ public class RetrievingServiceImpl implements RetrievingService {
 		// Example: one 100-page doc + many 3-page docs:
 		// - PER_DOC may under-represent the big doc
 		// - PER_DOC_CHUNKS keeps proportional representation
-		List<DocChunkCount> docCounts = vectorStore.loadDocChunkCounts(tenantId, embeddingModel, documentIds);
+		List<DocChunkCount> docCounts = vectorStore.loadDocChunkCounts(tenantIds, embeddingModel, documentIds);
 		if (docCounts.isEmpty()) {
 			return List.of();
 		}
@@ -109,7 +109,7 @@ public class RetrievingServiceImpl implements RetrievingService {
 		//
 		// This prevents pulling all embeddings for huge documents.
 		// Final per-document quotas are applied in memory.
-		List<ChunkEmbedding> candidates = vectorStore.findCandidates(tenantId, documentIds, maxChunksPerDoc, embeddingModel,
+		List<ChunkEmbedding> candidates = vectorStore.findCandidates(tenantIds, documentIds, maxChunksPerDoc, embeddingModel,
 				avoidRepeats);
 
 		// =========================
@@ -177,7 +177,7 @@ public class RetrievingServiceImpl implements RetrievingService {
 	 * per-document balancing: the focus decides which documents contribute.
 	 * Identical content (same checksum) is taken once.
 	 */
-	private List<ChunkEmbedding> retrieveFocused(Long tenantId, Collection<Long> documentIds, int limit,
+	private List<ChunkEmbedding> retrieveFocused(Collection<Long> tenantIds, Collection<Long> documentIds, int limit,
 			String focusQuery) {
 		if (focusQuery == null || focusQuery.isBlank()) {
 			throw new IllegalArgumentException("FOCUSED coverage needs a focus text to search for.");
@@ -187,7 +187,7 @@ public class RetrievingServiceImpl implements RetrievingService {
 		int wanted = limit;
 
 		// A few extra rows make up for duplicates; the distance cut-off below decides the rest.
-		List<ChunkEmbedding> nearest = vectorStore.findNearest(tenantId, documentIds, queryEmbedding, embeddingModel,
+		List<ChunkEmbedding> nearest = vectorStore.findNearest(tenantIds, documentIds, queryEmbedding, embeddingModel,
 				wanted * 2 + 5);
 		if (nearest.isEmpty()) {
 			return List.of();

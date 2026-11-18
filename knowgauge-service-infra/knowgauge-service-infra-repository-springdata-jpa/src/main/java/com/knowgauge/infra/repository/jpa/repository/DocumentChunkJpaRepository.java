@@ -38,7 +38,7 @@ public interface DocumentChunkJpaRepository extends JpaRepository<DocumentChunkE
 	// Fetch chunks by IDs (after vector search)
 	// -------------------------------------------------
 
-	List<DocumentChunkEntity> findByTenantIdAndIdIn(Long tenantId, Collection<Long> chunkIds);
+	List<DocumentChunkEntity> findByTenantIdInAndIdIn(Collection<Long> tenantIds, Collection<Long> chunkIds);
 
 	// -------------------------------------------------
 	// Optional: checksum-based lookup (debug / dedupe)

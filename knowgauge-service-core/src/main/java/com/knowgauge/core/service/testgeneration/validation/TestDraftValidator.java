@@ -1,6 +1,7 @@
 package com.knowgauge.core.service.testgeneration.validation;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,10 @@ public class TestDraftValidator {
         this.topicService = topicService;
     }
 
-    public Test validateAndExpandTopicsAndDocuments(Long tenantId, Test testDraft) {
+    /**
+     * @param sourceTenantIds tenants whose topics and documents may be used: the own tenant and the library
+     */
+    public Test validateAndExpandTopicsAndDocuments(Collection<Long> sourceTenantIds, Test testDraft) {
 
         validateTestNotNull(testDraft);
 
@@ -58,16 +62,16 @@ public class TestDraftValidator {
         validateAtLeastOneSourceSelected(topicIds, explicitDocumentIds);
         validateQuestionCount(testDraft);
 
-        validateTopicsExistAndBelongToTenant(tenantId, topicIds);
+        validateTopicsExistAndBelongToTenant(sourceTenantIds, topicIds);
 
         // Explicitly chosen documents must be ingested: the user asked for exactly these.
-        List<Document> explicitDocuments = validateDocumentsExistAndBelongToTenant(tenantId, explicitDocumentIds);
+        List<Document> explicitDocuments = validateDocumentsExistAndBelongToTenant(sourceTenantIds, explicitDocumentIds);
         validateAllDocumentsIngested(explicitDocuments);
 
         // A topic stands for its whole subtree, so a parent topic without documents of its own works too. Documents
         // under it that are not ingested (yet) are skipped instead of failing the whole test.
-        List<Long> expandedTopicIds = expandTopicIdsWithDescendants(tenantId, topicIds);
-        List<Document> topicDocuments = resolveIngestedDocumentsFromTopics(tenantId, expandedTopicIds);
+        List<Long> expandedTopicIds = expandTopicIdsWithDescendants(sourceTenantIds, topicIds);
+        List<Document> topicDocuments = resolveIngestedDocumentsFromTopics(sourceTenantIds, expandedTopicIds);
 
         List<Document> allSourceDocuments = mergeDocuments(explicitDocuments, topicDocuments);
 
@@ -82,7 +86,7 @@ public class TestDraftValidator {
     // Expand topic IDs with all the descendants' IDs
     // ---------------------------
     
-    private List<Long> expandTopicIdsWithDescendants(Long tenantId, List<Long> topicIds) {
+    private List<Long> expandTopicIdsWithDescendants(Collection<Long> sourceTenantIds, List<Long> topicIds) {
 
         if (topicIds == null || topicIds.isEmpty()) return List.of();
 
@@ -95,7 +99,7 @@ public class TestDraftValidator {
                 expanded.add(rootId);
 
                 topicService.getDescendants(rootId).stream()
-                    .filter(t -> tenantId.equals(t.getTenantId()))
+                    .filter(t -> sourceTenantIds.contains(t.getTenantId()))
                     .map(Topic::getId)
                     .forEach(expanded::add);
             });
@@ -156,7 +160,7 @@ public class TestDraftValidator {
         }
     }
 
-    private List<Topic> validateTopicsExistAndBelongToTenant(Long tenantId, List<Long> topicIds) {
+    private List<Topic> validateTopicsExistAndBelongToTenant(Collection<Long> sourceTenantIds, List<Long> topicIds) {
 
         List<Topic> topics = new ArrayList<>();
 
@@ -165,7 +169,7 @@ public class TestDraftValidator {
             Topic topic = topicService.get(topicId)
                     .orElseThrow(() -> new IllegalArgumentException("Topic not found: " + topicId));
 
-            validateBelongsToTenant("Topic", topicId, tenantId, topic.getTenantId());
+            validateBelongsToTenant("Topic", topicId, sourceTenantIds, topic.getTenantId());
 
             topics.add(topic);
         }
@@ -173,7 +177,7 @@ public class TestDraftValidator {
         return topics;
     }
 
-    private List<Document> validateDocumentsExistAndBelongToTenant(Long tenantId, List<Long> documentIds) {
+    private List<Document> validateDocumentsExistAndBelongToTenant(Collection<Long> sourceTenantIds, List<Long> documentIds) {
 
         List<Document> documents = new ArrayList<>();
 
@@ -182,7 +186,7 @@ public class TestDraftValidator {
             Document document = documentService.get(documentId)
                     .orElseThrow(() -> new IllegalArgumentException("Document not found: " + documentId));
 
-            validateBelongsToTenant("Document", documentId, tenantId, document.getTenantId());
+            validateBelongsToTenant("Document", documentId, sourceTenantIds, document.getTenantId());
 
             documents.add(document);
         }
@@ -191,16 +195,16 @@ public class TestDraftValidator {
     }
 
     /** Ingested documents of the given topics (the selected topics plus all their descendants). */
-    private List<Document> resolveIngestedDocumentsFromTopics(Long tenantId, List<Long> topicIds) {
+    private List<Document> resolveIngestedDocumentsFromTopics(Collection<Long> sourceTenantIds, List<Long> topicIds) {
 
         if (topicIds.isEmpty()) {
             return List.of();
         }
 
-        List<Document> docs = documentService.findByTopicIds(tenantId, topicIds);
+        List<Document> docs = documentService.findByTopicIds(sourceTenantIds, topicIds);
 
         for (Document d : docs) {
-            validateBelongsToTenant("Document", d.getId(), tenantId, d.getTenantId());
+            validateBelongsToTenant("Document", d.getId(), sourceTenantIds, d.getTenantId());
         }
 
         return docs.stream().filter(d -> d.getStatus() == DocumentStatus.INGESTED).toList();
@@ -222,9 +226,9 @@ public class TestDraftValidator {
         }
     }
 
-    private void validateBelongsToTenant(String entity, Long entityId, Long expectedTenantId, Long actualTenantId) {
-        if (!expectedTenantId.equals(actualTenantId)) {
-            throw new IllegalArgumentException(entity + " " + entityId + " does not belong to tenant " + expectedTenantId);
+    private void validateBelongsToTenant(String entity, Long entityId, Collection<Long> sourceTenantIds, Long actualTenantId) {
+        if (!sourceTenantIds.contains(actualTenantId)) {
+            throw new IllegalArgumentException(entity + " " + entityId + " does not belong to tenants " + sourceTenantIds);
         }
     }
 

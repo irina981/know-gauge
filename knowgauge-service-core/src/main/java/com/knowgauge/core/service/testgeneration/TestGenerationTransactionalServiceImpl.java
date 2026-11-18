@@ -2,6 +2,7 @@ package com.knowgauge.core.service.testgeneration;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -115,7 +116,7 @@ public class TestGenerationTransactionalServiceImpl {
 	}
 
 	@Transactional
-	public void setUsedChunks(Long tenantId, Long testId, List<Long> chunkIds) {
-		testRepository.setUsedChunks(tenantId, testId, chunkIds);
+	public void setUsedChunks(Long tenantId, Long testId, Collection<Long> chunkTenantIds, List<Long> chunkIds) {
+		testRepository.setUsedChunks(tenantId, testId, chunkTenantIds, chunkIds);
 	}
 }

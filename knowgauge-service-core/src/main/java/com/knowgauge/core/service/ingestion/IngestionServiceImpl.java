@@ -6,6 +6,7 @@ import java.util.List;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
+import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.exception.DocumentIngestionConflictException;
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.DocumentChunk;
@@ -14,6 +15,7 @@ import com.knowgauge.core.port.documentparser.DocumentParser;
 import com.knowgauge.core.port.embedding.EmbeddingService;
 import com.knowgauge.core.service.chunking.ChunkingPolicy;
 import com.knowgauge.core.service.chunking.ChunkingService;
+import com.knowgauge.core.service.content.ContentScope;
 import com.knowgauge.core.service.content.DocumentService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -31,10 +33,13 @@ public class IngestionServiceImpl implements IngestionService {
 	private final IngestionTransactionalServiceImpl ingestionTransactionalService;
 	private final IngestionVectorTransactionalServiceImpl ingestionVectorTransactionalService;
 	private final ChunkingPolicy chunkingPolicy;
+	private final ExecutionContext executionContext;
+	private final ContentScope contentScope;
 
 	public IngestionServiceImpl(List<DocumentParser> pageExtractionServices,
 			ChunkingService chunkingService, DocumentService documentService,
-			IngestionTransactionalServiceImpl ingestionTransactionalService, EmbeddingService embeddingService, IngestionVectorTransactionalServiceImpl ingestionVectorTransactionalService, ChunkingPolicy chunkingPolicy) {
+			IngestionTransactionalServiceImpl ingestionTransactionalService, EmbeddingService embeddingService, IngestionVectorTransactionalServiceImpl ingestionVectorTransactionalService, ChunkingPolicy chunkingPolicy,
+			ExecutionContext executionContext, ContentScope contentScope) {
 		this.pageExtractionServices = pageExtractionServices;
 		this.chunkingService = chunkingService;
 		this.embeddingService = embeddingService;
@@ -42,6 +47,8 @@ public class IngestionServiceImpl implements IngestionService {
 		this.ingestionTransactionalService = ingestionTransactionalService;
 		this.ingestionVectorTransactionalService = ingestionVectorTransactionalService;
 		this.chunkingPolicy = chunkingPolicy;
+		this.executionContext = executionContext;
+		this.contentScope = contentScope;
 	}
 
 	@Override
@@ -62,6 +69,15 @@ public class IngestionServiceImpl implements IngestionService {
 		if (document.getStatus() != DocumentStatus.UPLOADED && document.getStatus() != DocumentStatus.FAILED) {
 			throw new IllegalArgumentException("Document not in UPLOADED nor FAILED state.");
 		}
+
+		// A library document may be read by everyone but ingested only by an application admin. The rest runs in
+		// the document's tenant, which is where its status, chunks and embeddings live.
+		contentScope.requireWritable(document.getTenantId(), "Document " + documentId);
+		executionContext.runAs(document.getTenantId(), executionContext.userId(), () -> ingestClaimed(document));
+	}
+
+	private void ingestClaimed(Document document) {
+		Long documentId = document.getId();
 
 		Long tenantId = document.getTenantId();
 		Long topicId = document.getTopicId();

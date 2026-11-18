@@ -23,7 +23,7 @@ public interface DocumentChunkRepository {
 	List<DocumentChunk> findByTenantIdAndDocumentIdAndDocumentVersionOrderByOrdinal(Long tenantId, Long documentId,
 			Integer documentVersion);
 
-	List<DocumentChunk> findByTenantIdAndIdIn(Long tenantId, Collection<Long> ids);
+	List<DocumentChunk> findByTenantIdInAndIdIn(Collection<Long> tenantIds, Collection<Long> ids);
 
 	void deleteByTenantIdAndDocumentIdAndDocumentVersion(Long tenantId, Long documentId, Integer documentVersion);
 

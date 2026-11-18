@@ -31,6 +31,10 @@ public record DocumentDto(
 
         @Schema(description = "Last ingestion error, if status is FAILED", example = "Embedding provider unavailable") String errorMessage,
 
-        @Schema(description = "Time the document was last ingested successfully (UTC)", example = "2026-02-18T10:16:05Z") Instant ingestedAt
+        @Schema(description = "Time the document was last ingested successfully (UTC)", example = "2026-02-18T10:16:05Z") Instant ingestedAt,
+
+        @Schema(description = "True when the caller may read but not change the document (shared library content): hide edit actions, keep download, preview and test generation") boolean readOnly,
+
+        @Schema(description = "True when the document belongs to the shared library (a LIBRARY tenant), whoever is asking") boolean shared
 ) {}
 

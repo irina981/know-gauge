@@ -81,8 +81,8 @@ public class DocumentChunkJpaRepositoryAdapter implements DocumentChunkRepositor
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<DocumentChunk> findByTenantIdAndIdIn(Long tenantId, Collection<Long> chunkIds) {
-		return jpaRepository.findByTenantIdAndIdIn(tenantId, chunkIds).stream().map(mapper::toDomain).toList();
+	public List<DocumentChunk> findByTenantIdInAndIdIn(Collection<Long> tenantIds, Collection<Long> chunkIds) {
+		return jpaRepository.findByTenantIdInAndIdIn(tenantIds, chunkIds).stream().map(mapper::toDomain).toList();
 	}
 
 	@Override

@@ -1,10 +1,12 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
 import com.knowgauge.core.model.Tenant;
+import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.infra.repository.jpa.mapper.TenantEntityMapper;
 import com.knowgauge.infra.repository.jpa.repository.TenantJpaRepository;
@@ -28,5 +30,10 @@ public class TenantJpaRepositoryAdapter implements TenantRepository {
 	@Override
 	public Optional<Tenant> findById(Long id) {
 		return jpaRepository.findById(id).map(mapper::toDomain);
+	}
+
+	@Override
+	public List<Long> findIdsByType(TenantType type) {
+		return jpaRepository.findIdsByType(type);
 	}
 }
