@@ -14,9 +14,10 @@ import com.knowgauge.core.service.content.DocumentService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Periodically ingests the oldest {@code UPLOADED} documents of the current
- * tenant, up to {@code kg.ingestion.job.batch-size} per run, on the
- * {@code kg.ingestion.job.cron} schedule.
+ * Periodically ingests the oldest {@code UPLOADED} documents of every tenant
+ * that has some, up to {@code kg.ingestion.job.batch-size} per tenant and run,
+ * on the {@code kg.ingestion.job.cron} schedule. Each tenant's batch runs with
+ * that tenant as the {@link ExecutionContext} and the system user as the actor.
  * <p>
  * Documents are ingested one after another through {@link IngestionService}, which
  * claims each one with a conditional status update, so a document that a REST
@@ -46,7 +47,12 @@ public class ScheduledIngestionJob {
 
 	@Scheduled(cron = "${kg.ingestion.job.cron}")
 	public void run() {
-		long tenantId = executionContext.tenantId();
+		for (Long tenantId : documentService.findTenantIdsWithUploaded()) {
+			executionContext.runAsSystem(tenantId, () -> runForTenant(tenantId));
+		}
+	}
+
+	private void runForTenant(long tenantId) {
 		List<Document> batch = documentService.findOldestUploaded(tenantId, properties.getBatchSize());
 		if (batch.isEmpty()) {
 			log.debug("Scheduled ingestion: no UPLOADED documents for tenant {}", tenantId);

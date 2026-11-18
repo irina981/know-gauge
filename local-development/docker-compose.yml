@@ -83,6 +83,33 @@ services:
       - "127.0.0.1:8025:8025"
     networks: [knowgauge-network]
 
+  # Sign-in (ADR010): Keycloak with the knowgauge realm imported from keycloak/knowgauge-realm.json on the first
+  # start (realm, UI client, roles and the users admin / alice / bob). Used when the app runs with
+  # KG_SECURITY_MODE=oidc. Admin console: http://localhost:8180 (KC_BOOTSTRAP_ADMIN_*, master realm).
+  # Registration and password-reset emails go to Mailpit. Delete the keycloak_data volume to import the realm again.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.5
+    container_name: knowgauge-keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}
+      # The KnowGauge application admin (APPLICATION_ADMIN realm role) created by the realm import
+      KG_ADMIN_EMAIL: ${KG_ADMIN_EMAIL:-admin@knowgauge.local}
+      KG_ADMIN_PASSWORD: ${KG_ADMIN_PASSWORD:-admin-pass}
+      # Where the UI runs (redirect URIs of the knowgauge-ui client)
+      KG_UI_URL: ${KG_UI_URL:-http://localhost:5173}
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+      # The KnowGauge login theme (loginTheme in the realm), built in know-gauge-ui with `npm run build-keycloak-theme`.
+      # Without it Keycloak shows its own pages. Stop keycloak while rebuilding the theme (Windows locks the mounted jar).
+      - ${KG_KEYCLOAK_THEME_DIR:-../../know-gauge-ui/dist_keycloak}:/opt/keycloak/providers:ro
+      # The whole data folder (owned by the keycloak user in the image); the import folder is mounted inside it
+      - keycloak_data:/opt/keycloak/data
+    networks: [knowgauge-network]
+
   # Opt-in local LLM for distractor verification (kg.testgen.verification.provider=ollama). Not started by default.
   ollama:
     profiles: [ollama]
@@ -143,6 +170,12 @@ services:
       SPRING_MAIL_HOST: mailpit
       KG_INVITATIONS_LINKBASEURL: ${KG_UI_URL:-http://localhost:5173}
 
+      # Sign-in (ADR010): fixed (no sign-in) or oidc (Keycloak above). Tokens carry the browser's issuer
+      # (localhost:8180); the app fetches the signing keys inside the network.
+      KG_SECURITY_MODE: ${KG_SECURITY_MODE:-fixed}
+      KG_OIDC_ISSUER_URI: http://localhost:8180/realms/knowgauge
+      KG_OIDC_JWK_SET_URI: http://keycloak:8080/realms/knowgauge/protocol/openid-connect/certs
+
       # OpenAI (no default; needed for ingestion and test generation)
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
@@ -177,6 +210,7 @@ services:
       start_period: 30s
 
 volumes:
+  keycloak_data:
   postgres_data:
   postgres_vectors_data:
   minio_data:

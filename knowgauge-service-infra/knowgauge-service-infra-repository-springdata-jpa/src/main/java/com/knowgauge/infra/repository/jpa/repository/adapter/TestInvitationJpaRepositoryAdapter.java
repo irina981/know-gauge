@@ -33,8 +33,8 @@ public class TestInvitationJpaRepositoryAdapter implements TestInvitationReposit
 	}
 
 	@Override
-	public Optional<TestInvitation> findByTenantIdAndPublicToken(Long tenantId, String publicToken) {
-		return jpaRepository.findByTenantIdAndPublicToken(tenantId, publicToken).map(mapper::toDomain);
+	public Optional<TestInvitation> findByPublicToken(String publicToken) {
+		return jpaRepository.findByPublicToken(publicToken).map(mapper::toDomain);
 	}
 
 	@Override

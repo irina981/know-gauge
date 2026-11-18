@@ -66,4 +66,7 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, Lon
 
 	List<DocumentEntity> findByTenantIdAndStatusOrderByCreatedAtAscIdAsc(Long tenantId, DocumentStatus status,
 			Pageable pageable);
+
+	@Query("select distinct d.tenantId from DocumentEntity d where d.status = :status order by d.tenantId")
+	List<Long> findTenantIdsByStatus(@Param("status") DocumentStatus status);
 }

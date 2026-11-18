@@ -69,11 +69,13 @@ public class AttemptServiceImpl implements AttemptService {
 	}
 
 	// ---------------- public (participants, ADR009) ----------------
+	// Participants are anonymous, so there is no tenant in the context: the
+	// tenant is the one of the test, invitation or attempt the token belongs to.
 
 	@Override
 	@Transactional(readOnly = true)
 	public Test getPublishedTest(String testToken) {
-		return publishedTestByToken(executionContext.tenantId(), testToken);
+		return publishedTestByToken(testToken);
 	}
 
 	@Override
@@ -81,18 +83,18 @@ public class AttemptServiceImpl implements AttemptService {
 	public AttemptView startForParticipant(String testToken, String participantName, String participantEmail) {
 		String name = normalizeName(participantName);
 		String email = Emails.normalize(participantEmail);
-		long tenantId = executionContext.tenantId();
-		Test test = publishedTestByToken(tenantId, testToken);
-		return startAttempt(tenantId, test.getId(), Attempt.builder().participantName(name).participantEmail(email));
+		Test test = publishedTestByToken(testToken);
+		return startAttempt(test.getTenantId(), test.getId(),
+				Attempt.builder().participantName(name).participantEmail(email));
 	}
 
 	@Override
 	@Transactional
 	public AttemptView startForInvitation(String invitationToken, String participantName) {
 		String name = normalizeName(participantName);
-		long tenantId = executionContext.tenantId();
-		TestInvitation invitation = invitationRepository.findByTenantIdAndPublicToken(tenantId, invitationToken)
+		TestInvitation invitation = invitationRepository.findByPublicToken(invitationToken)
 				.orElseThrow(() -> new ResourceNotFoundException("This invitation link is not valid."));
+		long tenantId = invitation.getTenantId();
 		// Lock the test first, so two clicks on the same link cannot both start an attempt.
 		Test test = testRepository.findByTenantIdAndIdForUpdate(tenantId, invitation.getTestId())
 				.filter(t -> t.getStatus() == TestStatus.PUBLISHED)
@@ -112,14 +114,15 @@ public class AttemptServiceImpl implements AttemptService {
 	@Override
 	@Transactional(readOnly = true)
 	public AttemptView getByToken(String attemptToken) {
-		long tenantId = executionContext.tenantId();
-		return view(tenantId, attemptByToken(tenantId, attemptToken));
+		Attempt attempt = attemptByToken(attemptToken);
+		return view(attempt.getTenantId(), attempt);
 	}
 
 	@Override
 	@Transactional
 	public AttemptView submitByToken(String attemptToken, Map<Long, List<OptionLetter>> answers) {
-		return submit(attemptByToken(executionContext.tenantId(), attemptToken).getId(), answers);
+		Attempt attempt = attemptByToken(attemptToken);
+		return submit(attempt.getTenantId(), attempt.getId(), answers);
 	}
 
 	// ---------------- admin ----------------
@@ -166,7 +169,10 @@ public class AttemptServiceImpl implements AttemptService {
 	@Override
 	@Transactional
 	public AttemptView submit(Long attemptId, Map<Long, List<OptionLetter>> chosen) {
-		long tenantId = executionContext.tenantId();
+		return submit(executionContext.tenantId(), attemptId, chosen);
+	}
+
+	private AttemptView submit(long tenantId, Long attemptId, Map<Long, List<OptionLetter>> chosen) {
 		Attempt attempt = attemptRepository.findByTenantIdAndIdForUpdate(tenantId, attemptId)
 				.orElseThrow(() -> new ResourceNotFoundException("Attempt not found: " + attemptId));
 		if (attempt.getStatus() != AttemptStatus.STARTED) {
@@ -227,15 +233,15 @@ public class AttemptServiceImpl implements AttemptService {
 		return attemptRepository.findByTenantId(executionContext.tenantId(), testId, userId, email);
 	}
 
-	private Test publishedTestByToken(long tenantId, String testToken) {
+	private Test publishedTestByToken(String testToken) {
 		// Unknown token and unpublished test look the same to the participant: the link doesn't work.
-		return testRepository.findByTenantIdAndPublicToken(tenantId, testToken)
+		return testRepository.findByPublicToken(testToken)
 				.filter(test -> test.getStatus() == TestStatus.PUBLISHED)
 				.orElseThrow(() -> new ResourceNotFoundException("This test link is not valid or the test is closed."));
 	}
 
-	private Attempt attemptByToken(long tenantId, String attemptToken) {
-		return attemptRepository.findByTenantIdAndPublicToken(tenantId, attemptToken)
+	private Attempt attemptByToken(String attemptToken) {
+		return attemptRepository.findByPublicToken(attemptToken)
 				.orElseThrow(() -> new ResourceNotFoundException("Attempt not found."));
 	}
 

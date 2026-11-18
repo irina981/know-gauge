@@ -40,8 +40,8 @@ public class TestJpaRepositoryAdapter implements TestRepository {
 	}
 
 	@Override
-	public Optional<Test> findByTenantIdAndPublicToken(Long tenantId, String publicToken) {
-		return jpaRepository.findByTenantIdAndPublicToken(tenantId, publicToken).map(mapper::toDomain);
+	public Optional<Test> findByPublicToken(String publicToken) {
+		return jpaRepository.findByPublicToken(publicToken).map(mapper::toDomain);
 	}
 
 	@Override

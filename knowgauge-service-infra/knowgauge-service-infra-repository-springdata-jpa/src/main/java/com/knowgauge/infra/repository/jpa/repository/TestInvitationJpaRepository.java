@@ -13,7 +13,7 @@ public interface TestInvitationJpaRepository extends JpaRepository<TestInvitatio
 
 	Optional<TestInvitationEntity> findByTenantIdAndId(Long tenantId, Long id);
 
-	Optional<TestInvitationEntity> findByTenantIdAndPublicToken(Long tenantId, String publicToken);
+	Optional<TestInvitationEntity> findByPublicToken(String publicToken);
 
 	Optional<TestInvitationEntity> findByTenantIdAndTestIdAndEmail(Long tenantId, Long testId, String email);
 

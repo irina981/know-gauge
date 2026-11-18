@@ -23,6 +23,9 @@ public interface DocumentRepository {
 	 * Returns up to {@code limit} documents of the tenant in the given status, oldest (by creation time) first.
 	 */
 	List<Document> findOldestByTenantIdAndStatus(Long tenantId, DocumentStatus status, int limit);
+
+	/** @return ids of the tenants that have documents in {@code status}, ascending */
+	List<Long> findTenantIdsByStatus(DocumentStatus status);
 	
 	void updateStorageKey(Long id, String storageKey);
 	

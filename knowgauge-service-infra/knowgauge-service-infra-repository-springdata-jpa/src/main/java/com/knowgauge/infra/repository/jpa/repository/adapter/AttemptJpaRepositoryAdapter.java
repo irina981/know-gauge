@@ -39,8 +39,8 @@ public class AttemptJpaRepositoryAdapter implements AttemptRepository {
 	}
 
 	@Override
-	public Optional<Attempt> findByTenantIdAndPublicToken(Long tenantId, String publicToken) {
-		return jpaRepository.findByTenantIdAndPublicToken(tenantId, publicToken).map(mapper::toDomain);
+	public Optional<Attempt> findByPublicToken(String publicToken) {
+		return jpaRepository.findByPublicToken(publicToken).map(mapper::toDomain);
 	}
 
 	@Override

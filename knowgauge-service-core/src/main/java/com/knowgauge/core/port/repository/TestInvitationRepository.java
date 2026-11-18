@@ -10,7 +10,7 @@ public interface TestInvitationRepository {
 
 	Optional<TestInvitation> findByTenantIdAndId(Long tenantId, Long id);
 
-	Optional<TestInvitation> findByTenantIdAndPublicToken(Long tenantId, String publicToken);
+	Optional<TestInvitation> findByPublicToken(String publicToken);
 
 	/** @param email lower-cased */
 	Optional<TestInvitation> findByTenantIdAndTestIdAndEmail(Long tenantId, Long testId, String email);

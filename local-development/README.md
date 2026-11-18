@@ -37,6 +37,7 @@ named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 | `postgres` | `knowgauge-postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` | Main database: topics, documents, chunks, tests, questions, attempts, generation runs. Schema created by Flyway on app startup |
 | `postgres-vectors` | `knowgauge-postgres-vectors` | `pgvector/pgvector:pg15` | 5433 → 5432 | `postgres_vectors_data` | Vector database: chunk embeddings (`vector(1536)`) used for retrieval |
 | `minio` | `knowgauge-minio` | `cgr.dev/chainguard/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
+| `keycloak` | `knowgauge-keycloak` | `quay.io/keycloak/keycloak:26.4.5` | 8180 → 8080 (localhost only) | `keycloak_data` | Sign-in (ADR010), used when the app runs with `KG_SECURITY_MODE=oidc`. Imports the `knowgauge` realm from `keycloak/knowgauge-realm.json` on first start and loads the login theme from `../../know-gauge-ui/dist_keycloak` (see [Sign-in](#sign-in-keycloak)) |
 | `dozzle` | `knowgauge-dozzle` | `amir20/dozzle:latest` | 8888 → 8080 (localhost only) | – | Web log viewer for all containers on this Docker host (see [Logs](#logs)) |
 | `ollama` | `knowgauge-ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` | Opt-in (`--profile ollama`). Local LLM server for the optional local distractor verifier |
 | `ollama-pull` | `knowgauge-ollama-pull` | `ollama/ollama:latest` | – | – | Opt-in (`--profile ollama`). One-shot: pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits. The first pull downloads about 4.7 GB |
@@ -88,6 +89,39 @@ docker compose -f local-development/docker-compose.yml --profile full up --build
 Compose builds the app image with the repository root as the build context. The service is ready once its
 healthcheck (`/actuator/health/readiness`) reports `UP`. To debug, attach a remote debugger to port 5005.
 
+## Sign-in (Keycloak)
+
+By default the app runs in security mode `fixed`: no sign-in, every request runs as tenant 1 (the sample library,
+"KnowGauge Samples") and user 1. To sign in through Keycloak (ADR010):
+
+1. Set `KG_SECURITY_MODE=oidc` in `.env` (app container) or in the IDE run configuration.
+2. In know-gauge-ui, set `VITE_OIDC_AUTHORITY=http://localhost:8180/realms/knowgauge` in `.env.local` and restart
+   `npm run dev`. The UI then opens on its home page with **Sign in** / **Create account**.
+3. Optional, for the KnowGauge-styled login pages: in know-gauge-ui run `npm run build-keycloak-theme`, then
+   start (or restart) keycloak. Stop keycloak first when rebuilding: on Windows the mounted jar is locked. Without the
+   theme Keycloak shows its own pages.
+
+The realm import creates these users (change the admin with `KG_ADMIN_EMAIL` / `KG_ADMIN_PASSWORD` before the first
+start). Passwords need at least 8 characters and may not equal the email (realm password policy). Every user gets a
+personal tenant on their first sign-in. Registration emails go to Mailpit.
+
+| User | Password | Roles |
+|---|---|---|
+| `admin@knowgauge.local` (`KG_ADMIN_EMAIL`) | `admin-pass` (`KG_ADMIN_PASSWORD`) | `APPLICATION_ADMIN` + `TENANT_ADMIN` of their own tenant |
+| `alice@knowgauge.local` | `alice-pass` | `TENANT_ADMIN` of their own tenant |
+| `bob@knowgauge.local` | `bob-pass` | `TENANT_ADMIN` of their own tenant |
+
+The Keycloak admin console (http://localhost:8180, master realm) has its own login: `KC_BOOTSTRAP_ADMIN_USERNAME` /
+`KC_BOOTSTRAP_ADMIN_PASSWORD`, `admin` / `admin` by default. The realm is imported only when it doesn't exist yet:
+after changing `knowgauge-realm.json`, delete the `keycloak_data` volume (or change the setting in the console).
+
+To call the API without the UI, get a token for a local user and send it as `Authorization: Bearer …` (or paste it
+into Swagger UI's **Authorize**):
+
+```bash
+curl -s -d grant_type=password -d client_id=knowgauge-ui -d username=bob@knowgauge.local -d password=bob-pass http://localhost:8180/realms/knowgauge/protocol/openid-connect/token
+```
+
 ## Useful URLs
 
 | What | URL |
@@ -96,6 +130,8 @@ healthcheck (`/actuator/health/readiness`) reports `UP`. To debug, attach a remo
 | OpenAPI JSON | http://localhost:8080/v3/api-docs |
 | Health | http://localhost:8080/actuator/health |
 | Logs (Dozzle) | http://localhost:8888 |
+| Keycloak (admin console, account pages) | http://localhost:8180 |
+| Mail (Mailpit) | http://localhost:8025 |
 | MinIO console | http://localhost:9001 (log in with `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`) |
 
 ## Logs

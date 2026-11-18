@@ -11,14 +11,16 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * Audit columns, filled by Spring Data auditing ({@link AuditingEntityListener}): the dates, and the user from
+ * the execution context (the signed-in user, the system user for jobs, or {@code null} when nobody is signed in).
+ */
 @Getter
 @Setter
 @MappedSuperclass
@@ -33,7 +35,7 @@ public abstract class AuditableEntity extends PersistedEntity {
 	protected Instant createdAt;
 
 	@CreatedBy
-	@Column(name = "created_by", updatable = false, nullable = false)
+	@Column(name = "created_by", updatable = false)
 	protected Long createdBy;
 
 	@LastModifiedDate
@@ -41,22 +43,6 @@ public abstract class AuditableEntity extends PersistedEntity {
 	protected Instant updatedAt;
 
 	@LastModifiedBy
-	@Column(name = "updated_by", nullable = false)
+	@Column(name = "updated_by")
 	protected Long updatedBy;
-
-	// TODO: Replace with SpringBoot audit
-	@PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-        createdBy = 1L;
-        updatedBy = 1L;
-    }
-
-	@PreUpdate
-	protected void onUpdate() {
-		updatedAt = Instant.now();
-		updatedBy = 1L;
-	}
-	// END TODO: Replace with SpringBoot audit
 }

@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 
+import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.port.repository.DocumentRepository;
 import com.knowgauge.core.port.storage.StorageService;
@@ -24,20 +25,31 @@ import lombok.extern.slf4j.Slf4j;
 @Profile("local")
 public class DevDocumentSeeder {
 
+	/** The tenant of the seeded topic tree (R__dev_seed_topics.sql). */
+	private static final long DEV_TENANT_ID = 1L;
+
 	@Bean
-	CommandLineRunner seedDocuments(DocumentService documentService, DocumentRepository documentRepository, StorageService storageService) {
+	CommandLineRunner seedDocuments(DocumentService documentService, DocumentRepository documentRepository,
+			StorageService storageService, ExecutionContext executionContext) {
 		return args -> {
-			
+
 			try {
 				storageService.ensureBucketExists();
 			} catch(Exception e) {
 				log.error("Ensuring bucker exists failed: {}", e.getMessage(), e);
 			}
-			
-			for (SeedDocument seed : SEED_DOCUMENTS) {
-				seedIfMissing(documentService, documentRepository, seed.topicId(), seed.title(),
-						seed.originalFileName(), "devdocs/" + seed.resourceFileName());
-			}
+
+			// No request at startup: seed tenant 1 as the system user (also when sign-in is on).
+			executionContext.runAsSystem(DEV_TENANT_ID, () -> {
+				for (SeedDocument seed : SEED_DOCUMENTS) {
+					try {
+						seedIfMissing(documentService, documentRepository, seed.topicId(), seed.title(),
+								seed.originalFileName(), "devdocs/" + seed.resourceFileName());
+					} catch (Exception e) {
+						log.error("Dev seed failed for: {}", seed.resourceFileName(), e);
+					}
+				}
+			});
 		};
 	}
 

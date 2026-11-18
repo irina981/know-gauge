@@ -47,4 +47,10 @@ public interface DocumentService {
 	 * Returns up to {@code limit} {@code UPLOADED} documents of the tenant, oldest first.
 	 */
 	List<Document> findOldestUploaded(Long tenantId, int limit);
+
+	/**
+	 * Returns the ids of all tenants that have at least one {@code UPLOADED}
+	 * document, in ascending order. Used by jobs that run for every tenant.
+	 */
+	List<Long> findTenantIdsWithUploaded();
 }

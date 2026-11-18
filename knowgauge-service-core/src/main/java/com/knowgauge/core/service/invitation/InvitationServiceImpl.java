@@ -82,7 +82,8 @@ public class InvitationServiceImpl implements InvitationService {
 
 	@Override
 	public PublicInvitationView getByToken(String invitationToken) {
-		return transactionalService.getByToken(executionContext.tenantId(), invitationToken);
+		// Participants are anonymous: the tenant comes from the invitation itself.
+		return transactionalService.getByToken(invitationToken);
 	}
 
 	private TestInvitation send(long tenantId, Prepared prepared, TestInvitation invitation, String message) {

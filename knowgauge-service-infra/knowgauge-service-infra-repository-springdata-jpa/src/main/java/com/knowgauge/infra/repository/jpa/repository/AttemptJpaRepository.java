@@ -20,7 +20,7 @@ public interface AttemptJpaRepository extends JpaRepository<AttemptEntity, Long>
 
 	Optional<AttemptEntity> findByTenantIdAndId(Long tenantId, Long id);
 
-	Optional<AttemptEntity> findByTenantIdAndPublicToken(Long tenantId, String publicToken);
+	Optional<AttemptEntity> findByPublicToken(String publicToken);
 
 	Optional<AttemptEntity> findByTenantIdAndInvitationId(Long tenantId, Long invitationId);
 

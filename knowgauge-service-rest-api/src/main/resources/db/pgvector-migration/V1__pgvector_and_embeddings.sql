@@ -18,8 +18,9 @@ CREATE TABLE chunk_embeddings (
     embedding_model VARCHAR(100) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by BIGINT NOT NULL,
-    updated_by BIGINT NOT NULL,
+    -- the signed-in user, the system user (0) for jobs, or NULL (ADR010)
+    created_by BIGINT NULL,
+    updated_by BIGINT NULL,
 
     CONSTRAINT uk_chunk_embeddings_chunk_model
         UNIQUE (tenant_id, chunk_id, embedding_model)

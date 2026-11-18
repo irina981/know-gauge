@@ -5,7 +5,10 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.hibernate.cfg.AvailableSettings;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.orm.hibernate5.SpringBeanContainer;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -35,7 +38,7 @@ public class PgVectorJpaConfig {
 
 	@Bean(name = "vectorEntityManagerFactory")
 	public LocalContainerEntityManagerFactoryBean vectorEntityManagerFactory(
-			@Qualifier("vectorDataSource") DataSource dataSource) {
+			@Qualifier("vectorDataSource") DataSource dataSource, ConfigurableListableBeanFactory beanFactory) {
 
 		LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
 		emf.setDataSource(dataSource);
@@ -43,6 +46,8 @@ public class PgVectorJpaConfig {
 		emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 
 		Map<String, Object> props = new HashMap<>();
+		// Entity listeners come from Spring, so AuditingEntityListener gets its auditing handler (audit columns).
+		props.put(AvailableSettings.BEAN_CONTAINER, new SpringBeanContainer(beanFactory));
 		// optional - only if you want separate hibernate props:
 		// props.put("hibernate.hbm2ddl.auto", "none");
 		// props.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");

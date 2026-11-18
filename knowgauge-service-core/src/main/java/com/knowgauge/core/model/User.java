@@ -1,6 +1,6 @@
 package com.knowgauge.core.model;
 
-import java.util.Map;
+import java.time.Instant;
 
 import com.knowgauge.core.model.enums.Role;
 
@@ -10,6 +10,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * A person who signs in through the identity provider (Keycloak). The local row
+ * links the provider's subject to a tenant; the provider owns the password,
+ * email verification and roles.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,17 +22,20 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class User extends AuditableObject {
 
-    private String externalId;   // Keycloak sub (ID)
+	/** Subject ({@code sub} claim) of the identity provider; unique. */
+	private String externalId;
 
-    private Long tenantId;
+	/** The one tenant the user belongs to. */
+	private Long tenantId;
 
-    private Role role;
+	/** Role in the tenant: {@link Role#TENANT_ADMIN} for every user for now. */
+	private Role role;
 
-    private Map<String, String> preferences;
+	/** Email from the identity provider at the last sign-in. */
+	private String email;
 
-    private String displayName;
-    
-    private String email;
+	private String displayName;
+
+	/** When the service last resolved the user from a token (not on every request). */
+	private Instant lastSeenAt;
 }
-
-

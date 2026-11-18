@@ -161,7 +161,7 @@ class AttemptServiceImplTest {
 	void sharedLinkOfAnUnpublishedTestDoesNotWork() {
 		com.knowgauge.core.model.Test test = QuestionFixtures.test(AnswerCardinality.SINGLE_CORRECT,
 				TestStatus.REVIEWED);
-		when(testRepository.findByTenantIdAndPublicToken(TENANT, LINK)).thenReturn(Optional.of(test));
+		when(testRepository.findByPublicToken(LINK)).thenReturn(Optional.of(test));
 
 		assertThatThrownBy(() -> service.startForParticipant(LINK, "Ana", "ana@example.com"))
 				.isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("not valid or the test is closed");
@@ -209,14 +209,14 @@ class AttemptServiceImplTest {
 	private void givenPublishedTestBehindLink() {
 		givenTest(AnswerCardinality.SINGLE_CORRECT, TestStatus.PUBLISHED);
 		com.knowgauge.core.model.Test test = testRepository.findByTenantIdAndId(TENANT, TEST_ID).orElseThrow();
-		when(testRepository.findByTenantIdAndPublicToken(TENANT, LINK)).thenReturn(Optional.of(test));
+		when(testRepository.findByPublicToken(LINK)).thenReturn(Optional.of(test));
 		when(questionRepository.findByTenantIdAndTestId(TENANT, TEST_ID)).thenReturn(singleCorrectQuestions);
 	}
 
 	private void givenInvitation() {
 		TestInvitation invitation = TestInvitation.builder().id(INVITATION_ID).tenantId(TENANT).testId(TEST_ID)
 				.email("invited@example.com").publicToken(INVITE).build();
-		when(invitationRepository.findByTenantIdAndPublicToken(TENANT, INVITE)).thenReturn(Optional.of(invitation));
+		when(invitationRepository.findByPublicToken(INVITE)).thenReturn(Optional.of(invitation));
 	}
 
 	// ---------------- submit ----------------

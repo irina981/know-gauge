@@ -5,7 +5,9 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.hibernate.cfg.AvailableSettings;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.hibernate5.SpringBeanContainer;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -35,7 +38,8 @@ public class MainJpaConfig {
 
 	@Bean(name = "entityManagerFactory")
 	@Primary
-	public LocalContainerEntityManagerFactoryBean entityManagerFactory(@Qualifier("dataSource") DataSource dataSource) {
+	public LocalContainerEntityManagerFactoryBean entityManagerFactory(@Qualifier("dataSource") DataSource dataSource,
+			ConfigurableListableBeanFactory beanFactory) {
 
 		LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
 		emf.setDataSource(dataSource);
@@ -43,6 +47,8 @@ public class MainJpaConfig {
 		emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 
 		Map<String, Object> props = new HashMap<>();
+		// Entity listeners come from Spring, so AuditingEntityListener gets its auditing handler (audit columns).
+		props.put(AvailableSettings.BEAN_CONTAINER, new SpringBeanContainer(beanFactory));
 		emf.setJpaPropertyMap(props);
 
 		return emf;

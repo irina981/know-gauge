@@ -92,6 +92,11 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 	}
 
 	@Override
+	public List<Long> findTenantIdsByStatus(DocumentStatus status) {
+		return jpaRepository.findTenantIdsByStatus(status);
+	}
+
+	@Override
 	public List<Document> findOldestByTenantIdAndStatus(Long tenantId, DocumentStatus status, int limit) {
 		return jpaRepository
 				.findByTenantIdAndStatusOrderByCreatedAtAscIdAsc(tenantId, status, PageRequest.of(0, limit))

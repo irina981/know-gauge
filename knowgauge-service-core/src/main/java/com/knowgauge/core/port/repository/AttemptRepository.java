@@ -16,7 +16,7 @@ public interface AttemptRepository {
 	Optional<Attempt> findByTenantIdAndId(Long tenantId, Long id);
 
 	/** Looks an attempt up by the token its participant uses (ADR009). */
-	Optional<Attempt> findByTenantIdAndPublicToken(Long tenantId, String publicToken);
+	Optional<Attempt> findByPublicToken(String publicToken);
 
 	/** The attempt started from a personal invitation, if it was used. */
 	Optional<Attempt> findByTenantIdAndInvitationId(Long tenantId, Long invitationId);

@@ -142,6 +142,11 @@ public class DocumentServiceImpl implements DocumentService {
 	public List<Document> findOldestUploaded(Long tenantId, int limit) {
 		return documentRepository.findOldestByTenantIdAndStatus(tenantId, DocumentStatus.UPLOADED, limit);
 	}
+
+	@Override
+	public List<Long> findTenantIdsWithUploaded() {
+		return documentRepository.findTenantIdsByStatus(DocumentStatus.UPLOADED);
+	}
 	
 	
 }

@@ -101,9 +101,10 @@ public class InvitationTransactionalServiceImpl {
 	}
 
 	@Transactional(readOnly = true)
-	public PublicInvitationView getByToken(long tenantId, String token) {
-		TestInvitation invitation = invitationRepository.findByTenantIdAndPublicToken(tenantId, token)
+	public PublicInvitationView getByToken(String token) {
+		TestInvitation invitation = invitationRepository.findByPublicToken(token)
 				.orElseThrow(() -> new ResourceNotFoundException("This invitation link is not valid."));
+		long tenantId = invitation.getTenantId();
 		Test test = testRepository.findByTenantIdAndId(tenantId, invitation.getTestId())
 				.filter(t -> t.getStatus() == TestStatus.PUBLISHED)
 				.orElseThrow(() -> new ResourceNotFoundException("This test is closed."));

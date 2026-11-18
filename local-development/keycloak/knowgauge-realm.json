@@ -1,0 +1,98 @@
+{
+  "realm": "knowgauge",
+  "displayName": "KnowGauge",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": true,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(8) and notUsername and notEmail",
+  "accessTokenLifespan": 300,
+  "loginTheme": "knowgauge",
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@knowgauge.local",
+    "fromDisplayName": "KnowGauge"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "APPLICATION_ADMIN",
+        "description": "KnowGauge application admin, across all tenants"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "knowgauge-ui",
+      "name": "KnowGauge UI",
+      "enabled": true,
+      "publicClient": true,
+      "rootUrl": "${KG_UI_URL:http://localhost:5173}",
+      "baseUrl": "/",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["${KG_UI_URL:http://localhost:5173}/*"],
+      "webOrigins": ["${KG_UI_URL:http://localhost:5173}"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${KG_UI_URL:http://localhost:5173}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "knowgauge-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "knowgauge-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "${KG_ADMIN_EMAIL:admin@knowgauge.local}",
+      "email": "${KG_ADMIN_EMAIL:admin@knowgauge.local}",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "KnowGauge",
+      "lastName": "Admin",
+      "credentials": [
+        { "type": "password", "value": "${KG_ADMIN_PASSWORD:admin-pass}", "temporary": false }
+      ],
+      "realmRoles": ["default-roles-knowgauge", "APPLICATION_ADMIN"]
+    },
+    {
+      "username": "alice@knowgauge.local",
+      "email": "alice@knowgauge.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Alice",
+      "lastName": "Example",
+      "credentials": [
+        { "type": "password", "value": "alice-pass", "temporary": false }
+      ],
+      "realmRoles": ["default-roles-knowgauge"]
+    },
+    {
+      "username": "bob@knowgauge.local",
+      "email": "bob@knowgauge.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Bob",
+      "lastName": "Example",
+      "credentials": [
+        { "type": "password", "value": "bob-pass", "temporary": false }
+      ],
+      "realmRoles": ["default-roles-knowgauge"]
+    }
+  ]
+}

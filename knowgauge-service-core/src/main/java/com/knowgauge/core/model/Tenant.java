@@ -8,15 +8,25 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * Owner of all content (topics, documents, tests, attempts): every table has a
+ * {@code tenant_id}. For now each user gets an {@link TenantType#INDIVIDUAL}
+ * tenant of their own on first sign-in. {@link TenantType#LIBRARY} tenants
+ * hold shared sample content everyone may read. {@link TenantType#ORGANIZATION}
+ * tenants shared by several users come later.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-class Tenant extends AuditableObject{
-    Long id;
-    TenantType type;
+public class Tenant extends AuditableObject {
 
-    String name;        // "Irina", "ACME Corp"
-    String ownerUserId;
+	private TenantType type;
+
+	/** Shown to the user, e.g. their name for a personal tenant, or the company name. */
+	private String name;
+
+	/** The user the tenant was created for; {@code null} for tenants created by migrations. */
+	private Long ownerUserId;
 }
