@@ -49,6 +49,7 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 |---|---|---|---|
 | `db/migration/V1__create_initial_schema.sql` | main | Full relational schema | all profiles |
 | `db/dev-migration/R__dev_seed_topics.sql` | main | Repeatable seed of a fixed-ID topic tree (tenant 1) | `local` only (added to `spring.flyway.locations`) |
+| `db/dev-migration/R__dev_library_tenant.sql` | main | Makes tenant 1 the `LIBRARY` tenant "KnowGauge Samples" (ADR010) | `local` only |
 | `db/pgvector-migration/V1__pgvector_and_embeddings.sql` | vector | `CREATE EXTENSION vector`, `chunk_embeddings`, indexes | all profiles |
 
 > The schema is still a single `V1` that is edited in place. This works only while databases are recreated (an
@@ -59,7 +60,7 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 
 | Table | Key columns / constraints | Notes |
 |---|---|---|
-| `topics` | `parent_id` FK self (cascade), `UNIQUE(parent_id,name)`, `UNIQUE(path)`, `text_pattern_ops` index on `path` | Materialized-path tree. Uniqueness is **not** tenant-scoped |
+| `topics` | `parent_id` FK self (cascade), `UNIQUE(parent_id,name)`, `UNIQUE(path)`, `text_pattern_ops` index on `path` | Materialized-path tree. All queries filter by `tenant_id`; root names are unique per tenant (checked in the service, `parent_id` is NULL for roots) |
 | `documents` | FK topic (cascade). `UNIQUE(topic_id, original_file_name)`, `UNIQUE(topic_id, checksum)`, status CHECK | `storage_key`, `version`, `error_message`, `ingested_at` |
 | `document_sections` | FK document (cascade) | Not populated yet |
 | `document_chunks` | FKs document/topic (cascade), section (set null). `UNIQUE(tenant, document, version, ordinal)` | Indexes for (tenant, doc, ver), (tenant, topic), (tenant, checksum) |
@@ -78,7 +79,8 @@ saved in three steps inside one transaction: slot, then version 1, then the slot
 
 Most tables have the audit columns `created_at/updated_at/created_by/updated_by`. The insert-only tables
 (`test_question_versions`, `test_question_version_options`, `test_events`) have only creation data. On the entity side
-`AuditableEntity` fills them with `@PrePersist`/`@PreUpdate` (user hard-coded to `1`). See
+Spring Data auditing fills them (`AuditingEntityListener` on `AuditableEntity`, `AuditingConfig` in rest-api): the
+current user from `ExecutionContext`, `0` (system user) for jobs, `NULL` for anonymous participants. See
 [10](10-cross-cutting-concerns.md#auditing).
 
 JSONB columns are mapped with Hypersistence `@Type(JsonType.class)` (`Map<String,Object>`, `List<Long>`).

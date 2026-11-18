@@ -21,7 +21,7 @@ operability, not effort.
 | 13 | Ingestion | One `embedAll` call per document, with no sub-batching. Large documents can exceed provider request limits | Medium | `OpenAiEmbeddingServiceImpl` |
 | 14 | Ingestion | Re-ingestion deletes chunks, which cascades to `test_used_chunks` of existing tests and loses their provenance. Regenerating a question of such a test then fails (502, no context) | Medium | FK `ON DELETE CASCADE` |
 | 15 | API | Service-level "not found" for topics and documents is mostly `IllegalArgumentException` → 400 (the single-resource GET/PUT endpoints already return 404) | Low | `ContentController`, services |
-| 16 | Tenancy | No authentication: tenant and user are fixed per deployment (`kg.context.tenant-id` / `user-id`, `KG_TENANT_ID` / `KG_USER_ID` in prod), so a deployment serves one tenant | High (prod) | `restapi/context` |
+| 16 | Tenancy | Sign-in (security mode `oidc`, ADR010) is opt-in: `fixed` stays the default, where tenant and user are fixed per deployment and the API is open. Switch prod to `oidc` (with Keycloak in `deploy/`) before a public beta | High (prod) | `application-prod.properties`, `deploy/` |
 | 17 | Config | `PgVectorJpaConfig` has `@EntityScan("com.knowgauge.pgvector.repo.jpa.entity")`, a stale package. It is harmless because the EMF sets `packagesToScan` explicitly. `kg.pgvector.jpa.*` properties are not applied | Low | `PgVectorJpaConfig` |
 
 ## Structural debt
@@ -48,7 +48,7 @@ operability, not effort.
 | Review workflow | **Done** ([ADR001](../adr/ADR001-review-process.md)): versions, event log, accept fix / regenerate / manual replace, and keep as is ([ADR008](../adr/ADR008-keep-question-as-is.md)). Next: LLM second opinion on manual questions, real user identity in `actorUserId` |
 | Attempts | Done: start, submit and score attempts on `PUBLISHED` tests; participants take them through a shared link (name + email, no limit) or a personal email invitation (one attempt) under `/api/public` (ADR009). Next: protect the admin side and rate-limit `/api/public`, send invitations in the background, participant data retention, save answers while an attempt is running, time limits, block or archive deletes of tests with attempts, "clone to draft" to fix a published test that has attempts |
 | Ingestion | Layout-aware PDF extraction, section detection, semantic Markdown-aware splitter (A/B against the recursive one), async workers |
-| Tenancy & auth | Tenant entity, Keycloak OIDC, roles, tenant-scoped queries everywhere, Spring Data auditing |
+| Tenancy & auth | Done (ADR010): Keycloak sign-in (security mode `oidc`), users and personal tenants, roles `APPLICATION_ADMIN` / `TENANT_ADMIN`, Spring Data auditing with a system user for jobs, tenant-scoped queries everywhere, a read-only `LIBRARY` tenant (admins may change it). Next: Keycloak and `oidc` in `deploy/`, organization tenants (`TENANT_USER` / `TENANT_VIEWER`), account deletion, creating root topics in the library from an admin's account |
 | API quality | Consistent validation and enum error payloads, proper 404s, storage error mapping |
 | Ops | Correlation IDs, structured storage logs, LLM cost dashboard, CI pipeline, indexes and constraints review |
 

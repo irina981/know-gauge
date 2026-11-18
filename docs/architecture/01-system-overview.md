@@ -87,4 +87,4 @@ backing services to report healthy before it starts. See [09](09-configuration-a
 | **Swappable providers** | Hexagonal architecture: core declares ports, and each provider lives in its own infra module |
 | **Cost and token limits** | Batch generation with automatic batch-size reduction on `finish_reason=length` and a zero-progress guard |
 | **Bounded DB load on big corpora** | Per-document quotas and window-function sampling (`row_number() … ≤ maxChunks`) instead of loading all embeddings |
-| **Multi-tenancy readiness** | `tenant_id` on most tables and an `ExecutionContext` port (currently hard-wired to tenant 1) |
+| **Multi-tenancy** | `tenant_id` on every content table and an `ExecutionContext` port. Users sign in through Keycloak and get a personal tenant; a shared read-only `LIBRARY` tenant holds the samples (ADR010). Without sign-in (security mode `fixed`) a deployment serves one tenant |

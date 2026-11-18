@@ -4,7 +4,22 @@ The API is served by `knowgauge-service-rest-api`. OpenAPI docs are at `/v3/api-
 `/swagger-ui.html`. A static landing page (`static/index.html`, with `logo.svg`, `logo-dark.svg` and `favicon.svg`) is served at `/`. Actuator is at
 `/actuator` (health with liveness/readiness probes, info, metrics, env, beans, loggers).
 
-There is **no authentication**. The tenant and user come from `ExecutionContext` (hard-wired to `1`).
+Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
+
+- `fixed` (default): no authentication. Every request runs as `kg.context.tenant-id` / `user-id`.
+- `oidc`: Keycloak access tokens (`Authorization: Bearer …`), checked for issuer, signature and audience
+  `knowgauge-api`. The token's subject is mapped to a local user and tenant (created on the first call).
+  - Open without a token: `/api/public/**`, `/actuator/health`, `/actuator/info`, the landing page and Swagger.
+  - Needs the `APPLICATION_ADMIN` realm role: `/api/admin/**` and the other actuator endpoints.
+  - Everything else needs a signed-in user and works in that user's tenant (plus the read-only `LIBRARY` tenant for
+    content).
+  - Responses: `401` without a valid token, `403` without the role.
+
+## Account – `AccountController` (`/api`)
+
+| Method | Path | Body / params | Result |
+|---|---|---|---|
+| GET | `/me` | – | `200 CurrentUserDto {userId, tenantId, tenantName, email, displayName, roles, securityMode}`. The first call with a new user's token creates the user and their personal tenant. In mode `fixed`: the fixed tenant and user, roles `[TENANT_ADMIN]` |
 
 ## Content – `ContentController` (`/api/content`)
 
@@ -61,7 +76,7 @@ frozen: every review action returns 409 until it is unpublished (possible only w
 ## Attempts – `AttemptController` (`/api`)
 
 The administrator's view of attempts (ADR009). Only `PUBLISHED` tests can be taken. `POST /tests/{testId}/attempts`
-starts an attempt for the current user (`kg.context.user-id`); participants start theirs through
+starts an attempt for the current user (the signed-in user, or `kg.context.user-id` without sign-in); participants start theirs through
 `/api/public/**` below. `AttemptDto` carries `participantName`, `participantEmail` and `invitationId`.
 
 | Method | Path | Body / params | Result |

@@ -73,7 +73,8 @@ puts everything on one classpath. `@SpringBootApplication(scanBasePackages = "co
 | `DocumentSplitter` | `core.port.documentsplitter` | `LangChainDocumentSplitter` | Takes the core `ChunkingPolicy` |
 | `LlmTestGenerationService` | `core.port.testgeneration` | `LlmTestGenerationServiceImpl` | prompt → `List<TestQuestion>` |
 | `LlmIncorrectOptionsVerificationService` | `core.port.testgeneration` | `LlmIncorrectOptionsVerificationServiceImpl` | Mutates options in place and returns the flagged count |
-| `CurrentTenantProvider`, `CurrentUserProvider`, `ExecutionContext` | `core.context` | `DefaultTenantProvider`, `DefaultUserProvider`, `DefaultExecutionContext` (rest-api) | Return the fixed `kg.context.tenant-id` / `user-id` (1/1 in `local` and `test`, `KG_TENANT_ID` / `KG_USER_ID` in `prod`) until authentication exists |
+| `CurrentTenantProvider`, `CurrentUserProvider`, `ExecutionContext` | `core.context` | `DefaultExecutionContext` (rest-api) with `DefaultTenantProvider` / `DefaultUserProvider` (security mode `fixed`: `kg.context.tenant-id` / `user-id`) or `TokenTenantProvider` / `TokenUserProvider` (mode `oidc`: the signed-in user, `restapi.security`) | `runAs` / `runAsSystem` set the tenant and user for work outside a request (jobs, seeding) on the current thread (ADR010) |
+| `TenantRepository`, `UserRepository` | `core.port.repository` | `TenantJpaRepositoryAdapter`, `UserJpaRepositoryAdapter` | Used by `AccountService` (first sign-in creates the user and a personal tenant) |
 
 ## Core package structure
 

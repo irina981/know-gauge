@@ -26,29 +26,46 @@ Design notes:
 
 ## Multi-tenancy
 
-Current state: **single tenant, designed for multi-tenancy**.
+Current state: **one personal tenant per user** when sign-in is on (security mode `oidc`), one fixed tenant without
+it (`fixed`), plus a shared read-only `LIBRARY` tenant for the samples (ADR010).
 
 - `tenant_id` columns exist on `topics`, `documents`, `document_chunks`, `tests`, `test_questions`,
   `test_question_versions`, `test_events`, `generation_runs`, `attempts`, `attempt_answers` and `chunk_embeddings`. They do **not** exist on
   `document_sections` or `test_question_version_options` (scoped through their version).
-- The `ExecutionContext` port provides `tenantId()` (always present) and `userId()` (optional, for jobs and
-  anonymous use). Its implementation (`DefaultExecutionContext` with `DefaultTenantProvider` and
-  `DefaultUserProvider`) returns `1`.
-- Isolation is enforced in **some** paths: test queries (`findByTenantIdAnd…`), chunk loading, vector queries
-  (always filtered by tenant) and `TestDraftValidator` (topic and document ownership checks).
-- Isolation is **missing** in others: topic queries (`getRoots`, `getChildren`, `findByPathPrefix`, name
-  uniqueness), document `get`/`delete`/`download` by ID and `findByTopicId`. The topic and document unique
-  constraints are also global rather than per tenant.
-- Planned (TODO.md): a `Tenant` entity (`INDIVIDUAL`/`ORGANIZATION`), Keycloak OIDC, roles
-  (`APPLICATION_ADMIN`, `TENANT_ADMIN`, `TENANT_USER`), and per-tenant storage prefix or bucket policies.
+- The `ExecutionContext` port provides `tenantId()` and `userId()` (optional: empty for anonymous participants).
+  `DefaultExecutionContext` takes them from the signed-in user (`TokenTenantProvider` / `TokenUserProvider`, mode
+  `oidc`) or from `kg.context.*` (mode `fixed`). Work outside a request sets them for the current thread with
+  `runAs(tenantId, userId, …)` or `runAsSystem(tenantId, …)`: the scheduled ingestion job runs per tenant as the
+  system user (`users` row 0, `SYSTEM_USER_ID`), and so does the startup seeder.
+- Accounts: `AccountResolutionFilter` maps the token's subject to a `users` row through `AccountService.signIn`,
+  which creates the user (role `TENANT_ADMIN`) and an `INDIVIDUAL` tenant on the first sign-in, and caches the
+  result per subject for `kg.security.oidc.account-cache-minutes`.
+- Every repository port method that reads or writes tenant data is filtered by tenant. Writes take the one tenant
+  written to (`updatePath(tenantId, …)`, `markIngested(tenantId, …)`, …). Content reads (topics, documents,
+  chunks, embeddings) take a set (`findByTenantIdIn…`, `tenant_id IN (:tenantIds)`): the own tenant plus the
+  `LIBRARY` tenants, from `ContentScope` (ADR010). Tests, questions, attempts and invitations stay in the own tenant only.
+- Another tenant's id behaves like a missing row (404 or empty list), also as a parent topic or upload target.
+  Library content can be read by everyone and changed only by an `APPLICATION_ADMIN` (otherwise 403,
+  `ReadOnlyContentException`); `TopicDto` / `DocumentDto.readOnly` reflect this. Sub-topics and documents live in
+  their topic's tenant, and ingestion runs in the document's tenant (`ExecutionContext.runAs`).
+  `document_sections` have no tenant column and are filtered through their document.
+- Deliberate exceptions: lookups by public token (`/api/public/**`, the token's row gives the tenant),
+  `DocumentRepository.findTenantIdsByStatus` (the scheduled ingestion job, which then works per tenant), and
+  `TenantRepository` / `UserRepository` (account resolution).
+- Root topic names are unique per tenant (checked in `TopicServiceImpl`). The other unique constraints are per
+  parent topic or per topic, so they are per tenant as well; `UNIQUE(path)` is global but paths are built from ids.
+- Planned (TODO.md): `ORGANIZATION` tenants shared by several users (Keycloak Organizations, `TENANT_USER` /
+  `TENANT_VIEWER` members), and per-tenant storage prefix or bucket policies.
 
 ## Auditing
 
 - Domain: `AuditableObject` (`createdAt/By`, `updatedAt/By`).
-- Entities: `AuditableEntity` carries Spring Data `@CreatedDate/@CreatedBy/...` annotations and the
-  `AuditingEntityListener`. Auditing is **not enabled** (no `@EnableJpaAuditing`). The values come from
-  `@PrePersist`/`@PreUpdate` with `createdBy = updatedBy = 1L` hard-coded. TODO: wire `AuditorAware` to
-  `ExecutionContext.userId()`.
+- Entities: `AuditableEntity` carries Spring Data `@CreatedDate/@CreatedBy/...` and the `AuditingEntityListener`.
+  `AuditingConfig` (rest-api) enables auditing with `AuditorAware` = `ExecutionContext.userId()` and `Instant.now()`.
+  Both entity manager factories use Spring's bean container (`SpringBeanContainer`), so the listener gets its handler
+  in the vector DB too.
+- `created_by` / `updated_by`: the signed-in (or fixed) user, `0` for the system user (jobs, seeding), `NULL` when
+  nobody is signed in (participants on public links).
 - The vector module has its own copies of `PersistedEntity` and `AuditableEntity`.
 
 ## Exceptions
@@ -78,7 +95,10 @@ For the HTTP mapping and its quirks, see [08 – Error model](08-rest-api.md#err
 
 ## Security
 
-- No authentication or authorization on the API. Actuator `env` and `beans` are exposed outside `prod`.
+- Authentication: Keycloak bearer tokens in security mode `oidc` (`SecurityConfig`, ADR010): issuer, signature and
+  audience are checked; sessions are stateless and CSRF is off (no cookies). Realm role `APPLICATION_ADMIN` guards
+  `/api/admin/**` and actuator beyond health/info. In mode `fixed` (the default for now) the API has no
+  authentication, and actuator `env` and `beans` are exposed outside `prod`.
 - Secrets come from environment variables (`OPENAI_API_KEY`, DB and MinIO credentials). `.env` is gitignored, but
   the `local` profile has local credentials in the properties file; `prod` reads every secret from env vars.
 - Uploads: 50 MB limit and SHA-256 dedupe. There is no content-type allow-list beyond the fact that only

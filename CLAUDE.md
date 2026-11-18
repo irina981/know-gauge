@@ -31,8 +31,16 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - Spring profiles: `local` (development; localhost ports 5432/5433/9000, also used by the compose app container with
   env-var host overrides), `test` (automated tests only) and `prod` (every environment-specific value from env vars,
   required ones without defaults; the `Dockerfile` defaults to it). `application.properties` holds the values common
-  to all. One profile is **required**: without it the datasources and `kg.context.tenant-id` are missing and startup
-  fails. The tenant and user come from `kg.context.tenant-id` / `user-id` (`KG_TENANT_ID` / `KG_USER_ID` in prod).
+  to all. One profile is **required**: without it the datasources are missing and startup fails.
+- Security mode `kg.security.mode` ([ADR010](docs/adr/ADR010-keycloak-sign-in-and-personal-tenants.md)):
+  - `fixed` (default, and the `test` profile): no sign-in. Every request runs as `kg.context.tenant-id` / `user-id`
+    (`KG_TENANT_ID` / `KG_USER_ID` in prod).
+  - `oidc` (`KG_SECURITY_MODE=oidc`): Keycloak bearer tokens, validated against `kg.security.oidc.issuer-uri`. On the
+    first sign-in a user gets a `users` row and a personal tenant. `/api/public/**`, health/info and Swagger stay
+    open; `/api/admin/**` and the rest of actuator need the `APPLICATION_ADMIN` realm role.
+  - Local Keycloak: compose service `keycloak` on http://localhost:8180, realm `knowgauge` from
+    `local-development/keycloak/knowgauge-realm.json`. Its users and their passwords are in the
+    [local-development README](local-development/README.md#sign-in-keycloak).
 - Distractor verification runs on OpenAI `gpt-4.1` in every profile (`kg.testgen.verification.provider=openai`).
   A local Ollama adapter exists (`provider=ollama`, `qwen2.5:7b-instruct` on port 11434, compose
   `--profile ollama`) but judged distractors unreliably ([ADR002](docs/adr/ADR002-local-verification-model.md), [ADR003](docs/adr/ADR003-grounded-reason-first-verification.md)).
@@ -55,7 +63,7 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 |---|---|
 | `knowgauge-service-core` | Domain model, services, **port interfaces**, prompt templates (`src/main/resources/prompttemplates`) |
 | `knowgauge-service-rest-contract` | Public DTO records (`*Dto`, `*Input`) |
-| `knowgauge-service-rest-api` | Boot app + composition root: controllers, DTO mappers, exception handler, `application*.properties`, **all Flyway SQL** (`db/migration`, `db/dev-migration`, `db/pgvector-migration`) |
+| `knowgauge-service-rest-api` | Boot app + composition root: controllers, DTO mappers, exception handler, security (`restapi.security`: `SecurityConfig`, JWT → local user in `AccountResolutionFilter`), execution context (`restapi.context`), `application*.properties`, **all Flyway SQL** (`db/migration`, `db/dev-migration`, `db/pgvector-migration`) |
 | `knowgauge-service-rest-client` | Empty placeholder |
 | `knowgauge-service-infra/*-repository-springdata-jpa` | Main DB: JPA entities, Spring Data repos, `*JpaRepositoryAdapter` implementing core repository ports |
 | `knowgauge-service-infra/*-vectorstore-pgvector` | Vector DB: `ChunkEmbeddingEntity`, `PgVectorStore` (native SQL sampling) |
@@ -92,6 +100,8 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   the adapter. Resilience4j retry configs whitelist the transient types. Add HTTP mappings in
   `GlobalControllerExceptionHandler`.
 - Get the tenant and user from `ExecutionContext`. Don't hard-code tenant IDs in new code; query with `tenantId`.
+  Content (topics, documents, chunks, embeddings) is read from `ContentScope.readableTenantIds()` (own tenant +
+  `LIBRARY`) and changed only after `ContentScope.requireWritable` (library: `APPLICATION_ADMIN` only, ADR010).
 - Config: custom properties live under `kg.*`. Typed groups use `@ConfigurationProperties` classes in core
   (`ChunkingProperties`, `TestGenerationDefaultsProperties`, `StorageProperties`).
 
@@ -156,5 +166,13 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - The `local` profile seeds a fixed topic tree (`R__dev_seed_topics.sql`, tenant 1) and uploads the sample PDFs from
   `resources/devdocs/` at startup (`kg.dev.seed.enabled=true`). The seeder also creates the MinIO bucket. Other
   profiles must create it beforehand, or set `KG_STORAGE_CREATE_BUCKET=true` (`deploy/` does).
-- Audit `createdBy`/`updatedBy` are hard-coded to `1` in `AuditableEntity` (`@PrePersist`).
+- Audit `createdBy`/`updatedBy` come from Spring Data auditing (`AuditingConfig`, `AuditorAware` =
+  `ExecutionContext.userId()`). The values are:
+  - the signed-in user (or the fixed user);
+  - `0`, the reserved system user (`users` row 0, no tenant, `ExecutionContext.SYSTEM_USER_ID`), for jobs and startup
+    seeding;
+  - `NULL` for anonymous participants.
+
+  Work outside a request must set its tenant with `ExecutionContext.runAs` or `runAsSystem`; in `oidc` mode
+  `tenantId()` throws otherwise.
 - Known issues and backlog: [`docs/architecture/11-known-issues-and-roadmap.md`](docs/architecture/11-known-issues-and-roadmap.md), [`TODO.md`](TODO.md).

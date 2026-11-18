@@ -34,10 +34,10 @@
 ### Multi-tenant support
 - [ ] Tenant domain entity
 - [ ] Two types of tenants: PERSONAL, ORGANIZATION
-- [ ] Add tenantId to all domain objects (topics and documents are misisng it for sure) and make all the topics and documents queries tenant scoped
+- [x] Add tenantId to all domain objects (topics and documents are misisng it for sure) and make all the topics and documents queries tenant scoped
 
 ### Spring Data auditing
-- [ ] Wire Spring Data auditing (instead of @PrePersist, @PreUpdate) - to update createdBy, modifiedBy
+- [x] Wire Spring Data auditing (instead of @PrePersist, @PreUpdate) - to update createdBy, modifiedBy (ADR010)
 
 
 ---
@@ -101,8 +101,9 @@ lines), fill in the missing line, complexity of a snippet, which input breaks th
 - [ ] Status tracking (UPLOADED → INGESTING → READY → FAILED)
 
 ### 5) Auth & multi-tenancy
-- [ ] Keycloak integration (OIDC) for API
-- [ ] Tenant model (tenantId on topics/docs/chunks/tests)
+- [x] Keycloak integration (OIDC) for API (ADR010, security mode `oidc`)
+- [ ] Keycloak and security mode `oidc` in `deploy/` (prod realm, admin from env, HTTPS)
+- [x] Tenant model (tenantId on topics/docs/chunks/tests; `tenants` / `users`, personal tenant per user, `LIBRARY` tenant)
 - [ ] Role-based access (admin/editor/viewer)
 - [ ] Per-tenant storage prefix / bucket policy strategy
 

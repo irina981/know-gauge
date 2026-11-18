@@ -13,12 +13,16 @@ There are two kinds of retrieval:
 ## Inputs
 
 ```java
-List<ChunkEmbedding> retrieveTop(Long tenantId, Collection<Long> documentIds, int limit,
+List<ChunkEmbedding> retrieveTop(Collection<Long> tenantIds, Collection<Long> documentIds, int limit,
                                  TestCoverageMode coverageMode, String focusQuery, boolean avoidRepeats)
 ```
 
+- `tenantIds` are the tenants whose content the test may use: the test's own tenant and the `LIBRARY` tenants
+  (`ContentScope.readableTenantIds`, ADR010). The test itself is always stored in the own tenant; its
+  `test_used_chunks` may point at library chunks.
+
 - `focusQuery` is required for `FOCUSED` (`TestDraftValidator` rejects a blank one, max 2000 characters, and clears
-  it for the balanced modes). The DB enforces the same rule with `chk_tests_focus_query` (`V2__focused_coverage.sql`).
+  it for the balanced modes). The DB enforces the same rule with `chk_tests_focus_query` (`V1__create_initial_schema.sql`).
 
 - `documentIds` is the expanded scope from `TestDraftValidator`: explicit documents (which must be ingested) plus the
   ingested documents of the selected topics **and all their sub-topics**; documents not ingested yet are skipped.
@@ -32,12 +36,12 @@ List<ChunkEmbedding> retrieveTop(Long tenantId, Collection<Long> documentIds, in
 
 ```mermaid
 flowchart TD
-    A[Validate: tenantId required; limit≤0 or no docs → empty] --> B{coverageMode == FOCUSED?}
+    A[Validate: tenantIds required; limit≤0 or no docs → empty] --> B{coverageMode == FOCUSED?}
     B -- yes --> X[FOCUSED: embed focusQuery,<br/>findNearest by cosine distance]
     B -- no --> C[embeddingModel = embeddingService.modelName]
-    C --> D["loadDocChunkCounts(tenant, model, docs)<br/>SELECT document_id, count(*) GROUP BY document_id"]
+    C --> D["loadDocChunkCounts(tenants, model, docs)<br/>SELECT document_id, count(*) GROUP BY document_id"]
     D --> E[Compute per-document quota map]
-    E --> F["findCandidates(tenant, docs, maxQuota, model)<br/>row_number() OVER (PARTITION BY document_id ORDER BY random()) ≤ maxQuota"]
+    E --> F["findCandidates(tenants, docs, maxQuota, model)<br/>row_number() OVER (PARTITION BY document_id ORDER BY random()) ≤ maxQuota"]
     F --> G[Shuffle candidates in memory]
     G --> H[Take while result < limit:<br/>respect per-doc quota, dedupe by chunk_checksum]
     H --> I[List of ChunkEmbedding]
@@ -57,7 +61,7 @@ flowchart TD
 WITH ranked AS (
   SELECT ce.*, row_number() OVER (PARTITION BY ce.document_id ORDER BY random()) AS rn
   FROM chunk_embeddings ce
-  WHERE ce.tenant_id = :tenantId
+  WHERE ce.tenant_id IN (:tenantIds)
     AND ce.embedding_model = :embeddingModel
     AND ce.document_id IN (:documentIds)
 )
@@ -75,7 +79,7 @@ keeps the DB load bounded on large corpora. It still does a full scan of the mat
   documents) is selected at most once.
 - The retrieved chunk IDs are stored as the test's `usedChunks` (`test_used_chunks`) right after retrieval,
   **before** generation runs. The embeddings are then reloaded as `DocumentChunk`s from the **main DB** with
-  `DocumentChunkRepository.findByTenantIdAndIdIn`, because the chunk text lives only there.
+  `DocumentChunkRepository.findByTenantIdInAndIdIn` (same tenants), because the chunk text lives only there.
 
 ## FOCUSED: similarity search
 
@@ -87,7 +91,7 @@ keeps the DB load bounded on large corpora. It still does a full scan of the mat
    ```sql
    SELECT set_config('ivfflat.probes', '100', true);   -- this transaction only
    SELECT … FROM chunk_embeddings ce
-   WHERE ce.tenant_id = :tenantId AND ce.embedding_model = :embeddingModel AND ce.document_id IN (:documentIds)
+   WHERE ce.tenant_id IN (:tenantIds) AND ce.embedding_model = :embeddingModel AND ce.document_id IN (:documentIds)
    ORDER BY ce.embedding <=> CAST(:query AS vector)
    LIMIT :limit
    ```

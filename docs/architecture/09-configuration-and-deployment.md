@@ -13,12 +13,15 @@ All application configuration is in `knowgauge-service-rest-api/src/main/resourc
 | `resilience4j.properties` | Retry, bulkhead and circuit breaker instances (imported through `spring.config.import`) |
 
 **Profiles**: `local`, `test` and `prod`. Exactly one must be active: the base file does not set the datasources,
-the storage endpoint or `kg.context.tenant-id`, so the application **does not start without a profile**. The
+the storage endpoint, so the application **does not start without a profile**. The
 `Dockerfile` sets `SPRING_PROFILES_ACTIVE=prod`; compose and the IDE launch configuration use `local`.
 
-`DefaultTenantProvider` and `DefaultUserProvider` return the fixed `kg.context.tenant-id` / `kg.context.user-id`
-(`1` / `1` in `local` and `test`, `KG_TENANT_ID` / `KG_USER_ID` in `prod`). They stand in until authentication
-provides the tenant and user, so a prod deployment serves one tenant.
+**Security mode** (`kg.security.mode`, ADR010), `fixed` by default in every profile:
+
+- `fixed`: no sign-in. `DefaultTenantProvider` and `DefaultUserProvider` return `kg.context.tenant-id` / `user-id`
+  (`1` / `1` in `local` and `test`, `KG_TENANT_ID` / `KG_USER_ID` in `prod`), so a deployment serves one tenant.
+- `oidc`: Keycloak tokens. `TokenTenantProvider` and `TokenUserProvider` return the signed-in user's tenant and id
+  (`restapi.security`). Locally, compose starts Keycloak on port 8180 (see the local-development README).
 
 ### Production environment variables
 
@@ -30,8 +33,12 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `KG_STORAGE_BUCKET` | no (`knowgauge-content`) | `kg.storage.bucket`. The bucket must exist unless `KG_STORAGE_CREATE_BUCKET=true` |
 | `KG_STORAGE_CREATE_BUCKET` | no (`false`) | `kg.storage.create-bucket-on-startup`: create the bucket at startup if missing (`StartupConfig`); startup fails if storage is unreachable |
 | `OPENAI_API_KEY` | yes | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
-| `KG_TENANT_ID` | yes | `kg.context.tenant-id` |
-| `KG_USER_ID` | no (empty: no user) | `kg.context.user-id` |
+| `KG_SECURITY_MODE` | no (`fixed`) | `kg.security.mode`: `fixed` (no sign-in) or `oidc` (Keycloak) |
+| `KG_TENANT_ID` | with `fixed` | `kg.context.tenant-id` |
+| `KG_USER_ID` | no (empty: no user) | `kg.context.user-id` (mode `fixed`) |
+| `KG_OIDC_ISSUER_URI` | with `oidc` | `kg.security.oidc.issuer-uri`: the token's `iss`, e.g. `https://auth.example.com/realms/knowgauge` |
+| `KG_OIDC_JWK_SET_URI` | no (issuer + `/protocol/openid-connect/certs`) | `kg.security.oidc.jwk-set-uri`, when the app reaches Keycloak at another address than the browser |
+| `KG_OIDC_AUDIENCE` | no (`knowgauge-api`) | `kg.security.oidc.audience`: required in the token's `aud` |
 | `KG_GENERATION_MODEL`, `KG_VERIFICATION_MODEL` | no (`gpt-5.6-luna`, `gpt-4.1`) | `kg.testgen.defaults.generation-model`, `kg.testgen.verification.chat-model.openai.model` |
 | `KG_VERIFICATION_PROVIDER`, `KG_OLLAMA_BASE_URL` | no (`openai`, `http://localhost:11434`) | `kg.testgen.verification.provider`, `chat-model.ollama.base-url` |
 | `KG_INGESTION_JOB_ENABLED`, `KG_INGESTION_JOB_CRON`, `KG_INGESTION_JOB_BATCH_SIZE` | no (`true`, `0 */5 * * * *`, `5`) | `kg.ingestion.job.*` (see [04](04-document-ingestion.md#scheduled-ingestion-job)) |
@@ -57,7 +64,8 @@ provides the tenant and user, so a prod deployment serves one tenant.
 | `kg.pgvector.flyway.*` | `PgVectorFlywayConfig` | `enabled`, `locations`, `schemas` |
 | `kg.pgvector.jpa.*` | (declared but not read by the vector EMF) | `hibernate.ddl-auto`, `show-sql`, … |
 | `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (`local` profile only) |
-| `kg.context.*` | `DefaultTenantProvider`, `DefaultUserProvider` | `tenant-id` (required), `user-id` (optional) |
+| `kg.context.*` | `DefaultTenantProvider`, `DefaultUserProvider` | `tenant-id`, `user-id` (security mode `fixed` only) |
+| `kg.security.*` | `SecurityConfig`, `OidcProperties` | `mode` (`fixed`/`oidc`), `oidc.issuer-uri`, `oidc.jwk-set-uri`, `oidc.audience` (`knowgauge-api`), `oidc.account-cache-minutes` (10: how long a token's user is cached) |
 | `kg.invitations.*` | `InvitationProperties` | `link-base-url` (public UI address; links are `<base>/i/<token>`), `max-per-request` (200) |
 | `kg.retrieval.focused.*` | `FocusedRetrievalProperties` | `max-distance` (0.65), `max-gap-to-best` (0.20): which chunks count as about the focus text in FOCUSED retrieval ([05](05-retrieval.md#focused-similarity-search)) |
 | `kg.mail.from` | `SpringMailInvitationMailer` | Sender of invitation emails. SMTP itself is Spring's `spring.mail.*` (Mailpit `localhost:1025` in `local`; `KG_MAIL_*` in `prod`). `management.health.mail.enabled=false`, so an unreachable SMTP server does not mark the service down |
