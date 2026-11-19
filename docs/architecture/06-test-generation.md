@@ -119,6 +119,7 @@ Templates are plain text files in `knowgauge-service-core/src/main/resources/pro
 | `mcq-default.txt` | `promptTemplateId = mcq-default` and `SINGLE_CORRECT` |
 | `mcq-default-multiple-correct.txt` | `MULTIPLE_CORRECT`: the builder appends the suffix `-multiple-correct` |
 | `mcq-default-multiple-correct-full.txt` | Not selected automatically. A longer variant with evidence requirements, reachable as `promptTemplateId=mcq-default-multiple-correct-full` only for `SINGLE_CORRECT` (otherwise the suffix is appended again) |
+| `mcq-invalid-test-generation.txt` | **For testing only**, never selected automatically: `promptTemplateId=mcq-invalid-test-generation` with `SINGLE_CORRECT`. Deliberately writes broken questions where more than one option is correct but only one is marked correct, to check that the verifier flags them |
 | `incorrect-options-verification.txt` | **Default** verification prompt (`kg.testgen.verification.defaults.prompt-template-id`). Decides for each answer given for the question whether it is TRUE or FALSE and returns only the TRUE ones, each with a clearly false replacement ([ADR006](../adr/ADR006-restore-original-verification-prompt.md)) |
 Generation variables: `difficulty`, `questionCount`, `language`, `minMulti`, `model`, `context`, `outputSchema`.
 For regeneration, the builder appends the existing question texts of the test with an instruction not to repeat
