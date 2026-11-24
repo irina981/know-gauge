@@ -89,7 +89,7 @@ erDiagram
 | `GenerationRunPurpose` | `TEST_GENERATION`, `REGENERATION`, `VERIFICATION` | Why an LLM call was made |
 | `AttemptStatus` | `STARTED`, `SUBMITTED`, `SCORED` | Attempts. Submit goes straight from `STARTED` to `SCORED`; `SUBMITTED` is unused for now |
 | `GenerationRunStatus` | `SUCCESS`, `FAILED` | Outcome of an LLM call |
-| `Role` | `APPLICATION_ADMIN`, `TENANT_ADMIN`, `TENANT_USER`, `TENANT_VIEWER` | `APPLICATION_ADMIN` is a Keycloak realm role; `users.role` is `TENANT_ADMIN` for everyone for now (ADR010) |
+| `Role` | `ADMIN`, `TENANT_ADMIN`, `TENANT_USER`, `TENANT_VIEWER` | Tables `roles` and `user_roles`; a user has several. Everyone is `TENANT_ADMIN` of their tenant, `ADMIN` comes from `kg.account.admin-emails` (ADR012) |
 | `TenantType` | `INDIVIDUAL`, `ORGANIZATION`, `LIBRARY` | Tenants (ADR010) |
 
 ## Lifecycles

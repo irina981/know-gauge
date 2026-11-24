@@ -1,8 +1,10 @@
 package com.knowgauge.core.service.account;
 
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,14 +29,17 @@ public class AccountTransactionalServiceImpl {
 
 	private final UserRepository userRepository;
 	private final TenantRepository tenantRepository;
+	private final AccountProperties properties;
 
-	public AccountTransactionalServiceImpl(UserRepository userRepository, TenantRepository tenantRepository) {
+	public AccountTransactionalServiceImpl(UserRepository userRepository, TenantRepository tenantRepository,
+			AccountProperties properties) {
 		this.userRepository = userRepository;
 		this.tenantRepository = tenantRepository;
+		this.properties = properties;
 	}
 
 	@Transactional
-	public User signIn(String externalId, String email, String displayName) {
+	public User signIn(String externalId, String email, boolean emailVerified, String displayName) {
 		Instant now = Instant.now();
 		Optional<User> existing = userRepository.findByExternalId(externalId);
 		if (existing.isPresent()) {
@@ -47,9 +52,10 @@ public class AccountTransactionalServiceImpl {
 				user.setDisplayName(displayName);
 			}
 			user.setLastSeenAt(now);
+			grantAdminIfListed(user, emailVerified);
 			return userRepository.save(user);
 		}
-		return createWithPersonalTenant(externalId, email, displayName, now);
+		return createWithPersonalTenant(externalId, email, emailVerified, displayName, now);
 	}
 
 	@Transactional(readOnly = true)
@@ -73,16 +79,35 @@ public class AccountTransactionalServiceImpl {
 		return userRepository.save(user).getPreferences();
 	}
 
-	private User createWithPersonalTenant(String externalId, String email, String displayName, Instant now) {
+	private User createWithPersonalTenant(String externalId, String email, boolean emailVerified, String displayName,
+			Instant now) {
 		String tenantName = displayName != null ? displayName : email != null ? email : DEFAULT_TENANT_NAME;
 		Tenant tenant = tenantRepository
 				.save(Tenant.builder().type(TenantType.INDIVIDUAL).name(tenantName).build());
 		// Every user administers their own tenant for now; more roles come with organization tenants.
-		User user = userRepository.save(User.builder().externalId(externalId).tenantId(tenant.getId())
-				.role(Role.TENANT_ADMIN).email(email).displayName(displayName).lastSeenAt(now).build());
+		User newUser = User.builder().externalId(externalId).tenantId(tenant.getId())
+				.roles(EnumSet.of(Role.TENANT_ADMIN)).email(email).displayName(displayName).lastSeenAt(now).build();
+		grantAdminIfListed(newUser, emailVerified);
+		User user = userRepository.save(newUser);
 		tenant.setOwnerUserId(user.getId());
 		tenantRepository.save(tenant);
 		log.info("First sign-in: user {} created with personal tenant {}", user.getId(), tenant.getId());
 		return user;
+	}
+
+	/**
+	 * Makes the first application admins: a verified email listed in {@code kg.account.admin-emails} gets ADMIN.
+	 * Only adds; an admin keeps the role when their email leaves the list.
+	 */
+	private void grantAdminIfListed(User user, boolean emailVerified) {
+		if (emailVerified && !user.hasRole(Role.ADMIN) && properties.isAdminEmail(user.getEmail())) {
+			Set<Role> roles = EnumSet.noneOf(Role.class);
+			if (user.getRoles() != null) {
+				roles.addAll(user.getRoles());
+			}
+			roles.add(Role.ADMIN);
+			user.setRoles(roles);
+			log.info("Subject {} granted ADMIN: their verified email is in kg.account.admin-emails", user.getExternalId());
+		}
 	}
 }

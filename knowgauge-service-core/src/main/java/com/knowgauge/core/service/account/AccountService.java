@@ -15,14 +15,17 @@ public interface AccountService {
 
 	/**
 	 * Returns the user with this subject, creating the user and a personal tenant
-	 * of their own on the first sign-in. Updates the email and display name when
-	 * the provider reports new ones.
+	 * of their own (as its TENANT_ADMIN) on the first sign-in. Updates the email and
+	 * display name when the provider reports new ones, and grants ADMIN to a
+	 * verified email listed in {@code kg.account.admin-emails}.
 	 *
 	 * @param externalId  the provider's subject ({@code sub}), required
 	 * @param email       optional
+	 * @param emailVerified whether the provider verified the email; only a verified email can make an admin
+	 *                      ({@code kg.account.admin-emails})
 	 * @param displayName optional
 	 */
-	User signIn(String externalId, String email, String displayName);
+	User signIn(String externalId, String email, boolean emailVerified, String displayName);
 
 	Optional<Tenant> findTenant(Long tenantId);
 

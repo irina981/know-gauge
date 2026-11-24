@@ -33,7 +33,7 @@ public class AccountServiceImpl implements AccountService {
 	}
 
 	@Override
-	public User signIn(String externalId, String email, String displayName) {
+	public User signIn(String externalId, String email, boolean emailVerified, String displayName) {
 		if (externalId == null || externalId.isBlank()) {
 			throw new IllegalArgumentException("The token has no subject.");
 		}
@@ -45,10 +45,10 @@ public class AccountServiceImpl implements AccountService {
 		String normalizedEmail = truncate(email, MAX_EMAIL_LENGTH);
 		String name = truncate(displayName, MAX_NAME_LENGTH);
 		try {
-			return transactionalService.signIn(subject, normalizedEmail, name);
+			return transactionalService.signIn(subject, normalizedEmail, emailVerified, name);
 		} catch (DataIntegrityViolationException e) {
 			log.info("Concurrent first sign-in of subject {}; reading the user the other request created", subject);
-			return transactionalService.signIn(subject, normalizedEmail, name);
+			return transactionalService.signIn(subject, normalizedEmail, emailVerified, name);
 		}
 	}
 

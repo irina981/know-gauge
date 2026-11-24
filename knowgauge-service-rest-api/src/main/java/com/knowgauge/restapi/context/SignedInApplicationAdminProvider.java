@@ -6,7 +6,7 @@ import com.knowgauge.core.context.ApplicationAdminProvider;
 import com.knowgauge.restapi.security.SignedInAccount;
 
 /**
- * Reads the {@code APPLICATION_ADMIN} realm role from the signed-in account of the current request. With sign-in
+ * Whether the signed-in user of the current request has the {@code ADMIN} role (user_roles, ADR012). With sign-in
  * off there is no account, so nobody is an application admin.
  */
 @Component

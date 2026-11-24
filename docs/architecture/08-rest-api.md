@@ -10,7 +10,8 @@ Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
 - `oidc`: Keycloak access tokens (`Authorization: Bearer …`), checked for issuer, signature and audience
   `knowgauge-api`. The token's subject is mapped to a local user and tenant (created on the first call).
   - Open without a token: `/api/public/**`, `/actuator/health`, `/actuator/info`, the landing page and Swagger.
-  - Needs the `APPLICATION_ADMIN` realm role: `/api/admin/**` and the other actuator endpoints.
+  - Needs the `ADMIN` role (from `user_roles`, ADR012): `/api/admin/**` and the other actuator endpoints. The token's
+    own roles are ignored.
   - Everything else needs a signed-in user and works in that user's tenant (plus the read-only `LIBRARY` tenant for
     content).
   - Responses: `401` without a valid token, `403` without the role.
@@ -19,7 +20,7 @@ Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
 
 | Method | Path | Body / params | Result |
 |---|---|---|---|
-| GET | `/me` | – | `200 CurrentUserDto {userId, tenantId, tenantName, email, displayName, roles, securityMode, createdAt}`. The first call with a new user's token creates the user and their personal tenant. `roles` holds the Keycloak realm role `APPLICATION_ADMIN` (if granted) and the role in the tenant (`TENANT_ADMIN`). In mode `fixed`: the fixed tenant and user, roles `[TENANT_ADMIN]`, no `createdAt` |
+| GET | `/me` | – | `200 CurrentUserDto {userId, tenantId, tenantName, email, displayName, roles, securityMode, createdAt}`. The first call with a new user's token creates the user and their personal tenant. `roles` lists the user's roles from `user_roles` (ADR012), e.g. `ADMIN` and `TENANT_ADMIN`. In mode `fixed`: the fixed tenant and user, roles `[TENANT_ADMIN]`, no `createdAt` |
 | GET | `/me/preferences` | – | `200 UserPreferencesDto {theme}` (`LIGHT`/`DARK`/`SYSTEM`; `null` = never chosen, the app default). Stored as JSON in `users.preferences_json`. All `null` when there is no user row (mode `fixed`) |
 | PUT | `/me/preferences` | `UserPreferencesDto` | `200 UserPreferencesDto`. Replaces all settings. `400` unknown value, `404` no user row (mode `fixed`) |
 | GET | `/me/usage` | – | `200 UsageSummaryDto`: the own tenant's topics, documents (and ingested), storage bytes, plus this calendar month (UTC): tests created, AI-written question versions (`GENERATED` + `REGENERATED`), submitted attempts and LLM input/output tokens from `generation_runs`. The shared library is not counted; embedding tokens are not tracked yet |

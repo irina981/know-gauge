@@ -111,7 +111,7 @@ personal tenant on their first sign-in. Registration emails go to Mailpit.
 
 | User | Password | Roles |
 |---|---|---|
-| `admin@knowgauge.local` (`KG_ADMIN_EMAIL`) | `admin-pass` (`KG_ADMIN_PASSWORD`) | `APPLICATION_ADMIN` + `TENANT_ADMIN` of their own tenant |
+| `admin@knowgauge.local` (`KG_ADMIN_EMAIL`) | `admin-pass` (`KG_ADMIN_PASSWORD`) | `ADMIN` (granted by the app at sign-in, `kg.account.admin-emails`) + `TENANT_ADMIN` of their own tenant |
 | `alice@knowgauge.local` | `alice-pass` | `TENANT_ADMIN` of their own tenant |
 | `bob@knowgauge.local` | `bob-pass` | `TENANT_ADMIN` of their own tenant |
 

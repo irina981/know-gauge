@@ -1,6 +1,8 @@
 package com.knowgauge.infra.repository.jpa.entity;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.hibernate.annotations.Type;
 
@@ -9,12 +11,17 @@ import com.knowgauge.core.model.enums.Role;
 
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -36,10 +43,13 @@ public class UserEntity extends AuditableEntity {
 	@Column(name = "tenant_id", updatable = false)
 	private Long tenantId;
 
-	/** {@code null} only for the system user (id 0). */
+	/** Rows of {@code user_roles} (ADR012); empty for the system user (id 0). Loaded with the user. */
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+	@Column(name = "role_code", length = 30, nullable = false)
 	@Enumerated(EnumType.STRING)
-	@Column(length = 30)
-	private Role role;
+	@Builder.Default
+	private Set<Role> roles = new HashSet<>();
 
 	@Column(length = 320)
 	private String email;

@@ -45,7 +45,7 @@ it (`fixed`), plus a shared read-only `LIBRARY` tenant for the samples (ADR010).
   chunks, embeddings) take a set (`findByTenantIdIn…`, `tenant_id IN (:tenantIds)`): the own tenant plus the
   `LIBRARY` tenants, from `ContentScope` (ADR010). Tests, questions, attempts and invitations stay in the own tenant only.
 - Another tenant's id behaves like a missing row (404 or empty list), also as a parent topic or upload target.
-  Library content can be read by everyone and changed only by an `APPLICATION_ADMIN` (otherwise 403,
+  Library content can be read by everyone and changed only by an `ADMIN` (otherwise 403,
   `ReadOnlyContentException`); `TopicDto` / `DocumentDto.readOnly` reflect this. Sub-topics and documents live in
   their topic's tenant, and ingestion runs in the document's tenant (`ExecutionContext.runAs`).
   `document_sections` have no tenant column and are filtered through their document.
@@ -96,8 +96,8 @@ For the HTTP mapping and its quirks, see [08 – Error model](08-rest-api.md#err
 ## Security
 
 - Authentication: Keycloak bearer tokens in security mode `oidc` (`SecurityConfig`, ADR010): issuer, signature and
-  audience are checked; sessions are stateless and CSRF is off (no cookies). Realm role `APPLICATION_ADMIN` guards
-  `/api/admin/**` and actuator beyond health/info. In mode `fixed` (the default for now) the API has no
+  audience are checked; sessions are stateless and CSRF is off (no cookies). Authorization is the app's (ADR012): the
+  `ADMIN` role from `user_roles` guards `/api/admin/**` and actuator beyond health/info; the token's roles are ignored. In mode `fixed` (the default for now) the API has no
   authentication, and actuator `env` and `beans` are exposed outside `prod`.
 - Secrets come from environment variables (`OPENAI_API_KEY`, DB and MinIO credentials). `.env` is gitignored, but
   the `local` profile has local credentials in the properties file; `prod` reads every secret from env vars.

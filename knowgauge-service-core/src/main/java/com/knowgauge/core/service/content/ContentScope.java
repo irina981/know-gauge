@@ -15,7 +15,7 @@ import com.knowgauge.core.port.repository.TenantRepository;
  * Which tenants' content (topics, documents, chunks, embeddings) the current work may read and change (ADR010).
  * <ul>
  * <li>Read: the own tenant and every {@link TenantType#LIBRARY} tenant.</li>
- * <li>Change: the own tenant; library content only for an {@code APPLICATION_ADMIN}. Jobs and startup seeding
+ * <li>Change: the own tenant; library content only for an {@code ADMIN}. Jobs and startup seeding
  * run in the library tenant itself, so it is their own tenant.</li>
  * </ul>
  * Library tenants are created by migrations, so their ids are read once and kept for the life of the application.

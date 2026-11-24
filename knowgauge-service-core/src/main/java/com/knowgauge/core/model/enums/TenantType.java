@@ -10,7 +10,7 @@ public enum TenantType {
 
     /**
      * Shared sample content (topics and documents) that every user may read and generate tests from, into their
-     * own tenant. Has no members; only an {@link Role#APPLICATION_ADMIN} may change it (ADR010).
+     * own tenant. Has no members; only an {@link Role#ADMIN} may change it (ADR010, ADR012).
      */
     LIBRARY
 }

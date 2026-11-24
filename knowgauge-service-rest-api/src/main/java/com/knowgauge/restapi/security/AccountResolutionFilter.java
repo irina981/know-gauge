@@ -22,9 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Runs after the bearer token is validated: resolves the local user (creating it and its tenant on the first
- * sign-in), stores it for {@link SignedInAccount#current()}, and adds the user's tenant role as an authority
- * ({@code ROLE_TENANT_ADMIN}). Anonymous requests pass through unchanged. Not a bean, so the servlet container
- * doesn't register it a second time outside the security chain.
+ * sign-in), stores it for {@link SignedInAccount#current()}, and sets the user's roles from {@code user_roles} as
+ * the authorities ({@code ROLE_ADMIN}, {@code ROLE_TENANT_ADMIN}); the token's own claims grant nothing (ADR012).
+ * Anonymous requests pass through unchanged. Not a bean, so the servlet container doesn't register it a second time
+ * outside the security chain.
  */
 @Slf4j
 public class AccountResolutionFilter extends OncePerRequestFilter {
@@ -48,12 +49,13 @@ public class AccountResolutionFilter extends OncePerRequestFilter {
 				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
 				return;
 			}
-			List<GrantedAuthority> authorities = new ArrayList<>(token.getAuthorities());
-			if (user.getRole() != null) {
-				authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+			// Authorization is KnowGauge's (ADR012): the authorities are the user's roles from user_roles, never claims
+			// of the identity provider.
+			List<GrantedAuthority> authorities = new ArrayList<>();
+			for (Role role : user.getRoles()) {
+				authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
 			}
-			boolean applicationAdmin = authorities.stream()
-					.anyMatch(a -> a.getAuthority().equals("ROLE_" + Role.APPLICATION_ADMIN.name()));
+			boolean applicationAdmin = user.hasRole(Role.ADMIN);
 			SecurityContextHolder.getContext()
 					.setAuthentication(new JwtAuthenticationToken(token.getToken(), authorities, token.getName()));
 			request.setAttribute(SignedInAccount.REQUEST_ATTRIBUTE, new SignedInAccount(user, applicationAdmin));

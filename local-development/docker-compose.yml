@@ -87,7 +87,7 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}
-      # The KnowGauge application admin (APPLICATION_ADMIN realm role) created by the realm import
+      # A KnowGauge user created by the realm import; the app makes it ADMIN at sign-in (ADR012)
       KG_ADMIN_EMAIL: ${KG_ADMIN_EMAIL:-admin@knowgauge.local}
       KG_ADMIN_PASSWORD: ${KG_ADMIN_PASSWORD:-admin-pass}
       # Where the UI runs (redirect URIs of the knowgauge-ui client)
@@ -169,6 +169,8 @@ services:
       KG_SECURITY_MODE: ${KG_SECURITY_MODE:-fixed}
       KG_OIDC_ISSUER_URI: http://localhost:8180/realms/knowgauge
       KG_OIDC_JWK_SET_URI: http://keycloak:8080/realms/knowgauge/protocol/openid-connect/certs
+      # Gets the ADMIN role at sign-in (kg.account.admin-emails, ADR012)
+      KG_ADMIN_EMAIL: ${KG_ADMIN_EMAIL:-admin@knowgauge.local}
 
       # OpenAI (no default; needed for ingestion and test generation)
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}

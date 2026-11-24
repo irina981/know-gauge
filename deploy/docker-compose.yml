@@ -43,7 +43,7 @@ services:
       retries: 5
 
   # Sign-in (ADR010), in production mode. Tables in the keycloak schema of the shared Postgres. The knowgauge realm
-  # (keycloak/knowgauge-realm.json: UI client, APPLICATION_ADMIN role, the first admin) is imported on the first start
+  # (keycloak/knowgauge-realm.json: UI client and the first admin's sign-in; no roles) is imported on the first start
   # only. It listens on 127.0.0.1: put a reverse proxy with HTTPS in front of it at KG_AUTH_URL.
   keycloak:
     image: quay.io/keycloak/keycloak:26.8.2
@@ -128,6 +128,8 @@ services:
       KG_SECURITY_MODE: oidc
       KG_OIDC_ISSUER_URI: ${KG_AUTH_URL}/realms/knowgauge
       KG_OIDC_JWK_SET_URI: http://keycloak:8080/realms/knowgauge/protocol/openid-connect/certs
+      # The first admin: gets the ADMIN role at sign-in once the email is verified (ADR012)
+      KG_ADMIN_EMAIL: ${KG_ADMIN_EMAIL}
 
       KG_STORAGE_ENDPOINT: http://minio:9000
       KG_STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:-knowgauge}

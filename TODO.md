@@ -29,7 +29,8 @@
 
 ### User Management
 - [ ] Implement User Mangement (core)
-- [ ] Roles: APPLICATION_ADMIN, TENANT_ADMIN, TENANT_USER
+- [x] Roles: ADMIN, TENANT_ADMIN (assigned), TENANT_USER, TENANT_VIEWER in `roles` / `user_roles` (ADR012)
+- [ ] Screen or API to grant and revoke roles (today: `kg.account.admin-emails` and SQL)
 
 ### Multi-tenant support
 - [ ] Tenant domain entity

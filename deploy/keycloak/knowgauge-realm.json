@@ -23,14 +23,6 @@
     "from": "${KG_MAIL_FROM_ADDRESS}",
     "fromDisplayName": "KnowGauge"
   },
-  "roles": {
-    "realm": [
-      {
-        "name": "APPLICATION_ADMIN",
-        "description": "KnowGauge application admin, across all tenants"
-      }
-    ]
-  },
   "clients": [
     {
       "clientId": "knowgauge-ui",
@@ -71,7 +63,7 @@
       "firstName": "KnowGauge",
       "lastName": "Admin",
       "credentials": [{ "type": "password", "value": "${KG_ADMIN_PASSWORD}", "temporary": true }],
-      "realmRoles": ["default-roles-knowgauge", "APPLICATION_ADMIN"]
+      "realmRoles": ["default-roles-knowgauge"]
     }
   ]
 }

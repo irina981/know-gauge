@@ -1,6 +1,5 @@
 package com.knowgauge.restapi.controller;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -63,13 +62,8 @@ public class AccountController {
 					List.of(Role.TENANT_ADMIN.name()), securityMode, null));
 		}
 		User user = account.get().user();
-		List<String> roles = new ArrayList<>();
-		if (account.get().applicationAdmin()) {
-			roles.add(Role.APPLICATION_ADMIN.name());
-		}
-		if (user.getRole() != null) {
-			roles.add(user.getRole().name());
-		}
+		// The user's roles from user_roles (ADR012), in the Role enum's order.
+		List<String> roles = user.getRoles().stream().sorted().map(Role::name).toList();
 		return ResponseEntity.ok(new CurrentUserDto(user.getId(), user.getTenantId(), tenantName, user.getEmail(),
 				user.getDisplayName(), roles, securityMode, user.getCreatedAt()));
 	}

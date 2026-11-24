@@ -38,7 +38,8 @@ public class AccountResolver {
 		if (cached != null && cached.loadedAt().plus(refreshAfter).isAfter(now)) {
 			return cached.user();
 		}
-		User user = accountService.signIn(subject, jwt.getClaimAsString("email"), displayName(jwt));
+		User user = accountService.signIn(subject, jwt.getClaimAsString("email"),
+				Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified")), displayName(jwt));
 		if (cache.size() >= MAX_CACHED) {
 			cache.clear();
 		}

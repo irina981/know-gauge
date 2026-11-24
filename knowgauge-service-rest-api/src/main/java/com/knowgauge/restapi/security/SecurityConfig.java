@@ -1,6 +1,7 @@
 package com.knowgauge.restapi.security;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -33,8 +34,8 @@ import lombok.extern.slf4j.Slf4j;
  * <li>{@code fixed} (default; also the test profile): no sign-in, every request is allowed, and the tenant and
  * user are fixed by {@code kg.context.*}.</li>
  * <li>{@code oidc}: Keycloak bearer tokens. {@code /api/public/**} (participants), health and the landing page
- * stay open; {@code /api/admin/**} and the other actuator endpoints need the {@code APPLICATION_ADMIN} realm
- * role; everything else needs a signed-in user, who works in their own tenant.</li>
+ * stay open; {@code /api/admin/**} and the other actuator endpoints need the {@code ADMIN} role from
+ * {@code user_roles} (ADR012); everything else needs a signed-in user, who works in their own tenant.</li>
  * </ul>
  * Stateless in both modes: no session, no CSRF (the API takes bearer tokens, not cookies).
  */
@@ -54,8 +55,10 @@ public class SecurityConfig {
 	@ConditionalOnProperty(name = "kg.security.mode", havingValue = "oidc")
 	SecurityFilterChain oidcSecurityFilterChain(HttpSecurity http, AccountService accountService,
 			OidcProperties properties) throws Exception {
+		// Keycloak only authenticates (ADR012): no authorities from the token; AccountResolutionFilter adds the user's
+		// roles from user_roles.
 		JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-		converter.setJwtGrantedAuthoritiesConverter(new KeycloakRolesConverter());
+		converter.setJwtGrantedAuthoritiesConverter(jwt -> List.of());
 		AccountResolutionFilter accountFilter = new AccountResolutionFilter(
 				new AccountResolver(accountService, Duration.ofMinutes(properties.getAccountCacheMinutes())));
 
@@ -65,7 +68,7 @@ public class SecurityConfig {
 				.requestMatchers("/", "/index.html", "/*.svg", "/*.png", "/*.ico", "/error").permitAll()
 				// Off in prod (springdoc.*.enabled); locally Swagger UI takes a token through "Authorize".
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-				.requestMatchers("/api/admin/**", "/actuator/**").hasRole(Role.APPLICATION_ADMIN.name())
+				.requestMatchers("/api/admin/**", "/actuator/**").hasRole(Role.ADMIN.name())
 				.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
 				.addFilterAfter(accountFilter, BearerTokenAuthenticationFilter.class).build();

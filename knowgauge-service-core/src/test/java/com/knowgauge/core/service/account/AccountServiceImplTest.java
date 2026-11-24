@@ -9,6 +9,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -29,6 +31,7 @@ class AccountServiceImplTest {
 
 	private UserRepository userRepository;
 	private TenantRepository tenantRepository;
+	private AccountProperties properties;
 	private AccountServiceImpl service;
 	private final AtomicLong ids = new AtomicLong(10);
 
@@ -39,16 +42,19 @@ class AccountServiceImplTest {
 		when(userRepository.findByExternalId(any())).thenReturn(Optional.empty());
 		when(userRepository.save(any())).thenAnswer(inv -> withId(inv.getArgument(0, User.class)));
 		when(tenantRepository.save(any())).thenAnswer(inv -> withId(inv.getArgument(0, Tenant.class)));
-		service = new AccountServiceImpl(new AccountTransactionalServiceImpl(userRepository, tenantRepository));
+		properties = new AccountProperties();
+		properties.setAdminEmails(List.of("Admin@Example.com"));
+		service = new AccountServiceImpl(
+				new AccountTransactionalServiceImpl(userRepository, tenantRepository, properties));
 	}
 
 	@Test
 	void firstSignInCreatesThePersonalTenantAndTheUserAsItsTenantAdmin() {
-		User user = service.signIn(SUBJECT, "ana@example.com", "  Ana   Petrovic ");
+		User user = service.signIn(SUBJECT, "ana@example.com", true, "  Ana   Petrovic ");
 
 		assertThat(user.getId()).isNotNull();
 		assertThat(user.getExternalId()).isEqualTo(SUBJECT);
-		assertThat(user.getRole()).isEqualTo(Role.TENANT_ADMIN);
+		assertThat(user.getRoles()).containsExactly(Role.TENANT_ADMIN);
 		assertThat(user.getDisplayName()).isEqualTo("Ana Petrovic");
 		assertThat(user.getLastSeenAt()).isNotNull();
 		// saved twice: created, then linked to its owner
@@ -62,18 +68,18 @@ class AccountServiceImplTest {
 
 	@Test
 	void tenantIsNamedAfterTheEmailWhenTheTokenHasNoName() {
-		service.signIn(SUBJECT, "ana@example.com", null);
+		service.signIn(SUBJECT, "ana@example.com", true, null);
 
 		assertThat(lastSavedTenant().getName()).isEqualTo("ana@example.com");
 	}
 
 	@Test
 	void laterSignInKeepsTheTenantAndTakesTheNewEmail() {
-		User existing = User.builder().id(5L).externalId(SUBJECT).tenantId(7L).role(Role.TENANT_ADMIN)
+		User existing = User.builder().id(5L).externalId(SUBJECT).tenantId(7L).roles(EnumSet.of(Role.TENANT_ADMIN))
 				.email("old@example.com").displayName("Ana").build();
 		when(userRepository.findByExternalId(SUBJECT)).thenReturn(Optional.of(existing));
 
-		User user = service.signIn(SUBJECT, "new@example.com", "Ana");
+		User user = service.signIn(SUBJECT, "new@example.com", true, "Ana");
 
 		assertThat(user.getTenantId()).isEqualTo(7L);
 		assertThat(user.getEmail()).isEqualTo("new@example.com");
@@ -82,12 +88,12 @@ class AccountServiceImplTest {
 
 	@Test
 	void concurrentFirstSignInReadsTheUserTheOtherRequestCreated() {
-		User created = User.builder().id(5L).externalId(SUBJECT).tenantId(7L).role(Role.TENANT_ADMIN).build();
+		User created = User.builder().id(5L).externalId(SUBJECT).tenantId(7L).roles(EnumSet.of(Role.TENANT_ADMIN)).build();
 		when(userRepository.findByExternalId(SUBJECT)).thenReturn(Optional.empty(), Optional.of(created));
 		org.mockito.Mockito.doThrow(new DataIntegrityViolationException("uk_users_external_id"))
 				.doAnswer(inv -> inv.getArgument(0)).when(userRepository).save(any());
 
-		User user = service.signIn(SUBJECT, null, null);
+		User user = service.signIn(SUBJECT, null, false, null);
 
 		assertThat(user.getId()).isEqualTo(5L);
 		assertThat(user.getTenantId()).isEqualTo(7L);
@@ -95,10 +101,36 @@ class AccountServiceImplTest {
 
 	@Test
 	void rejectsAMissingOrReservedSubject() {
-		assertThatThrownBy(() -> service.signIn(" ", null, null)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> service.signIn("system", null, null)).isInstanceOf(IllegalArgumentException.class)
+		assertThatThrownBy(() -> service.signIn(" ", null, false, null)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> service.signIn("system", null, false, null)).isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("reserved");
 		verify(userRepository, never()).save(any());
+	}
+
+	@Test
+	void aListedVerifiedEmailIsAlsoAdminFromTheFirstSignIn() {
+		User user = service.signIn(SUBJECT, "admin@example.com", true, "Admin");
+
+		assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.ADMIN, Role.TENANT_ADMIN);
+	}
+
+	@Test
+	void anExistingUserBecomesAdminWhenTheirEmailIsListed() {
+		User existing = User.builder().id(5L).externalId(SUBJECT).tenantId(7L).roles(EnumSet.of(Role.TENANT_ADMIN))
+				.email("admin@example.com").build();
+		when(userRepository.findByExternalId(SUBJECT)).thenReturn(Optional.of(existing));
+
+		User user = service.signIn(SUBJECT, "admin@example.com", true, null);
+
+		assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.ADMIN, Role.TENANT_ADMIN);
+	}
+
+	@Test
+	void anUnverifiedOrUnlistedEmailNeverMakesAnAdmin() {
+		assertThat(service.signIn(SUBJECT, "admin@example.com", false, null).getRoles())
+				.containsExactly(Role.TENANT_ADMIN);
+		assertThat(service.signIn("other-subject", "ana@example.com", true, null).getRoles())
+				.containsExactly(Role.TENANT_ADMIN);
 	}
 
 	private Tenant lastSavedTenant() {

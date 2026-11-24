@@ -18,14 +18,6 @@
     "from": "no-reply@knowgauge.local",
     "fromDisplayName": "KnowGauge"
   },
-  "roles": {
-    "realm": [
-      {
-        "name": "APPLICATION_ADMIN",
-        "description": "KnowGauge application admin, across all tenants"
-      }
-    ]
-  },
   "clients": [
     {
       "clientId": "knowgauge-ui",
@@ -68,7 +60,7 @@
       "credentials": [
         { "type": "password", "value": "${KG_ADMIN_PASSWORD:admin-pass}", "temporary": false }
       ],
-      "realmRoles": ["default-roles-knowgauge", "APPLICATION_ADMIN"]
+      "realmRoles": ["default-roles-knowgauge"]
     },
     {
       "username": "alice@knowgauge.local",

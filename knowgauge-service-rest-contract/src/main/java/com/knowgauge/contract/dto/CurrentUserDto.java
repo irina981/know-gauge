@@ -12,7 +12,7 @@ public record CurrentUserDto(
 		String tenantName,
 		String email,
 		String displayName,
-		@Schema(description = "APPLICATION_ADMIN (Keycloak realm role) and the role in the tenant (TENANT_ADMIN)") List<String> roles,
+		@Schema(description = "The user's roles from user_roles, e.g. ADMIN and TENANT_ADMIN (ADR012)") List<String> roles,
 		@Schema(description = "fixed (no sign-in, one tenant per deployment) or oidc (Keycloak)") String securityMode,
 		@Schema(description = "When the user first signed in; null when sign-in is off") Instant createdAt) {
 }

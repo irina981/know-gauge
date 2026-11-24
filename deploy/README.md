@@ -6,7 +6,7 @@ This folder runs KnowGauge on one server with the `prod` Spring profile. For dev
 | File | Purpose |
 |---|---|
 | `docker-compose.yml` | The app, one Postgres, Keycloak, MinIO, the web UI and the Dozzle log viewer |
-| `keycloak/knowgauge-realm.json` | The `knowgauge` realm imported on the first start: UI client, `APPLICATION_ADMIN` role, the first admin (no demo users) |
+| `keycloak/knowgauge-realm.json` | The `knowgauge` realm imported on the first start: UI client and the first admin's sign-in (no roles, no demo users). The app makes `KG_ADMIN_EMAIL` an `ADMIN` at sign-in (ADR012) |
 | `.env.example` | Every variable `docker-compose.yml` reads, with the required secrets first |
 | `.env` | Your copy of `.env.example` with real values (gitignored, never commit it) |
 | `dozzle/users.yml` | Dozzle login (gitignored, created in step 3) |

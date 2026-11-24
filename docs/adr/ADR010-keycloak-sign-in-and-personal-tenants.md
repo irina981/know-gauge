@@ -1,6 +1,6 @@
 # ADR010 - Sign-in through Keycloak, one personal tenant per user
 * Date: Nov 18, 2026
-* Status: ACCEPTED
+* Status: ACCEPTED (roles: see ADR012)
 * Author: Irina Mijatovic
 
 ## Decision
@@ -9,11 +9,12 @@ access token (issuer, signature, audience `knowgauge-api`) and maps the token's 
 On the first sign-in it creates the user **and a personal tenant** (`INDIVIDUAL`) for them. Every user belongs to
 exactly one tenant, in which they are `TENANT_ADMIN`.
 
-Two roles are assigned for now:
+Two roles are assigned for now. **Superseded by [ADR012](ADR012-roles-kept-by-knowgauge.md):** both now live in
+KnowGauge's `user_roles` table, and the application admin role is `ADMIN`. Keycloak holds no roles.
 
-| Role | Where it lives | Grants |
+| Role | Where it lived | Grants |
 |---|---|---|
-| `APPLICATION_ADMIN` | Keycloak realm role (`realm_access.roles`) | `/api/admin/**` and the actuator endpoints other than health/info |
+| `APPLICATION_ADMIN` (now `ADMIN`) | Keycloak realm role (`realm_access.roles`) | `/api/admin/**` and the actuator endpoints other than health/info |
 | `TENANT_ADMIN` | `users.role` | Everything in the user's own tenant |
 
 `TENANT_USER` and `TENANT_VIEWER` (read-only member) are in the `Role` enum for organization tenants later, but
@@ -23,10 +24,10 @@ not assigned yet. The global admin user is created by the
 
 Sample content lives in a **`LIBRARY` tenant** (tenant type, not a setting and not "a tenant without owner"):
 every user may read it and generate tests from it into their own tenant; it has no members and only an
-`APPLICATION_ADMIN` may change it. Locally, tenant 1 (the seeded sample topics) is the library
+`APPLICATION_ADMIN` (now `ADMIN`) may change it. Locally, tenant 1 (the seeded sample topics) is the library
 (`R__dev_library_tenant.sql`). `ContentScope` implements this: content reads cover the own tenant and all
 library tenants; topic and document changes (including ingestion) are allowed in the own tenant, and in the
-library only for an `APPLICATION_ADMIN` (otherwise 403, `ReadOnlyContentException`). A sub-topic or document
+library only for an `APPLICATION_ADMIN` (now `ADMIN`) (otherwise 403, `ReadOnlyContentException`). A sub-topic or document
 always lives in its parent topic's tenant. `TopicDto` / `DocumentDto.readOnly` tell the UI to hide edit actions.
 Jobs and seeding run as the system user in the library tenant itself, so it is their own tenant. Testers get their own account and tenant, not a shared demo login, so
 usage can be tracked and limited per person.

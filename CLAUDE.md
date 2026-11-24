@@ -37,7 +37,10 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
     (`KG_TENANT_ID` / `KG_USER_ID` in prod).
   - `oidc` (`KG_SECURITY_MODE=oidc`): Keycloak bearer tokens, validated against `kg.security.oidc.issuer-uri`. On the
     first sign-in a user gets a `users` row and a personal tenant. `/api/public/**`, health/info and Swagger stay
-    open; `/api/admin/**` and the rest of actuator need the `APPLICATION_ADMIN` realm role.
+    open; `/api/admin/**` and the rest of actuator need the `ADMIN` role.
+  - Roles are KnowGauge's, never Keycloak's ([ADR012](docs/adr/ADR012-roles-kept-by-knowgauge.md)): tables `roles` and
+    `user_roles` (several per user). Every user is `TENANT_ADMIN` of their tenant; a verified email in
+    `kg.account.admin-emails` (`KG_ADMIN_EMAIL`) gets `ADMIN` at sign-in. Don't add roles to the realm files.
   - Local Keycloak: compose service `keycloak` on http://localhost:8180, realm `knowgauge` from
     `local-development/keycloak/knowgauge-realm.json`. Its users and their passwords are in the
     [local-development README](local-development/README.md#sign-in-keycloak).
@@ -103,7 +106,7 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   `GlobalControllerExceptionHandler`.
 - Get the tenant and user from `ExecutionContext`. Don't hard-code tenant IDs in new code; query with `tenantId`.
   Content (topics, documents, chunks, embeddings) is read from `ContentScope.readableTenantIds()` (own tenant +
-  `LIBRARY`) and changed only after `ContentScope.requireWritable` (library: `APPLICATION_ADMIN` only, ADR010).
+  `LIBRARY`) and changed only after `ContentScope.requireWritable` (library: `ADMIN` only, ADR010, ADR012).
 - Config: custom properties live under `kg.*`. Typed groups use `@ConfigurationProperties` classes in core
   (`ChunkingProperties`, `TestGenerationDefaultsProperties`, `StorageProperties`).
 
