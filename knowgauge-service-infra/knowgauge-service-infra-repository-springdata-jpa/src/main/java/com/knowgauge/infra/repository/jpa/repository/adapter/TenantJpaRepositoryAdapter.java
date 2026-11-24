@@ -31,13 +31,15 @@ public class TenantJpaRepositoryAdapter implements TenantRepository {
 	private static final String FROM = " from TenantEntity t left join UserEntity u on u.id = t.ownerUserId";
 	private static final String TOPICS = "(select count(tp) from TopicEntity tp where tp.tenantId = t.id)";
 	private static final String DOCUMENTS = "(select count(d) from DocumentEntity d where d.tenantId = t.id)";
+	/** Workspace invitations of the tenant (ADR015), accepted or not. */
+	private static final String INVITATIONS = "(select count(wi) from WorkspaceInvitationEntity wi where wi.tenantId = t.id)";
 	/** Total size of the tenant's documents in bytes. */
 	private static final String STORAGE = "(select coalesce(sum(ds.fileSizeBytes), 0L) from DocumentEntity ds where ds.tenantId = t.id)";
 	/** LLM tokens (input + output) of the tenant's calls in the usage period. */
 	private static final String TOKENS = "(select coalesce(sum(coalesce(r.inputTokens, 0) + coalesce(r.outputTokens, 0)), 0L)"
 			+ " from GenerationRunEntity r where r.tenantId = t.id and r.createdAt >= :usageFrom and r.createdAt < :usageTo)";
 	private static final String SELECT = "select new com.knowgauge.core.model.TenantSummary(t.id, t.name, t.type,"
-			+ " t.ownerUserId, u.displayName, u.email, t.createdAt, " + TOPICS + ", " + DOCUMENTS + ", " + STORAGE + ", " + TOKENS + ")";
+			+ " t.ownerUserId, u.displayName, u.email, t.createdAt, " + TOPICS + ", " + DOCUMENTS + ", " + INVITATIONS + ", " + STORAGE + ", " + TOKENS + ")";
 
 	@PersistenceContext
 	private EntityManager em;

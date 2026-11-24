@@ -15,6 +15,7 @@ public record TenantSummaryDto(
 		Instant createdAt,
 		long topics,
 		long documents,
+		@Schema(description = "Workspace invitations of the tenant (ADR015), accepted or not") long invitations,
 		@Schema(description = "Total size of the tenant's documents in bytes") long storageBytes,
 		@Schema(description = "Bytes of documents the tenant may keep (its own limit, else the system one); null when there is none (always for the library). Over it uploads are refused") Long storageLimitBytes,
 		@Schema(description = "LLM tokens (input + output) of the tenant this calendar month (UTC)") long tokensThisMonth,
