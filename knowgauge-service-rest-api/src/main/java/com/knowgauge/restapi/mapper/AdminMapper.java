@@ -1,6 +1,5 @@
 package com.knowgauge.restapi.mapper;
 
-import java.util.List;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
@@ -12,6 +11,4 @@ import com.knowgauge.core.model.TenantSummary;
 public interface AdminMapper {
 
 	TenantSummaryDto toDto(TenantSummary workspace);
-
-	List<TenantSummaryDto> toDtos(List<TenantSummary> workspaces);
 }

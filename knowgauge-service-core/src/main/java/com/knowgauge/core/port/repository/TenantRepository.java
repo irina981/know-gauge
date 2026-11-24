@@ -3,7 +3,11 @@ package com.knowgauge.core.port.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.knowgauge.core.model.Tenant;
+import com.knowgauge.core.model.TenantSearch;
 import com.knowgauge.core.model.TenantSummary;
 import com.knowgauge.core.model.enums.TenantType;
 
@@ -15,6 +19,14 @@ public interface TenantRepository {
 	/** @return ids of the tenants of the given type, ascending */
 	List<Long> findIdsByType(TenantType type);
 
-	/** Every tenant (user workspaces and libraries) with its owner and content counts, ordered by name. */
-	List<TenantSummary> findTenantSummaries();
+	/**
+	 * Tenants (user workspaces and libraries) with their owner and content counts, filtered and paged. Sort properties:
+	 * {@code name}, {@code type}, {@code owner}, {@code topics}, {@code documents}, {@code createdAt}.
+	 *
+	 * @throws IllegalArgumentException for any other sort property
+	 */
+	Page<TenantSummary> findTenantSummaries(TenantSearch search, Pageable pageable);
+
+	/** One tenant with its owner and content counts. */
+	Optional<TenantSummary> findTenantSummary(Long tenantId);
 }
