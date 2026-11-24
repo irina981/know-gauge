@@ -6,7 +6,7 @@
 ## Decision
 People sign in through **Keycloak** (OIDC). The service is an OAuth2 resource server: it validates the bearer
 access token (issuer, signature, audience `knowgauge-api`) and maps the token's subject to a local `users` row.
-On the first sign-in it creates the user **and a personal tenant** (`INDIVIDUAL`) for them. Every user belongs to
+On the first sign-in it creates the user **and a personal tenant** (`PERSONAL`; `INDIVIDUAL` until V5) for them. Every user belongs to
 exactly one tenant, in which they are `TENANT_ADMIN`.
 
 Two roles are assigned for now. **Superseded by [ADR012](ADR012-roles-kept-by-knowgauge.md):** both now live in

@@ -66,7 +66,7 @@ class TenantAdminServiceImplTest {
 	@Test
 	void tokensAreCountedForTheCurrentMonthAndEachTenantsLimitsAreAttached() {
 		PageRequest page = PageRequest.of(0, 20);
-		TenantSummary row = new TenantSummary(3L, "Ana", TenantType.INDIVIDUAL, 2L, "Ana", "ana@x.test", NOV_1, 1, 2,
+		TenantSummary row = new TenantSummary(3L, "Ana", TenantType.PERSONAL, 2L, "Ana", "ana@x.test", NOV_1, 1, 2,
 				3_000L, 1_200L);
 		when(tenants.findTenantSummaries(any(), eq(page), eq(NOV_1), eq(DEC_1)))
 				.thenReturn(new PageImpl<>(List.of(row), page, 1));

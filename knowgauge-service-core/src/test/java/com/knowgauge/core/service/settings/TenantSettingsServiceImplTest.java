@@ -58,7 +58,7 @@ class TenantSettingsServiceImplTest {
 		service = new TenantSettingsServiceImpl(repository, tenants,
 				new SystemSettingsServiceImpl(mock(SettingRepository.class), List.of(core)));
 		when(tenants.findById(TENANT))
-				.thenReturn(Optional.of(Tenant.builder().id(TENANT).type(TenantType.INDIVIDUAL).build()));
+				.thenReturn(Optional.of(Tenant.builder().id(TENANT).type(TenantType.PERSONAL).build()));
 		when(repository.findByTenantId(TENANT)).thenReturn(List.of());
 	}
 

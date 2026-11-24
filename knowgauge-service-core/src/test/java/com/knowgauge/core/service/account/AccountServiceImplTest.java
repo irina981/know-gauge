@@ -72,7 +72,7 @@ class AccountServiceImplTest {
 		verify(tenantRepository, times(2)).save(any());
 		Tenant tenant = lastSavedTenant();
 		assertThat(tenant.getId()).isEqualTo(user.getTenantId());
-		assertThat(tenant.getType()).isEqualTo(TenantType.INDIVIDUAL);
+		assertThat(tenant.getType()).isEqualTo(TenantType.PERSONAL);
 		assertThat(tenant.getName()).isEqualTo("Ana Petrovic");
 		assertThat(tenant.getOwnerUserId()).isEqualTo(user.getId());
 	}

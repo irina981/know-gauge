@@ -10,7 +10,7 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Owner of all content (topics, documents, tests, attempts): every table has a
- * {@code tenant_id}. For now each user gets an {@link TenantType#INDIVIDUAL}
+ * {@code tenant_id}. For now each user gets an {@link TenantType#PERSONAL}
  * tenant of their own on first sign-in. {@link TenantType#LIBRARY} tenants
  * hold shared sample content everyone may read. {@link TenantType#ORGANIZATION}
  * tenants shared by several users come later.

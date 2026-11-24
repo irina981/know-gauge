@@ -3,7 +3,7 @@ package com.knowgauge.core.model.enums;
 public enum TenantType {
 
     /** A user's own workspace, created on their first sign-in. */
-    INDIVIDUAL,
+    PERSONAL,
 
     /** A company workspace shared by several users (later). */
     ORGANIZATION,

@@ -38,7 +38,7 @@ it (`fixed`), plus a shared read-only `LIBRARY` tenant for the samples (ADR010).
   `runAs(tenantId, userId, …)` or `runAsSystem(tenantId, …)`: the scheduled ingestion job runs per tenant as the
   system user (`users` row 0, `SYSTEM_USER_ID`), and so does the startup seeder.
 - Accounts: `AccountResolutionFilter` maps the token's subject to a `users` row through `AccountService.signIn`,
-  which creates the user (role `TENANT_ADMIN`) and an `INDIVIDUAL` tenant on the first sign-in, and caches the
+  which creates the user (role `TENANT_ADMIN`) and a `PERSONAL` tenant on the first sign-in, and caches the
   result per subject for `kg.security.oidc.account-cache-minutes`.
 - Every repository port method that reads or writes tenant data is filtered by tenant. Writes take the one tenant
   written to (`updatePath(tenantId, …)`, `markIngested(tenantId, …)`, …). Content reads (topics, documents,

@@ -90,7 +90,7 @@ public class AccountTransactionalServiceImpl {
 			Instant now) {
 		String tenantName = displayName != null ? displayName : email != null ? email : DEFAULT_TENANT_NAME;
 		Tenant tenant = tenantRepository
-				.save(Tenant.builder().type(TenantType.INDIVIDUAL).name(tenantName).build());
+				.save(Tenant.builder().type(TenantType.PERSONAL).name(tenantName).build());
 		// Every user administers their own tenant for now; more roles come with organization tenants.
 		User newUser = User.builder().externalId(externalId).tenantId(tenant.getId())
 				.roles(EnumSet.of(Role.TENANT_ADMIN)).email(email).displayName(displayName).lastSeenAt(now).build();
