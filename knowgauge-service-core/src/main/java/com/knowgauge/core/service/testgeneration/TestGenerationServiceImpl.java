@@ -59,14 +59,16 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final TestQuestionValidator questionValidator;
 	private final ContentScope contentScope;
 	private final UsageService usageService;
+	private final GenerationSlots generationSlots;
 
 	public TestGenerationServiceImpl(RetrievingService retrievingService, QuestionBatchGenerator batchGenerator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
 			TestGenerationDefaultsProperties defaults, TestQuestionValidator questionValidator,
-			ContentScope contentScope, UsageService usageService) {
+			ContentScope contentScope, UsageService usageService, GenerationSlots generationSlots) {
 		this.retrievingService = retrievingService;
+		this.generationSlots = generationSlots;
 		this.usageService = usageService;
 		this.batchGenerator = batchGenerator;
 		this.testDraftValidator = testDraftValidator;
@@ -82,8 +84,9 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	@Override
 	public Test generate(Test testDraft) {
-		// testId is added to the log context (MDC) once the test is persisted, so structured logs can be filtered by it
-		try {
+		// testId is added to the log context (MDC) once the test is persisted, so structured logs can be filtered by it.
+		// One of the user's generation slots (system setting) is held until the test is ready or failed.
+		try (GenerationSlots.Slot slot = generationSlots.acquire(currentUserId())) {
 			return doGenerate(testDraft);
 		} finally {
 			MDC.remove(MDC_TEST_ID);

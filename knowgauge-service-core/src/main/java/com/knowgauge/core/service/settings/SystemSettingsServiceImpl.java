@@ -136,6 +136,11 @@ public class SystemSettingsServiceImpl implements SystemSettingsService, SmartIn
 		return Optional.ofNullable(tenantLimits.getStorageLimitMb()).map(mb -> mb * 1024 * 1024);
 	}
 
+	@Override
+	public Optional<Integer> concurrentGenerationsPerUser() {
+		return Optional.ofNullable(tenantLimits.getConcurrentGenerationsPerUser());
+	}
+
 	private SystemSettingValue valueOf(SystemSettingDefinition definition) {
 		return new SystemSettingValue(definition, defaults.get(definition.key()),
 				overrides.containsKey(definition.key()), overrides.get(definition.key()), definition.reader().get(),

@@ -154,6 +154,7 @@ services:
       # AI tokens each workspace may use per month (default 1000000; an admin can override it on System settings)
       KG_TENANT_MONTHLY_TOKEN_LIMIT: ${KG_TENANT_MONTHLY_TOKEN_LIMIT:-1000000}
       KG_TENANT_STORAGE_LIMIT_MB: ${KG_TENANT_STORAGE_LIMIT_MB:-500}
+      KG_CONCURRENT_GENERATIONS_PER_USER: ${KG_CONCURRENT_GENERATIONS_PER_USER:-1}
 
       # Only used in security mode fixed (no sign-in); application-prod.properties needs a value.
       KG_TENANT_ID: ${KG_TENANT_ID:-1}

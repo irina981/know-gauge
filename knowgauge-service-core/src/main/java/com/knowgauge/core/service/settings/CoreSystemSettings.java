@@ -20,6 +20,7 @@ public class CoreSystemSettings implements SystemSettingsContributor {
 
 	static final String MONTHLY_TOKEN_LIMIT = "kg.settings.tenant.monthly-token-limit";
 	static final String STORAGE_LIMIT_MB = "kg.settings.tenant.storage-limit-mb";
+	static final String CONCURRENT_GENERATIONS = "kg.settings.tenant.concurrent-generations-per-user";
 
 	private final TenantLimitProperties limits;
 	private final TestGenerationDefaultsProperties testgen;
@@ -51,6 +52,12 @@ public class CoreSystemSettings implements SystemSettingsContributor {
 						SystemSettingDefinition.Type.INTEGER, List.of(), 1L, null, true,
 						() -> text(limits.getStorageLimitMb()),
 						value -> limits.setStorageLimitMb(value == null ? null : Long.valueOf(value))),
+				new SystemSettingDefinition(CONCURRENT_GENERATIONS, "Workspace limits", "Tests generating at once per user",
+						"How many tests one user may generate at the same time. Another request is refused until one of"
+								+ " them is ready. Empty: no limit.",
+						SystemSettingDefinition.Type.INTEGER, List.of(), 1L, 20L, true,
+						() -> text(limits.getConcurrentGenerationsPerUser()),
+						value -> limits.setConcurrentGenerationsPerUser(value == null ? null : Integer.valueOf(value))),
 				new SystemSettingDefinition("kg.testgen.defaults.generation-model", "AI models",
 						"Question writing model",
 						"The OpenAI model that writes new questions. The list shows the OpenAI chat models of the price"

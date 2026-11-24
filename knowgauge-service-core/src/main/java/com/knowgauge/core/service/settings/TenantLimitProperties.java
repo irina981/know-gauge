@@ -18,4 +18,7 @@ public class TenantLimitProperties {
 
 	/** Megabytes of uploaded documents each tenant may keep; {@code null} for no limit. The library has none. */
 	private Long storageLimitMb;
+
+	/** Tests one user may generate at the same time; {@code null} for no limit. */
+	private Integer concurrentGenerationsPerUser;
 }

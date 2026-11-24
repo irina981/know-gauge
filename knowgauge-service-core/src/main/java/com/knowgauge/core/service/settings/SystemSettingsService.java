@@ -44,4 +44,7 @@ public interface SystemSettingsService {
 
 	/** @return the bytes of documents each tenant may keep; empty when there is no limit */
 	Optional<Long> storageLimitBytes();
+
+	/** @return the tests one user may generate at the same time; empty when there is no limit */
+	Optional<Integer> concurrentGenerationsPerUser();
 }
