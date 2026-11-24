@@ -25,6 +25,7 @@ import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.port.repository.DocumentRepository;
 import com.knowgauge.core.port.repository.TopicRepository;
 import com.knowgauge.core.port.storage.StorageService;
+import com.knowgauge.core.service.settings.SystemSettingsService;
 import com.knowgauge.core.storage.StorageKeyBuilder;
 import com.knowgauge.core.support.ContentScopes;
 
@@ -73,7 +74,8 @@ class TenantScopingTest {
 
 	private DocumentServiceImpl documents(boolean admin) {
 		return new DocumentServiceImpl(documentRepository, topicRepository, storageService,
-				mock(StorageKeyBuilder.class), context, ContentScopes.withLibraries(context, admin, LIBRARY));
+				mock(StorageKeyBuilder.class), context, ContentScopes.withLibraries(context, admin, LIBRARY),
+				mock(SystemSettingsService.class));
 	}
 
 	@Test

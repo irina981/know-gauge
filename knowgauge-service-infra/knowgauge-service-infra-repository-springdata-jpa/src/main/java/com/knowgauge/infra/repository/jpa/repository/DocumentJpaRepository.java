@@ -68,6 +68,9 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, Lon
 
 	boolean existsByTenantIdAndTopicIdAndChecksum(Long tenantId, Long topicId, String checksum);
 
+	@Query("select coalesce(sum(d.fileSizeBytes), 0) from DocumentEntity d where d.tenantId = :tenantId")
+	long sumFileSizeBytesByTenantId(@Param("tenantId") Long tenantId);
+
 	@Query("""
 			select d.topicId, count(d) from DocumentEntity d
 			where d.tenantId in :tenantIds and d.status = :status

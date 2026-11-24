@@ -1,5 +1,6 @@
 package com.knowgauge.core.port.repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,13 +21,14 @@ public interface TenantRepository {
 	List<Long> findIdsByType(TenantType type);
 
 	/**
-	 * Tenants (user workspaces and libraries) with their owner and content counts, filtered and paged. Sort properties:
-	 * {@code name}, {@code type}, {@code owner}, {@code topics}, {@code documents}, {@code createdAt}.
+	 * Tenants (user workspaces and libraries) with their owner, content counts and LLM tokens in the usage period,
+	 * filtered and paged. Sort properties: {@code name}, {@code type}, {@code owner}, {@code topics},
+	 * {@code documents}, {@code usage} (tokens), {@code createdAt}.
 	 *
 	 * @throws IllegalArgumentException for any other sort property
 	 */
-	Page<TenantSummary> findTenantSummaries(TenantSearch search, Pageable pageable);
+	Page<TenantSummary> findTenantSummaries(TenantSearch search, Pageable pageable, Instant usageFrom, Instant usageTo);
 
-	/** One tenant with its owner and content counts. */
-	Optional<TenantSummary> findTenantSummary(Long tenantId);
+	/** One tenant with its owner, content counts and LLM tokens in the usage period. */
+	Optional<TenantSummary> findTenantSummary(Long tenantId, Instant usageFrom, Instant usageTo);
 }

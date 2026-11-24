@@ -9,5 +9,5 @@ public record DocumentInput(
 		@Schema(description = "Human-readable document title", example = "Spring Boot Fundamentals") String title,
 		@Schema(description = "Original uploaded file name", example = "spring-boot-fundamentals.pdf") String originalFileName,
 		@Schema(description = "MIME type", example = "application/pdf") String contentType,
-		@Schema(description = "File size in bytes", example = "245760") long fileSizeBytes) {
+		@Schema(description = "Ignored: the size of the uploaded file is used", example = "245760") long fileSizeBytes) {
 }

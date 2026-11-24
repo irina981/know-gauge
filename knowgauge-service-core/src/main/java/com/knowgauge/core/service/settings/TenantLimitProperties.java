@@ -15,4 +15,7 @@ public class TenantLimitProperties {
 
 	/** LLM tokens (input + output) each tenant may use per calendar month (UTC); {@code null} for no limit. */
 	private Long monthlyTokenLimit;
+
+	/** Megabytes of uploaded documents each tenant may keep; {@code null} for no limit. The library has none. */
+	private Long storageLimitMb;
 }

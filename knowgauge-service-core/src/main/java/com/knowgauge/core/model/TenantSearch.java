@@ -11,5 +11,5 @@ import com.knowgauge.core.model.enums.TenantType;
 public record TenantSearch(String text, TenantType type) {
 
 	/** Properties the list can be sorted by. */
-	public static final Set<String> SORTABLE = Set.of("name", "type", "owner", "topics", "documents", "createdAt");
+	public static final Set<String> SORTABLE = Set.of("name", "type", "owner", "topics", "documents", "storage", "usage", "createdAt");
 }

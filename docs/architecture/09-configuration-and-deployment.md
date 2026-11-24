@@ -66,7 +66,7 @@ the storage endpoint, so the application **does not start without a profile**. T
 | `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (`local` profile only) |
 | `kg.context.*` | `DefaultTenantProvider`, `DefaultUserProvider` | `tenant-id`, `user-id` (security mode `fixed` only) |
 | `kg.security.*` | `SecurityConfig`, `OidcProperties` | `mode` (`fixed`/`oidc`), `oidc.issuer-uri`, `oidc.jwk-set-uri`, `oidc.audience` (`knowgauge-api`), `oidc.account-cache-minutes` (10: how long a token's user is cached) |
-| `kg.settings.tenant.*` | `TenantLimitProperties`, `UsageServiceImpl` | `monthly-token-limit`: AI tokens (input + output) per workspace and calendar month (UTC), default 1000000 (`KG_TENANT_MONTHLY_TOKEN_LIMIT`), empty for no limit. At the limit new tests and regenerations get 429 |
+| `kg.settings.tenant.*` | `TenantLimitProperties`, `UsageServiceImpl`, `DocumentServiceImpl` | `monthly-token-limit`: AI tokens (input + output) per workspace and calendar month (UTC), default 1000000 (`KG_TENANT_MONTHLY_TOKEN_LIMIT`), empty for no limit. At the limit new tests and regenerations get 429. `storage-limit-mb`: megabytes of PDFs per workspace, default 500 (`KG_TENANT_STORAGE_LIMIT_MB`), empty for no limit; the shared library has none. An upload that would go over it gets 413 |
 | `kg.settings.token-price-catalog.*` | `LiteLlmTokenPriceCatalog` | `url` (LiteLLM's `model_prices_and_context_window.json`), `cache-hours` (6) |
 | `kg.invitations.*` | `InvitationProperties` | `link-base-url` (public UI address; links are `<base>/i/<token>`), `max-per-request` (200) |
 | `kg.retrieval.focused.*` | `FocusedRetrievalProperties` | `max-distance` (0.65), `max-gap-to-best` (0.20): which chunks count as about the focus text in FOCUSED retrieval ([05](05-retrieval.md#focused-similarity-search)) |
@@ -80,7 +80,7 @@ Spring relaxed binding accepts both for `@ConfigurationProperties`, but `@Value`
 Some `kg.*` values can be changed at runtime on **Administration → System settings** (`/admin/settings`,
 `ADMIN` only; API `/api/admin/settings/**`):
 
-- **Settings with defaults from the properties files.** `CoreSystemSettings` lists them: the monthly token limit,
+- **Settings with defaults from the properties files.** `CoreSystemSettings` lists them: the monthly token limit, the storage limit,
   the generation model (and, from `VerificationSystemSettings`, the answer-checking model), questions per LLM call, the default question count and difficulty, invitations per request
   and the ingestion batch size. Only values read on each use are listed, so a change applies at once. The
   properties files give the default. A value saved on the page is stored in `system_settings` (key = property

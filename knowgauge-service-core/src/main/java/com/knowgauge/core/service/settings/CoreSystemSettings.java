@@ -19,6 +19,7 @@ import com.knowgauge.core.service.testgeneration.TestGenerationDefaultsPropertie
 public class CoreSystemSettings implements SystemSettingsContributor {
 
 	static final String MONTHLY_TOKEN_LIMIT = "kg.settings.tenant.monthly-token-limit";
+	static final String STORAGE_LIMIT_MB = "kg.settings.tenant.storage-limit-mb";
 
 	private final TenantLimitProperties limits;
 	private final TestGenerationDefaultsProperties testgen;
@@ -44,6 +45,12 @@ public class CoreSystemSettings implements SystemSettingsContributor {
 						SystemSettingDefinition.Type.INTEGER, List.of(), 1L, null, true,
 						() -> text(limits.getMonthlyTokenLimit()),
 						value -> limits.setMonthlyTokenLimit(value == null ? null : Long.valueOf(value))),
+				new SystemSettingDefinition(STORAGE_LIMIT_MB, "Workspace limits", "Storage per workspace (MB)",
+						"Total size of the PDFs a workspace may keep, in megabytes. An upload that would go over it is"
+								+ " refused; deleting documents frees space. The shared library has no limit. Empty: no limit.",
+						SystemSettingDefinition.Type.INTEGER, List.of(), 1L, null, true,
+						() -> text(limits.getStorageLimitMb()),
+						value -> limits.setStorageLimitMb(value == null ? null : Long.valueOf(value))),
 				new SystemSettingDefinition("kg.testgen.defaults.generation-model", "AI models",
 						"Question writing model",
 						"The OpenAI model that writes new questions. The list shows the OpenAI chat models of the price"

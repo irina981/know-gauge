@@ -44,7 +44,7 @@ public class AdminController {
 	}
 
 	@GetMapping("/api/admin/tenants")
-	@Operation(summary = "List tenants (filtered, sorted, paged)", description = "Tenants (user workspaces and libraries) with their type, owner and content counts. search matches the name and the owner's name or email; type keeps one tenant type. Sort by name (default), type, owner, topics, documents or createdAt. An ADMIN reads any of them through the normal content API: send the tenant id in the X-KG-Tenant header on GET requests to the workspace APIs, which then return that tenant's data, read-only (ADR013).")
+	@Operation(summary = "List tenants (filtered, sorted, paged)", description = "Tenants (user workspaces and libraries) with their type, owner and content counts. search matches the name and the owner's name or email; type keeps one tenant type. Sort by name (default), type, owner, topics, documents, storage (bytes of documents), usage (this month's tokens) or createdAt. Each tenant comes with its storage and its LLM tokens this calendar month (UTC), each with its limit. An ADMIN reads any of them through the normal content API: send the tenant id in the X-KG-Tenant header on GET requests to the workspace APIs, which then return that tenant's data, read-only (ADR013).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Tenants returned"),
 			@ApiResponse(responseCode = "400", description = "Unknown type or sort property"),
 			@ApiResponse(responseCode = "401", description = "Not signed in"),

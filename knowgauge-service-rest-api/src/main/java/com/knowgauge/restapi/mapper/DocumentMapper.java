@@ -31,7 +31,8 @@ public interface DocumentMapper {
 	@Mapping(target = "checksum", ignore = true)
 	@Mapping(target = "originalFileName", expression = "java(input != null && input.originalFileName() != null ? input.originalFileName() : file.getOriginalFilename())")
 	@Mapping(target = "contentType", expression = "java(input != null && input.contentType() != null ? input.contentType() : file.getContentType())")
-	@Mapping(target = "fileSizeBytes", expression = "java((input != null && input.fileSizeBytes() > 0) ? input.fileSizeBytes() : file.getSize())")
+	// Always the received size, never the client's claim: storage and the storage limit count it.
+	@Mapping(target = "fileSizeBytes", expression = "java(file.getSize())")
 	Document toDomain(DocumentInput input, MultipartFile file);
 
 	/**

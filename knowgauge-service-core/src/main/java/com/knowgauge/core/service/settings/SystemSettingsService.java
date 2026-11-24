@@ -41,4 +41,7 @@ public interface SystemSettingsService {
 
 	/** @return the LLM tokens each tenant may use per calendar month; empty when there is no limit */
 	Optional<Long> monthlyTokenLimit();
+
+	/** @return the bytes of documents each tenant may keep; empty when there is no limit */
+	Optional<Long> storageLimitBytes();
 }

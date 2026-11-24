@@ -21,5 +21,6 @@ public record UsageSummaryDto(
 		@Schema(description = "LLM output tokens of question writing and checking this month") long llmOutputTokens,
 		@Schema(description = "What this month's LLM tokens cost in US dollars, with the token prices an admin set; models in unpricedModels not included") BigDecimal llmCostUsd,
 		@Schema(description = "Models used this month that have no token price yet") List<String> unpricedModels,
-		@Schema(description = "LLM tokens (input + output) the workspace may use per month; null for no limit") Long llmTokenLimit) {
+		@Schema(description = "LLM tokens (input + output) the workspace may use per month; null for no limit") Long llmTokenLimit,
+		@Schema(description = "Bytes of documents the workspace may keep; null for no limit. An upload over it is refused") Long storageLimitBytes) {
 }

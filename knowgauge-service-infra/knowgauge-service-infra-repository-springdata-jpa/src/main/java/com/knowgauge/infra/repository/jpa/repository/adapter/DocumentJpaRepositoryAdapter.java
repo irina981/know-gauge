@@ -65,6 +65,11 @@ public class DocumentJpaRepositoryAdapter implements DocumentRepository {
 	}
 
 	@Override
+	public long sumFileSizeBytesByTenantId(Long tenantId) {
+		return jpaRepository.sumFileSizeBytesByTenantId(tenantId);
+	}
+
+	@Override
 	public int markIngesting(Long tenantId, Long documentId) {
 		return jpaRepository.markIngesting(tenantId, documentId);
 	}

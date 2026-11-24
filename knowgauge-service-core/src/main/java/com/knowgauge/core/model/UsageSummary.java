@@ -42,4 +42,6 @@ public class UsageSummary {
 	private final List<String> unpricedModels;
 	/** LLM tokens (input + output) the tenant may use this month; {@code null} when there is no limit. */
 	private final Long llmTokenLimit;
+	/** Bytes of documents the tenant may keep; {@code null} when there is no limit. */
+	private final Long storageLimitBytes;
 }

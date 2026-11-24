@@ -131,6 +131,11 @@ public class SystemSettingsServiceImpl implements SystemSettingsService, SmartIn
 		return Optional.ofNullable(tenantLimits.getMonthlyTokenLimit());
 	}
 
+	@Override
+	public Optional<Long> storageLimitBytes() {
+		return Optional.ofNullable(tenantLimits.getStorageLimitMb()).map(mb -> mb * 1024 * 1024);
+	}
+
 	private SystemSettingValue valueOf(SystemSettingDefinition definition) {
 		return new SystemSettingValue(definition, defaults.get(definition.key()),
 				overrides.containsKey(definition.key()), overrides.get(definition.key()), definition.reader().get(),

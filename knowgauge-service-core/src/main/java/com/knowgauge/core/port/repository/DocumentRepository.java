@@ -49,4 +49,7 @@ public interface DocumentRepository {
 	boolean existsByTenantIdAndTopicIdAndOriginalFileName(Long tenantId, Long topicId, String originalFileName);
 
 	boolean existsByTenantIdAndTopicIdAndChecksum(Long tenantId, Long topicId, String contentHash);
+
+	/** @return the total size of the tenant's documents in bytes */
+	long sumFileSizeBytesByTenantId(Long tenantId);
 }

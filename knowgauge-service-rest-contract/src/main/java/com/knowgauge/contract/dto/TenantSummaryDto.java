@@ -14,5 +14,9 @@ public record TenantSummaryDto(
 		String ownerEmail,
 		Instant createdAt,
 		long topics,
-		long documents) {
+		long documents,
+		@Schema(description = "Total size of the tenant's documents in bytes") long storageBytes,
+		@Schema(description = "Bytes of documents every tenant may keep; null when there is none (always for the library). Over it uploads are refused") Long storageLimitBytes,
+		@Schema(description = "LLM tokens (input + output) of the tenant this calendar month (UTC)") long tokensThisMonth,
+		@Schema(description = "Monthly token limit every tenant shares; null when there is none. At the limit new tests and regenerations are refused") Long tokenLimit) {
 }

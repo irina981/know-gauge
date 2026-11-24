@@ -2,8 +2,6 @@ package com.knowgauge.core.service.usage;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -67,9 +65,8 @@ public class UsageServiceImpl implements UsageService {
 
 	/** Start (inclusive) and end (exclusive) of the current calendar month, UTC. */
 	private Instant[] currentMonthRange() {
-		LocalDate firstDay = LocalDate.now(clock.withZone(ZoneOffset.UTC)).withDayOfMonth(1);
-		return new Instant[] { firstDay.atStartOfDay(ZoneOffset.UTC).toInstant(),
-				firstDay.plusMonths(1).atStartOfDay(ZoneOffset.UTC).toInstant() };
+		UsagePeriod month = UsagePeriod.currentMonth(clock);
+		return new Instant[] { month.from(), month.to() };
 	}
 
 	@Override
@@ -83,6 +80,7 @@ public class UsageServiceImpl implements UsageService {
 				tokenPriceRepository.findAll());
 		return usageRepository.summarize(tenantId, from, to).toBuilder().llmCostUsd(cost.costUsd())
 				.unpricedModels(cost.unpricedModels()).llmTokenLimit(systemSettings.monthlyTokenLimit().orElse(null))
+				.storageLimitBytes(systemSettings.storageLimitBytes().orElse(null))
 				.build();
 	}
 }

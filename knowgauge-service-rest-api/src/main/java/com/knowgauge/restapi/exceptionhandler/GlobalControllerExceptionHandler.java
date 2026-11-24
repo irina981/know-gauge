@@ -29,6 +29,7 @@ import com.knowgauge.core.exception.EmbeddingUnavailableException;
 import com.knowgauge.core.exception.EmbeddingUnexpectedException;
 import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.exception.PriceCatalogUnavailableException;
+import com.knowgauge.core.exception.StorageLimitReachedException;
 import com.knowgauge.core.exception.TokenLimitReachedException;
 import com.knowgauge.core.exception.InsufficientContextException;
 import com.knowgauge.core.exception.QuestionValidationException;
@@ -327,6 +328,14 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.TOO_MANY_REQUESTS, request, ex);
 		log.info("Token limit reached: {}", ex.getMessage());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.TOO_MANY_REQUESTS, request);
+	}
+
+	@ExceptionHandler(StorageLimitReachedException.class)
+	public ResponseEntity<Object> handleStorageLimitReachedException(WebRequest request,
+			StorageLimitReachedException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.PAYLOAD_TOO_LARGE, request, ex);
+		log.info("Storage limit reached: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.PAYLOAD_TOO_LARGE, request);
 	}
 
 	@ExceptionHandler(PriceCatalogUnavailableException.class)

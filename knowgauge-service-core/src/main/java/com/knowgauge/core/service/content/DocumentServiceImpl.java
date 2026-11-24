@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -12,8 +13,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.exception.ResourceNotFoundException;
+import com.knowgauge.core.exception.StorageLimitReachedException;
 import com.knowgauge.core.model.Document;
 import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.model.enums.DocumentStatus;
@@ -21,12 +25,14 @@ import com.knowgauge.core.port.repository.DocumentRepository;
 import com.knowgauge.core.port.repository.TopicRepository;
 import com.knowgauge.core.port.storage.StorageService;
 import com.knowgauge.core.port.storage.StorageService.StoredObject;
+import com.knowgauge.core.service.settings.SystemSettingsService;
 import com.knowgauge.core.storage.StorageKeyBuilder;
 
 /**
  * Documents of the own tenant and of the library (read-only unless the caller is an application admin, see
  * {@link ContentScope}). A document always lives in its topic's tenant.
  */
+@Slf4j
 @Service
 public class DocumentServiceImpl implements DocumentService {
 
@@ -36,16 +42,18 @@ public class DocumentServiceImpl implements DocumentService {
 	private final StorageKeyBuilder storageKeyBuilder;
 	private final ExecutionContext executionContext;
 	private final ContentScope contentScope;
+	private final SystemSettingsService systemSettings;
 
 	public DocumentServiceImpl(DocumentRepository documentRepository, TopicRepository topicRepository,
 			StorageService storageService, StorageKeyBuilder storageKeyBuilder, ExecutionContext executionContext,
-			ContentScope contentScope) {
+			ContentScope contentScope, SystemSettingsService systemSettings) {
 		this.documentRepository = documentRepository;
 		this.topicRepository = topicRepository;
 		this.storageService = storageService;
 		this.storageKeyBuilder = storageKeyBuilder;
 		this.executionContext = executionContext;
 		this.contentScope = contentScope;
+		this.systemSettings = systemSettings;
 	}
 
 	@Override
@@ -61,6 +69,7 @@ public class DocumentServiceImpl implements DocumentService {
 		contentScope.requireWritable(tenantId, "Topic " + topicId);
 		validateUniqueNameUnderTopic(tenantId, topicId, document.getOriginalFileName());
 		validateUniqueContentUnderTopic(tenantId, topicId, document.getChecksum());
+		validateStorageLimit(tenantId, document.getFileSizeBytes());
 
 		document.setStatus(DocumentStatus.UPLOADED);
 		document.setVersion(Integer.valueOf(1));
@@ -126,6 +135,30 @@ public class DocumentServiceImpl implements DocumentService {
 		if (documentRepository.existsByTenantIdAndTopicIdAndOriginalFileName(tenantId, topicId, originalFileName)) {
 			throw new IllegalArgumentException("Document with name \"" + originalFileName + "\" already exists for topic id " + topicId);
 		}
+	}
+
+	/** The library has no limit; every other tenant keeps at most the storage limit (system setting). */
+	private void validateStorageLimit(Long tenantId, Long fileSizeBytes) {
+		Optional<Long> limit = systemSettings.storageLimitBytes();
+		if (limit.isEmpty() || contentScope.isLibrary(tenantId)) {
+			return;
+		}
+		long used = documentRepository.sumFileSizeBytesByTenantId(tenantId);
+		long size = fileSizeBytes == null ? 0 : fileSizeBytes;
+		if (used + size > limit.get()) {
+			log.info("Tenant {} upload refused by the storage limit: {} + {} bytes over {}", tenantId, used, size,
+					limit.get());
+			throw new StorageLimitReachedException(String.format(Locale.ROOT,
+					"This file (%s) does not fit: your workspace keeps up to %s of documents and %s are in use."
+							+ " Delete documents you no longer need to make room.",
+					megabytes(size), megabytes(limit.get()), megabytes(used)));
+		}
+	}
+
+	/** "820 KB" or "1.2 MB", like the UI shows sizes. */
+	private static String megabytes(long bytes) {
+		return bytes < 1024 * 1024 ? String.format(Locale.ROOT, "%,d KB", Math.max(1, Math.round(bytes / 1024.0)))
+				: String.format(Locale.ROOT, "%,.1f MB", bytes / (1024.0 * 1024.0));
 	}
 
 	private void validateUniqueContentUnderTopic(Long tenantId, Long topicId, String checksum) {
