@@ -59,8 +59,9 @@ public class SecurityConfig {
 		// roles from user_roles.
 		JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
 		converter.setJwtGrantedAuthoritiesConverter(jwt -> List.of());
-		AccountResolutionFilter accountFilter = new AccountResolutionFilter(
-				new AccountResolver(accountService, Duration.ofMinutes(properties.getAccountCacheMinutes())));
+		AccountResolver accountResolver = new AccountResolver(accountService,
+				Duration.ofMinutes(properties.getAccountCacheMinutes()));
+		AccountResolutionFilter accountFilter = new AccountResolutionFilter(accountResolver, accountService);
 
 		return stateless(http).authorizeHttpRequests(auth -> auth
 				.requestMatchers("/api/public/**").permitAll()

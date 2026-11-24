@@ -25,6 +25,6 @@ public final class ContentScopes {
 	public static ContentScope withLibraries(ExecutionContext context, boolean applicationAdmin, Long... libraryIds) {
 		TenantRepository tenants = mock(TenantRepository.class);
 		when(tenants.findIdsByType(TenantType.LIBRARY)).thenReturn(List.of(libraryIds));
-		return new ContentScope(tenants, context, () -> applicationAdmin);
+		return new ContentScope(tenants, context, () -> applicationAdmin, () -> false);
 	}
 }

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.context.ApplicationAdminProvider;
 import com.knowgauge.core.context.ExecutionContext;
+import com.knowgauge.core.context.TenantViewProvider;
 import com.knowgauge.core.exception.ReadOnlyContentException;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
@@ -17,6 +18,8 @@ import com.knowgauge.core.port.repository.TenantRepository;
  * <li>Read: the own tenant and every {@link TenantType#LIBRARY} tenant.</li>
  * <li>Change: the own tenant; library content only for an {@code ADMIN}. Jobs and startup seeding
  * run in the library tenant itself, so it is their own tenant.</li>
+ * <li>An {@code ADMIN} viewing another user's library (tenant) reads that tenant (it is the current tenant then) and
+ * changes nothing (ADR013).</li>
  * </ul>
  * Library tenants are created by migrations, so their ids are read once and kept for the life of the application.
  */
@@ -26,13 +29,15 @@ public class ContentScope {
 	private final TenantRepository tenantRepository;
 	private final ExecutionContext executionContext;
 	private final ApplicationAdminProvider adminProvider;
+	private final TenantViewProvider tenantView;
 	private volatile List<Long> libraryTenantIds;
 
 	public ContentScope(TenantRepository tenantRepository, ExecutionContext executionContext,
-			ApplicationAdminProvider adminProvider) {
+			ApplicationAdminProvider adminProvider, TenantViewProvider tenantView) {
 		this.tenantRepository = tenantRepository;
 		this.executionContext = executionContext;
 		this.adminProvider = adminProvider;
+		this.tenantView = tenantView;
 	}
 
 	/** The current tenant first, then the library tenants. */
@@ -55,6 +60,10 @@ public class ContentScope {
 	/** Whether the current work may change content of {@code tenantId}. */
 	public boolean canWrite(Long tenantId) {
 		if (tenantId == null) {
+			return false;
+		}
+		if (tenantView.isViewingOtherTenant()) {
+			// An admin looking at someone else's library only reads (ADR013).
 			return false;
 		}
 		if (tenantId == executionContext.tenantId()) {

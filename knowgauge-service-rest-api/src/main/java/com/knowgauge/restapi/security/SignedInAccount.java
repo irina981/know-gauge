@@ -9,9 +9,15 @@ import com.knowgauge.core.model.User;
 
 /**
  * The local user behind the bearer token of the current request, stored as a request attribute by
- * {@link AccountResolutionFilter}.
+ * {@link AccountResolutionFilter}. {@code viewedTenantId} is set when an {@code ADMIN} reads another user's
+ * library ({@link AccountResolutionFilter#TENANT_HEADER}, ADR013); that tenant is then the current one, read-only.
  */
-public record SignedInAccount(User user, boolean applicationAdmin) {
+public record SignedInAccount(User user, boolean applicationAdmin, Long viewedTenantId) {
+
+	/** The tenant this request works in: the viewed tenant, else the user's own. */
+	public long tenantId() {
+		return viewedTenantId != null ? viewedTenantId : user.getTenantId();
+	}
 
 	static final String REQUEST_ATTRIBUTE = SignedInAccount.class.getName();
 

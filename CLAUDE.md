@@ -41,6 +41,10 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   - Roles are KnowGauge's, never Keycloak's ([ADR012](docs/adr/ADR012-roles-kept-by-knowgauge.md)): tables `roles` and
     `user_roles` (several per user). Every user is `TENANT_ADMIN` of their tenant; a verified email in
     `kg.account.admin-emails` (`KG_ADMIN_EMAIL`) gets `ADMIN` at sign-in. Don't add roles to the realm files.
+  - An `ADMIN` reads any user's library, read-only, by sending its tenant id in `X-KG-Tenant` on
+    `GET /api/content/**`; `GET /api/admin/tenants` lists them
+    ([ADR013](docs/adr/ADR013-admins-view-every-library.md)). In the UI a tenant is a "library"; a "workspace" is
+    the own library plus the shared ones.
   - Local Keycloak: compose service `keycloak` on http://localhost:8180, realm `knowgauge` from
     `local-development/keycloak/knowgauge-realm.json`. Its users and their passwords are in the
     [local-development README](local-development/README.md#sign-in-keycloak).

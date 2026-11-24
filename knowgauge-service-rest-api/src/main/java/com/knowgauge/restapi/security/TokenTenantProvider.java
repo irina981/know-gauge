@@ -12,7 +12,7 @@ public class TokenTenantProvider implements CurrentTenantProvider {
 
 	@Override
 	public long tenantId() {
-		return SignedInAccount.current().map(account -> account.user().getTenantId())
+		return SignedInAccount.current().map(SignedInAccount::tenantId)
 				.orElseThrow(() -> new IllegalStateException(
 						"No tenant: the request is not signed in and no tenant was set with ExecutionContext.runAs"));
 	}

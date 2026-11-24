@@ -11,8 +11,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.User;
 import com.knowgauge.core.model.enums.Role;
+import com.knowgauge.core.model.enums.TenantType;
+import com.knowgauge.core.service.account.AccountService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,10 +33,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AccountResolutionFilter extends OncePerRequestFilter {
 
-	private final AccountResolver accountResolver;
+	/** Sent by an {@code ADMIN} to read another user's library (tenant): the tenant id (ADR013). */
+	public static final String TENANT_HEADER = "X-KG-Tenant";
 
-	public AccountResolutionFilter(AccountResolver accountResolver) {
+	private final AccountResolver accountResolver;
+	private final AccountService accountService;
+
+	public AccountResolutionFilter(AccountResolver accountResolver, AccountService accountService) {
 		this.accountResolver = accountResolver;
+		this.accountService = accountService;
 	}
 
 	@Override
@@ -56,10 +64,64 @@ public class AccountResolutionFilter extends OncePerRequestFilter {
 				authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
 			}
 			boolean applicationAdmin = user.hasRole(Role.ADMIN);
+			Long viewedTenantId;
+			try {
+				viewedTenantId = viewedTenant(request, user, applicationAdmin);
+			} catch (TenantViewRefused e) {
+				log.warn("User {} refused tenant view {}: {}", user.getId(), request.getHeader(TENANT_HEADER),
+						e.getMessage());
+				response.sendError(e.status, e.getMessage());
+				return;
+			}
 			SecurityContextHolder.getContext()
 					.setAuthentication(new JwtAuthenticationToken(token.getToken(), authorities, token.getName()));
-			request.setAttribute(SignedInAccount.REQUEST_ATTRIBUTE, new SignedInAccount(user, applicationAdmin));
+			request.setAttribute(SignedInAccount.REQUEST_ATTRIBUTE,
+					new SignedInAccount(user, applicationAdmin, viewedTenantId));
 		}
 		chain.doFilter(request, response);
+	}
+
+	/**
+	 * The tenant an {@code ADMIN} asked to read with {@link #TENANT_HEADER} (ADR013), or {@code null} for the
+	 * user's own. Only content reads ({@code GET /api/content/**}) honour it; the view never changes anything.
+	 */
+	private Long viewedTenant(HttpServletRequest request, User user, boolean admin) {
+		String header = request.getHeader(TENANT_HEADER);
+		if (header == null || header.isBlank() || !request.getRequestURI().startsWith("/api/content/")) {
+			return null;
+		}
+		long tenantId;
+		try {
+			tenantId = Long.parseLong(header.trim());
+		} catch (NumberFormatException e) {
+			throw new TenantViewRefused(HttpServletResponse.SC_BAD_REQUEST, "Invalid library id.");
+		}
+		if (!admin) {
+			throw new TenantViewRefused(HttpServletResponse.SC_FORBIDDEN, "Only an admin can view other libraries.");
+		}
+		if (user.getTenantId() != null && tenantId == user.getTenantId()) {
+			return null;
+		}
+		Tenant tenant = accountService.findTenant(tenantId)
+				.orElseThrow(() -> new TenantViewRefused(HttpServletResponse.SC_NOT_FOUND, "No such library."));
+		if (tenant.getType() == TenantType.LIBRARY) {
+			// Everyone reads the library anyway, and an admin may change it: no special view needed.
+			return null;
+		}
+		if (!"GET".equals(request.getMethod()) && !"HEAD".equals(request.getMethod())) {
+			throw new TenantViewRefused(HttpServletResponse.SC_FORBIDDEN,
+					"Another user's library is read-only.");
+		}
+		return tenant.getId();
+	}
+
+	private static final class TenantViewRefused extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		private final int status;
+
+		TenantViewRefused(int status, String message) {
+			super(message);
+			this.status = status;
+		}
 	}
 }
