@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.knowgauge.contract.dto.TestDefaultsDto;
 import com.knowgauge.contract.dto.TestDto;
 import com.knowgauge.contract.dto.TestInput;
 import com.knowgauge.contract.dto.TestQuestionDto;
@@ -85,6 +86,20 @@ public class TestGenerationController {
 		URI location = tryBuildLocation("/api/tests/{id}", created);
 		return (location != null) ? ResponseEntity.created(location).body(testMapper.toDto(created))
 				: ResponseEntity.status(201).body(testMapper.toDto(created));
+	}
+
+	@GetMapping("/defaults")
+	@Operation(summary = "Get the defaults of a new test", description = "What POST /api/tests uses for each field the request leaves empty, for the current workspace: its own configuration (ADR014), else the system values. The Generate test form starts from these.")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Defaults returned") })
+	public ResponseEntity<TestDefaultsDto> getTestDefaults() {
+		Test d = testGenerationService.defaults();
+		return ResponseEntity.ok(new TestDefaultsDto(d.getQuestionCount(), name(d.getDifficulty()),
+				name(d.getAnswerCardinality()), name(d.getCoverageMode()), name(d.getLanguage()),
+				d.getGenerationModel()));
+	}
+
+	private static String name(Enum<?> value) {
+		return value == null ? null : value.name();
 	}
 
 	@GetMapping("/{id}")

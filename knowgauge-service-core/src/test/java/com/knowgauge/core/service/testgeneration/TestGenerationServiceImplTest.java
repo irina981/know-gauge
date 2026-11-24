@@ -149,6 +149,16 @@ class TestGenerationServiceImplTest {
 	}
 
 	@Test
+	void theDefaultsOfANewTestAreTheWorkspacesOwnValuesElseTheSystemValues() {
+		assertThat(service.defaults().getQuestionCount()).isEqualTo(10);
+
+		when(tenantSettings.ownValues(TENANT)).thenReturn(Map.of(ConfigKeys.QUESTION_COUNT, "5"));
+
+		assertThat(service.defaults().getQuestionCount()).isEqualTo(5);
+		assertThat(service.defaults().getCoverageMode()).isEqualTo(TestCoverageMode.BALANCED_PER_DOC_CHUNKS);
+	}
+
+	@Test
 	void eachBatchGetsItsOwnChunkSliceAndTheQuestionsToAvoid() {
 		List<Long> ids = givenChunks(15);
 		givenBatches(bi -> "Question " + bi[0] + "." + bi[1]);

@@ -106,6 +106,13 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		}
 	}
 
+	@Override
+	public Test defaults() {
+		Test defaultsOnly = new Test();
+		applyDefaults(defaultsOnly, tenantSettings.ownValues(executionContext.tenantId()));
+		return defaultsOnly;
+	}
+
 	private Test doGenerate(Test testDraft) {
 		// Monthly AI token allowance (system setting): refuse before anything is persisted or sent to the LLM.
 		usageService.requireTokensLeft();

@@ -89,6 +89,7 @@ not an organization; changes also `403` while an `ADMIN` views another workspace
 | Method | Path | Body / params | Result |
 |---|---|---|---|
 | POST | `` | `TestInput` | `201 TestDto` + `Location` (synchronous generation, can take tens of seconds) |
+| GET | `/defaults` | – | `200 TestDefaultsDto {questionCount, difficulty, answerCardinality, coverageMode, language, generationModel}`: what `POST` uses for each field left empty, for the current workspace (its own configuration, else the system values, ADR014). The Generate test form starts from it |
 | GET | `/{id}` | – | `200 TestDto` or `404`. `TestDto` has `createdBy` and `readOnly` (the caller may not change it: a viewer, a `TENANT_USER` for someone else's test, or an admin viewing another workspace, ADR017) |
 | GET | `/{id}/questions` | – | `200 List<TestQuestionDto>` (current version of each question) sorted by `questionIndex`, or `404` |
 | GET | `` | `status` (optional, case-insensitive `TestStatus`) | `200 List<TestDto>` for the tenant |
