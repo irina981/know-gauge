@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.User;
 import com.knowgauge.core.model.UserPreferences;
@@ -27,9 +28,11 @@ public class AccountServiceImpl implements AccountService {
 	private static final int MAX_EMAIL_LENGTH = 320;
 
 	private final AccountTransactionalServiceImpl transactionalService;
+	private final ExecutionContext executionContext;
 
-	public AccountServiceImpl(AccountTransactionalServiceImpl transactionalService) {
+	public AccountServiceImpl(AccountTransactionalServiceImpl transactionalService, ExecutionContext executionContext) {
 		this.transactionalService = transactionalService;
+		this.executionContext = executionContext;
 	}
 
 	@Override
@@ -44,11 +47,14 @@ public class AccountServiceImpl implements AccountService {
 		}
 		String normalizedEmail = truncate(email, MAX_EMAIL_LENGTH);
 		String name = truncate(displayName, MAX_NAME_LENGTH);
+		// The app writes these rows itself (nobody is signed in yet), so the audit columns record the system user.
 		try {
-			return transactionalService.signIn(subject, normalizedEmail, emailVerified, name);
+			return executionContext.callAsSystemWithoutTenant(
+					() -> transactionalService.signIn(subject, normalizedEmail, emailVerified, name));
 		} catch (DataIntegrityViolationException e) {
 			log.info("Concurrent first sign-in of subject {}; reading the user the other request created", subject);
-			return transactionalService.signIn(subject, normalizedEmail, emailVerified, name);
+			return executionContext.callAsSystemWithoutTenant(
+					() -> transactionalService.signIn(subject, normalizedEmail, emailVerified, name));
 		}
 	}
 

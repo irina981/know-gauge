@@ -18,7 +18,8 @@ import com.knowgauge.core.context.ExecutionContext;
 @Component
 public class DefaultExecutionContext implements ExecutionContext {
 
-	private record Scope(long tenantId, OptionalLong userId) {
+	/** {@code tenantId} is {@code null} for system work in no tenant ({@link #callAsSystemWithoutTenant}). */
+	private record Scope(Long tenantId, OptionalLong userId) {
 	}
 
 	private static final ThreadLocal<Deque<Scope>> SCOPES = ThreadLocal.withInitial(ArrayDeque::new);
@@ -34,7 +35,13 @@ public class DefaultExecutionContext implements ExecutionContext {
 	@Override
 	public long tenantId() {
 		Scope scope = SCOPES.get().peek();
-		return scope != null ? scope.tenantId() : tenantProvider.tenantId();
+		if (scope == null) {
+			return tenantProvider.tenantId();
+		}
+		if (scope.tenantId() == null) {
+			throw new IllegalStateException("No tenant: this work runs as the system user in no tenant");
+		}
+		return scope.tenantId();
 	}
 
 	@Override
@@ -45,8 +52,17 @@ public class DefaultExecutionContext implements ExecutionContext {
 
 	@Override
 	public <T> T callAs(long tenantId, OptionalLong userId, Supplier<T> task) {
+		return callIn(new Scope(tenantId, userId == null ? OptionalLong.empty() : userId), task);
+	}
+
+	@Override
+	public <T> T callAsSystemWithoutTenant(Supplier<T> task) {
+		return callIn(new Scope(null, OptionalLong.of(SYSTEM_USER_ID)), task);
+	}
+
+	private static <T> T callIn(Scope scope, Supplier<T> task) {
 		Deque<Scope> scopes = SCOPES.get();
-		scopes.push(new Scope(tenantId, userId == null ? OptionalLong.empty() : userId));
+		scopes.push(scope);
 		try {
 			return task.get();
 		} finally {

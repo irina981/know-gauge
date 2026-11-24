@@ -13,11 +13,13 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.User;
 import com.knowgauge.core.model.enums.Role;
@@ -32,6 +34,7 @@ class AccountServiceImplTest {
 	private UserRepository userRepository;
 	private TenantRepository tenantRepository;
 	private AccountProperties properties;
+	private ExecutionContext executionContext;
 	private AccountServiceImpl service;
 	private final AtomicLong ids = new AtomicLong(10);
 
@@ -44,8 +47,12 @@ class AccountServiceImplTest {
 		when(tenantRepository.save(any())).thenAnswer(inv -> withId(inv.getArgument(0, Tenant.class)));
 		properties = new AccountProperties();
 		properties.setAdminEmails(List.of("Admin@Example.com"));
+		// Runs the task like the real context; the tests check it is used for every sign-in write.
+		executionContext = mock(ExecutionContext.class);
+		when(executionContext.callAsSystemWithoutTenant(any()))
+				.thenAnswer(inv -> inv.getArgument(0, Supplier.class).get());
 		service = new AccountServiceImpl(
-				new AccountTransactionalServiceImpl(userRepository, tenantRepository, properties));
+				new AccountTransactionalServiceImpl(userRepository, tenantRepository, properties), executionContext);
 	}
 
 	@Test
@@ -64,6 +71,14 @@ class AccountServiceImplTest {
 		assertThat(tenant.getType()).isEqualTo(TenantType.INDIVIDUAL);
 		assertThat(tenant.getName()).isEqualTo("Ana Petrovic");
 		assertThat(tenant.getOwnerUserId()).isEqualTo(user.getId());
+	}
+
+	@Test
+	void signInWritesAsTheSystemUser() {
+		service.signIn(SUBJECT, "ana@example.com", true, "Ana");
+
+		// Nobody is signed in yet: created_by / updated_by of the user and the tenant are the system user (0).
+		verify(executionContext).callAsSystemWithoutTenant(any());
 	}
 
 	@Test

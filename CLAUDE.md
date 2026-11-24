@@ -174,8 +174,8 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - Audit `createdBy`/`updatedBy` come from Spring Data auditing (`AuditingConfig`, `AuditorAware` =
   `ExecutionContext.userId()`). The values are:
   - the signed-in user (or the fixed user);
-  - `0`, the reserved system user (`users` row 0, no tenant, `ExecutionContext.SYSTEM_USER_ID`), for jobs and startup
-    seeding;
+  - `0`, the reserved system user (`users` row 0, no tenant, `ExecutionContext.SYSTEM_USER_ID`), for jobs, startup
+    seeding and the rows sign-in writes (the user and their tenant, `callAsSystemWithoutTenant`);
   - `NULL` for anonymous participants.
 
   Work outside a request must set its tenant with `ExecutionContext.runAs` or `runAsSystem`; in `oidc` mode

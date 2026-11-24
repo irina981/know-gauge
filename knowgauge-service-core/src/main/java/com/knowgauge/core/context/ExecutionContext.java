@@ -41,4 +41,10 @@ public interface ExecutionContext {
 	default void runAsSystem(long tenantId, Runnable task) {
 		runAs(tenantId, OptionalLong.of(SYSTEM_USER_ID), task);
 	}
+
+	/**
+	 * Runs {@code task} as the {@link #SYSTEM_USER_ID system} user in no tenant: work the app does on its own
+	 * account, such as creating a user and their tenant at the first sign-in. {@link #tenantId()} throws inside it.
+	 */
+	<T> T callAsSystemWithoutTenant(Supplier<T> task);
 }
