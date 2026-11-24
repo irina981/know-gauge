@@ -14,15 +14,21 @@ Settings have **levels**. A value is resolved the same way for every workspace (
   `TENANT` row has one, one row per (owner, owner id, key) (`UNIQUE NULLS NOT DISTINCT`), and a deleted tenant takes
   its rows with it (a trigger: `owner_id` has no foreign key, as later owners such as a billing plan will have ids
   of their own).
-- **Every possible key is a row of `setting_configs`** (`setting_key`, `setting_type`), seeded by Flyway;
-  `settings.setting_key` references it. `setting_type` is `CONFIG` (a configuration value, e.g. the default
-  difficulty or question count) or `LIMIT` (a limit on what a workspace or user may use, e.g. storage, tokens,
-  generations at once). Each `SettingDefinition` states its type too (`limit()`), and startup fails when a defined
-  key is missing from `setting_configs` or has another type there. A new setting needs a migration adding its key.
-  The System settings page shows each type on a vertical tab of its own.
-- **Only workspace-level settings have `TENANT` rows.** A `SettingDefinition` says so (`tenantLevel`, set with
-  `perTenant()`). For now these are the workspace limits: AI tokens per month, storage, tests generating at once
-  per user, and participants per test (`V8__participants_per_test_limit.sql`). The models, batch sizes and similar stay system-only; saving one for a workspace is refused.
+- **The database decides each setting's type and owners, not the code.** Every possible key is a row of
+  `setting_configs` (`setting_key`, `setting_type`) with its allowed owners in `setting_config_owners`
+  (`setting_key`, `setting_owner`; migrations `V7__setting_configs.sql`, `V9__setting_config_owners.sql`), seeded by
+  Flyway. `setting_type` is `CONFIG` (a configuration value, e.g. the default difficulty or question count) or
+  `LIMIT` (a limit on what a workspace or user may use, e.g. storage, tokens, generations at once, invitations sent
+  at once). `settings (setting_key, setting_owner)` references `setting_config_owners`, so a value can only be
+  stored for an owner its key allows. A `SettingDefinition` only describes a key (label, validation, the properties
+  value it reads and writes); `SystemSettingsServiceImpl` reads the type and owners at startup and fails when a
+  defined key has no `setting_configs` row. A new setting needs its definition and a migration adding its rows.
+- **Settings with a `SYSTEM` owner are on the System settings page**, one vertical tab per type (Configuration,
+  Limits), grouped in sections (all limits under System limits: the page shows system values only). **Settings with a `TENANT` owner may have
+  a value per workspace.** For now these are the workspace limits: AI tokens per month, storage, tests generating
+  at once per user, and participants per test (`V8__participants_per_test_limit.sql`). The models, batch sizes,
+  invitations sent at once and similar are system-only; saving one for a workspace is refused, by the service and
+  by the foreign key.
 - **0 means no limit, at every level.** An empty value of a workspace means "use the system value", so "no limit"
   needs a value of its own. The system level uses 0 too, so there is one rule.
 - **No special cases in code.** `TenantSettingsService.limits(tenantId)` gives the `TenantLimits` in effect, and
@@ -34,8 +40,7 @@ Settings have **levels**. A value is resolved the same way for every workspace (
   (`AccountTransactionalServiceImpl`), and the local profile's library in `R__dev_library_tenant.sql`. An admin may
   change them like any other workspace's.
 - **API and UI.** `GET`/`PUT`/`DELETE /api/admin/tenants/{id}/settings` list, save and reset a workspace's own
-  values (`ADMIN` only). The Workspaces page has a **Limits** dialog per workspace and an "Own limits" badge; the
-  System settings page marks workspace-level settings "Per workspace".
+  values (`ADMIN` only). The Workspaces page has a **Limits** dialog per workspace and an "Own limits" badge.
 
 ## Context
 Workspace limits (ADR010 tenants; monthly AI tokens, storage, tests generating at once) started as system settings
@@ -49,15 +54,17 @@ e.g. by plan.
 
 #### Consequences
 * Adopted because: one place and one rule for every setting value; a new workspace-level setting needs no schema
-  change, only `perTenant()` on its definition.
+  change, only a `TENANT` row in `setting_config_owners`.
+* Adopted because: who may have a value of a setting is data the database enforces (composite foreign key), not a
+  flag in the code.
 * Adopted because: workspaces without limits (library, admins) are ordinary rows an admin can see and change, with
   no type or role checks in the limit code.
 * Adopted because: room for more levels later (e.g. `USER`) or owners (e.g. a billing plan) without another table.
 * Adopted despite: values are text, typed by their definition, not by the column.
 * Adopted despite: `setting_owner` repeats what `owner_id IS NULL` says for `SYSTEM`; a check constraint keeps them
   in step.
-* Adopted despite: a setting's key and type are written twice, in its definition and in `setting_configs`; the
-  startup check keeps them in step.
+* Adopted despite: a setting's key is written twice, in its definition and in `setting_configs`; startup fails when
+  a definition has no row.
 
 ### Option 2: limit columns on `tenants`
 `monthly_token_limit`, `storage_limit_mb`, `concurrent_generations_per_user` on each tenant.
@@ -77,5 +84,6 @@ Check the caller's role and the tenant type in each limit check.
 ## Supporting Material
 * `knowgauge-service-rest-api/src/main/resources/db/migration/V3__settings_per_tenant.sql`
 * `knowgauge-service-rest-api/src/main/resources/db/migration/V7__setting_configs.sql`
+* `knowgauge-service-rest-api/src/main/resources/db/migration/V9__setting_config_owners.sql`
 * `TenantSettingsService`, `SystemSettingsService`, `SettingDefinition`, `TenantLimits`
 * ADR010 (tenants), ADR012 (roles), ADR013 (admins view every workspace)

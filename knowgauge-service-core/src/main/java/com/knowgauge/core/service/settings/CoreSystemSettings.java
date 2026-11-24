@@ -19,7 +19,11 @@ import com.knowgauge.core.service.testgeneration.TestGenerationDefaultsPropertie
 @Component
 public class CoreSystemSettings implements SettingsContributor {
 
-	private static final String WORKSPACE_LIMITS = "Workspace limits";
+	/**
+	 * The section of every limit on the System settings page, which shows system values only. Whether a workspace may
+	 * have a value of its own is decided per key in setting_config_owners, for limits and configuration alike.
+	 */
+	private static final String SYSTEM_LIMITS = "System limits";
 
 	private final TenantLimitProperties limits;
 	private final TestGenerationDefaultsProperties testgen;
@@ -39,35 +43,34 @@ public class CoreSystemSettings implements SettingsContributor {
 	@Override
 	public List<SettingDefinition> definitions() {
 		return List.of(
-				// The tenant limits (type LIMIT): a tenant may have values of its own (ADR014). 0 means no limit.
-				new SettingDefinition(TenantLimits.MONTHLY_TOKENS, WORKSPACE_LIMITS, "AI tokens per workspace and month",
+				// The workspace limits (TenantLimits). Like every setting, their type and owners are in setting_configs /
+				// setting_config_owners (ADR014); for now they also have a TENANT owner. 0: no limit.
+				new SettingDefinition(TenantLimits.MONTHLY_TOKENS, SYSTEM_LIMITS, "AI tokens per workspace and month",
 						"Input and output tokens of question writing and checking, per calendar month (UTC). At the limit"
 								+ " new tests and regenerations are refused until next month. 0: no limit.",
 						SettingDefinition.Type.INTEGER, List.of(), 0L, null, false,
 						() -> text(limits.getMonthlyTokenLimit()),
-						value -> limits.setMonthlyTokenLimit(value == null ? null : Long.valueOf(value))).perTenant().limit(),
-				new SettingDefinition(TenantLimits.STORAGE_MB, WORKSPACE_LIMITS, "Storage per workspace (MB)",
+						value -> limits.setMonthlyTokenLimit(value == null ? null : Long.valueOf(value))),
+				new SettingDefinition(TenantLimits.STORAGE_MB, SYSTEM_LIMITS, "Storage per workspace (MB)",
 						"Total size of the PDFs a workspace may keep, in megabytes. An upload that would go over it is"
 								+ " refused; deleting documents frees space. The shared library has no limit. 0: no limit.",
 						SettingDefinition.Type.INTEGER, List.of(), 0L, null, false,
 						() -> text(limits.getStorageLimitMb()),
-						value -> limits.setStorageLimitMb(value == null ? null : Long.valueOf(value))).perTenant().limit(),
-				new SettingDefinition(TenantLimits.CONCURRENT_GENERATIONS, WORKSPACE_LIMITS,
+						value -> limits.setStorageLimitMb(value == null ? null : Long.valueOf(value))),
+				new SettingDefinition(TenantLimits.CONCURRENT_GENERATIONS, SYSTEM_LIMITS,
 						"Tests generating at once per user",
 						"How many tests one user may generate at the same time. Another request is refused until one of"
 								+ " them is ready. 0: no limit.",
 						SettingDefinition.Type.INTEGER, List.of(), 0L, 20L, false,
 						() -> text(limits.getConcurrentGenerationsPerUser()),
-						value -> limits.setConcurrentGenerationsPerUser(value == null ? null : Integer.valueOf(value)))
-						.perTenant().limit(),
-				new SettingDefinition(TenantLimits.PARTICIPANTS_PER_TEST, WORKSPACE_LIMITS, "Participants per test",
+						value -> limits.setConcurrentGenerationsPerUser(value == null ? null : Integer.valueOf(value))),
+				new SettingDefinition(TenantLimits.PARTICIPANTS_PER_TEST, SYSTEM_LIMITS, "Participants per test",
 						"How many different people one test may have: everyone invited to it and everyone who started it"
 								+ " from the shared link, each counted once. Once a test is full, more invitations and new"
 								+ " people on the shared link are refused. 0: no limit.",
 						SettingDefinition.Type.INTEGER, List.of(), 0L, null, false,
 						() -> text(limits.getParticipantsPerTest()),
-						value -> limits.setParticipantsPerTest(value == null ? null : Integer.valueOf(value)))
-						.perTenant().limit(),
+						value -> limits.setParticipantsPerTest(value == null ? null : Integer.valueOf(value))),
 				new SettingDefinition("kg.testgen.defaults.generation-model", "AI models",
 						"Question writing model",
 						"The OpenAI model that writes new questions. The list shows the OpenAI chat models of the price"
@@ -89,14 +92,13 @@ public class CoreSystemSettings implements SettingsContributor {
 						Arrays.stream(TestDifficulty.values()).map(Enum::name).toList(), null, null, false,
 						() -> text(testgen.getDifficulty()),
 						value -> testgen.setDifficulty(TestDifficulty.valueOf(value))),
-				new SettingDefinition("kg.invitations.max-per-request", "Invitations",
-						"Invitations sent at once",
+				new SettingDefinition("kg.invitations.max-per-request", SYSTEM_LIMITS,
+						"Max invitations sent at once",
 						"The most email addresses one invitation can go to at once, for a test or a workspace. Invite"
 								+ " more people by sending again.",
 						SettingDefinition.Type.INTEGER, List.of(), 1L, 1000L, false,
 						() -> text(invitations.getMaxPerRequest()),
-						// A limit on what one user may do, for the whole system (not per workspace).
-						value -> invitations.setMaxPerRequest(Integer.parseInt(value))).limit(),
+						value -> invitations.setMaxPerRequest(Integer.parseInt(value))),
 				new SettingDefinition("kg.ingestion.job.batch-size", "Ingestion", "Documents per scheduled run",
 						"How many uploaded documents the scheduled ingestion job ingests per run (oldest first).",
 						SettingDefinition.Type.INTEGER, List.of(), 1L, 500L, false,

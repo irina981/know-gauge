@@ -121,9 +121,9 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   (`ChunkingProperties`, `TestGenerationDefaultsProperties`, `StorageProperties`).
 - Settings an admin changes at runtime are `SettingDefinition`s (`CoreSystemSettings`, other modules via
   `SettingsContributor`), stored in `settings` ([ADR014](docs/adr/ADR014-settings-per-workspace.md)): a `SYSTEM` row
-  overrides the properties files, a `TENANT` row (`setting_owner`/`owner_id`; only `perTenant()` settings) overrides
-  that for one workspace. Every key needs a `setting_configs` row (new `V{n}` migration) with the definition's type,
-  `CONFIG` or `LIMIT` (`limit()`); startup checks it.
+  overrides the properties files, a `TENANT` row (`setting_owner`/`owner_id`) overrides that for one workspace. The
+  database decides each key's type (`setting_configs`: `CONFIG`/`LIMIT`) and allowed owners (`setting_config_owners`,
+  referenced by `settings`), not the code: a new setting needs its definition plus a `V{n}` migration adding both rows.
   Read workspace limits only through `TenantSettingsService.limits` (`TenantLimits`; 0 means no limit), never
   with checks on tenant type or role: the library and admins' workspaces simply have their own value 0.
 

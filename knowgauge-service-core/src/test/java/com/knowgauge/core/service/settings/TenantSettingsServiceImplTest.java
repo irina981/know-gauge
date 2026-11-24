@@ -26,13 +26,13 @@ import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.model.enums.SettingOwner;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.pricing.TokenPriceCatalog;
-import com.knowgauge.core.port.repository.SettingConfigRepository;
 import com.knowgauge.core.port.repository.SettingRepository;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.service.ingestion.IngestionJobProperties;
 import com.knowgauge.core.service.invitation.InvitationProperties;
 import com.knowgauge.core.service.settings.TenantSettingsService.TenantSettingValue;
 import com.knowgauge.core.service.testgeneration.TestGenerationDefaultsProperties;
+import com.knowgauge.core.support.SettingConfigs;
 
 /** A tenant's own values override the system values (ADR014); 0 means no limit. */
 class TenantSettingsServiceImplTest {
@@ -58,9 +58,11 @@ class TenantSettingsServiceImplTest {
 		limits.setParticipantsPerTest(100);
 		CoreSystemSettings core = new CoreSystemSettings(limits, new TestGenerationDefaultsProperties(),
 				new InvitationProperties(), new IngestionJobProperties(), mock(TokenPriceCatalog.class));
-		service = new TenantSettingsServiceImpl(repository, tenants,
-				new SystemSettingsServiceImpl(mock(SettingRepository.class), mock(SettingConfigRepository.class),
-						List.of(core)));
+		// The tenant-level settings are those with a TENANT owner, as Flyway seeds setting_config_owners.
+		SystemSettingsServiceImpl systemSettings = new SystemSettingsServiceImpl(mock(SettingRepository.class),
+				SettingConfigs.seededFor(core.definitions()), List.of(core));
+		systemSettings.afterSingletonsInstantiated();
+		service = new TenantSettingsServiceImpl(repository, tenants, systemSettings);
 		when(tenants.findById(TENANT))
 				.thenReturn(Optional.of(Tenant.builder().id(TENANT).type(TenantType.PERSONAL).build()));
 		when(repository.findByTenantId(TENANT)).thenReturn(List.of());
@@ -140,7 +142,7 @@ class TenantSettingsServiceImplTest {
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("at least 0")
 				.hasMessageContaining("between 0 and 20");
 		assertThatThrownBy(() -> service.setAll(TENANT, Map.of("kg.testgen.defaults.generation-model", "gpt-b")))
-				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("whole system only");
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("cannot have a value per workspace");
 		assertThatThrownBy(() -> service.setAll(TENANT, Map.of("kg.unknown", "1")))
 				.isInstanceOf(ResourceNotFoundException.class);
 		assertThatThrownBy(() -> service.list(99L)).isInstanceOf(ResourceNotFoundException.class);

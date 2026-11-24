@@ -8,8 +8,8 @@ import java.util.Set;
 import com.knowgauge.core.model.TenantLimits;
 
 /**
- * Settings of one tenant, ADR014: for every {@link SettingDefinition#tenantLevel() tenant-level}
- * setting the tenant may have a value of its own, which overrides the system value. Kept by an {@code ADMIN} on
+ * Settings of one tenant, ADR014: for every setting with a {@code TENANT} owner ({@code setting_config_owners})
+ * the tenant may have a value of its own, which overrides the system value. Kept by an {@code ADMIN} on
  * the Workspaces page.
  */
 public interface TenantSettingsService {

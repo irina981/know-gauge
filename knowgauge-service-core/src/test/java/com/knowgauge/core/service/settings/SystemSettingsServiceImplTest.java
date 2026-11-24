@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import com.knowgauge.core.service.ingestion.IngestionJobProperties;
 import com.knowgauge.core.service.invitation.InvitationProperties;
 import com.knowgauge.core.service.settings.SystemSettingsService.SystemSettingValue;
 import com.knowgauge.core.service.testgeneration.TestGenerationDefaultsProperties;
+import com.knowgauge.core.support.SettingConfigs;
 
 /** System values: SYSTEM rows override the properties files and are applied to the properties beans. */
 class SystemSettingsServiceImplTest {
@@ -40,9 +42,10 @@ class SystemSettingsServiceImplTest {
 	private static final String BATCH = "kg.testgen.defaults.question-generation-batch-size";
 
 	private final SettingRepository repository = mock(SettingRepository.class);
-	private final SettingConfigRepository configs = mock(SettingConfigRepository.class);
 	private final TenantLimitProperties limits = new TenantLimitProperties();
 	private final TestGenerationDefaultsProperties testgen = new TestGenerationDefaultsProperties();
+	private SettingConfigRepository configs;
+	private CoreSystemSettings core;
 	private SystemSettingsServiceImpl service;
 
 	private static Setting row(String key, String value) {
@@ -59,11 +62,10 @@ class SystemSettingsServiceImplTest {
 		testgen.setQuestionGenerationBatchSize(5);
 		testgen.setQuestionCount(10);
 		testgen.setDifficulty(TestDifficulty.MEDIUM);
-		CoreSystemSettings core = new CoreSystemSettings(limits, testgen, new InvitationProperties(),
-				new IngestionJobProperties(), mock(TokenPriceCatalog.class));
-		// setting_configs as Flyway seeds it: every defined key with its type.
-		when(configs.findAll()).thenReturn(core.definitions().stream()
-				.map(d -> new SettingConfig(d.key(), d.settingType())).toList());
+		core = new CoreSystemSettings(limits, testgen, new InvitationProperties(), new IngestionJobProperties(),
+				mock(TokenPriceCatalog.class));
+		// setting_configs / setting_config_owners as Flyway seeds them.
+		configs = SettingConfigs.seededFor(core.definitions());
 		service = new SystemSettingsServiceImpl(repository, configs, List.of(core));
 	}
 
@@ -157,29 +159,46 @@ class SystemSettingsServiceImplTest {
 	}
 
 	@Test
-	void onlyTheTenantLimitsAreTenantLevel() {
-		assertThat(service.definitions()).filteredOn(SettingDefinition::tenantLevel)
-				.extracting(SettingDefinition::key).containsExactlyElementsOf(TenantLimits.KEYS);
+	void theOwnersComeFromTheDatabase() {
+		service.afterSingletonsInstantiated();
+
+		assertThat(service.definitions(SettingOwner.TENANT)).extracting(SettingDefinition::key)
+				.containsExactlyElementsOf(TenantLimits.KEYS);
+		assertThat(service.definitions(SettingOwner.SYSTEM)).hasSameSizeAs(service.definitions());
+		assertThat(service.config(SettingConfigs.INVITATIONS_AT_ONCE).getType()).isEqualTo(SettingType.LIMIT);
+		assertThat(service.config(SettingConfigs.INVITATIONS_AT_ONCE).allows(SettingOwner.TENANT)).isFalse();
+		assertThat(setting(MODEL).config().getType()).isEqualTo(SettingType.CONFIG);
 	}
 
 	@Test
-	void theLimitsAreTheTenantLimitsAndTheInvitationsSentAtOnce() {
-		List<String> limitKeys = new java.util.ArrayList<>(TenantLimits.KEYS);
-		limitKeys.add("kg.invitations.max-per-request");
-		assertThat(service.definitions()).filteredOn(d -> d.settingType() == SettingType.LIMIT)
-				.extracting(SettingDefinition::key).containsExactlyElementsOf(limitKeys);
-		// A system-wide limit: not in a workspace's Limits dialog.
-		assertThat(service.definitions()).filteredOn(d -> d.key().equals("kg.invitations.max-per-request"))
-				.extracting(SettingDefinition::tenantLevel).containsExactly(false);
+	void aSettingWithoutASystemOwnerIsNotOnThePageAndCannotBeSaved() {
+		// The database allows only workspace values of the batch size.
+		configs = SettingConfigs.returning(core.definitions().stream()
+				.map(d -> d.key().equals(BATCH)
+						? new SettingConfig(BATCH, SettingType.CONFIG, EnumSet.of(SettingOwner.TENANT))
+						: SettingConfigs.seeded(d))
+				.toList());
+		service = new SystemSettingsServiceImpl(repository, configs, List.of(core));
+		when(repository.findSystem()).thenReturn(List.of(row(BATCH, "8")));
+
+		service.afterSingletonsInstantiated();
+
+		assertThat(testgen.getQuestionGenerationBatchSize()).isEqualTo(5);
+		assertThat(service.list()).extracting(s -> s.definition().key()).doesNotContain(BATCH);
+		assertThat(service.definitions(SettingOwner.TENANT)).extracting(SettingDefinition::key).contains(BATCH);
+		assertThatThrownBy(() -> service.setAll(Map.of(BATCH, "8"))).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("system-wide");
+		verify(repository, never()).saveAll(any());
 	}
 
 	@Test
-	void startupFailsWhenADefinedKeyIsMissingFromSettingConfigsOrHasAnotherType() {
-		when(configs.findAll()).thenReturn(List.of(new SettingConfig(MODEL, SettingType.LIMIT)));
+	void startupFailsWhenADefinedKeyIsMissingFromSettingConfigs() {
+		configs = SettingConfigs.returning(List.of(SettingConfigs.seeded(core.definitions().get(0))));
+		service = new SystemSettingsServiceImpl(repository, configs, List.of(core));
 
 		assertThatThrownBy(service::afterSingletonsInstantiated).isInstanceOf(IllegalStateException.class)
-				.hasMessageContaining(BATCH + " is not in setting_configs")
-				.hasMessageContaining(MODEL + " is LIMIT in setting_configs but CONFIG");
+				.hasMessageContaining("without a row in setting_configs").hasMessageContaining(BATCH)
+				.hasMessageContaining(MODEL);
 		verify(repository, never()).findSystem();
 	}
 }

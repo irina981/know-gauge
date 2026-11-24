@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Setting;
 import com.knowgauge.core.model.TenantLimits;
+import com.knowgauge.core.model.enums.SettingOwner;
 import com.knowgauge.core.port.repository.SettingRepository;
 import com.knowgauge.core.port.repository.TenantRepository;
 
@@ -88,7 +89,7 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 			SettingDefinition definition = definitions.get(entry.getKey());
 			if (definition == null) {
 				if (systemSettings.definitions().stream().anyMatch(d -> d.key().equals(entry.getKey()))) {
-					throw new IllegalArgumentException(entry.getKey() + " applies to the whole system only.");
+					throw new IllegalArgumentException(entry.getKey() + " cannot have a value per workspace.");
 				}
 				throw new ResourceNotFoundException("Unknown setting " + entry.getKey() + ".");
 			}
@@ -188,10 +189,10 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 		return values;
 	}
 
+	/** The settings a tenant may have a value of: those with a {@code TENANT} owner in the database (ADR014). */
 	private Map<String, SettingDefinition> tenantDefinitions() {
 		Map<String, SettingDefinition> definitions = new LinkedHashMap<>();
-		systemSettings.definitions().stream().filter(SettingDefinition::tenantLevel)
-				.forEach(d -> definitions.put(d.key(), d));
+		systemSettings.definitions(SettingOwner.TENANT).forEach(d -> definitions.put(d.key(), d));
 		return definitions;
 	}
 
