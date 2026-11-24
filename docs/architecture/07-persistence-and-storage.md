@@ -57,6 +57,7 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 | `db/migration/V3__settings_per_tenant.sql` | main | Renames `system_settings` to `settings` with `setting_type` (`SYSTEM`/`TENANT`) and `tenant_id`; gives the library and admins' workspaces no limits (ADR014) | all profiles |
 | `db/migration/V4__tenant_membership_rules.sql` | main | Constraint triggers: a `LIBRARY` tenant has no users, a personal tenant only its owner | all profiles |
 | `db/migration/V5__personal_tenant_type.sql` | main | Renames the tenant type `INDIVIDUAL` to `PERSONAL` (as the UI calls it) and updates the membership rules | all profiles |
+| `db/migration/V7__setting_configs.sql` | main | `setting_configs`: every possible setting key with its type (`CONFIG`/`LIMIT`), referenced by `settings.setting_key`; renames `settings.setting_type`/`tenant_id` to `setting_owner`/`owner_id` (ADR014) | all profiles |
 | `db/dev-migration/R__dev_seed_topics.sql` | main | Repeatable seed of a fixed-ID topic tree (tenant 1) | `local` only (added to `spring.flyway.locations`) |
 | `db/dev-migration/R__dev_library_tenant.sql` | main | Makes tenant 1 the `LIBRARY` tenant "KnowGauge Samples" (ADR010), with no limits (its own value 0, ADR014) | `local` only |
 | `db/pgvector-migration/V1__pgvector_and_embeddings.sql` | vector | `CREATE EXTENSION vector`, `chunk_embeddings`, indexes | all profiles |

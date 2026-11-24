@@ -4,12 +4,15 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.knowgauge.core.model.enums.SettingType;
+
 /**
  * One setting an {@code ADMIN} may change. Its default comes from the properties files (bound into a
  * {@code @ConfigurationProperties} bean); a {@code SYSTEM} row in {@code settings} under the same {@code key}
  * overrides it (System settings page), and for a {@link #tenantLevel() tenant-level} setting a {@code TENANT}
  * row overrides that for one tenant (ADR014). Only settings read on each use belong here, so a change applies
- * without a restart.
+ * without a restart. Every key needs a row in {@code setting_configs} (a Flyway migration) with the same
+ * {@link #settingType()}; startup fails otherwise.
  *
  * @param key            the property name, also the {@code settings} key, e.g.
  *                       {@code kg.testgen.defaults.generation-model}
@@ -21,20 +24,23 @@ import java.util.function.Supplier;
  * @param writer         puts a valid system value (or {@code null} for empty) into the properties bean
  * @param suggestions    values to offer for a {@link Type#TEXT} (e.g. model names from the price catalog); any other
  *                       text is allowed too
- * @param tenantLevel whether a tenant may have a value of its own (a {@code TENANT} row)
+ * @param tenantLevel    whether a tenant may have a value of its own (a {@code TENANT} row)
+ * @param settingType    a configuration value or a limit ({@code setting_configs.setting_type}); the System
+ *                       settings page shows each type on a tab of its own
  */
 public record SettingDefinition(String key, String group, String label, String description, Type type,
 		List<String> options, Long min, Long max, boolean optional, Supplier<String> reader, Consumer<String> writer,
-		Supplier<List<String>> suggestions, boolean tenantLevel) {
+		Supplier<List<String>> suggestions, boolean tenantLevel, SettingType settingType) {
 
-	/** A system-only setting. */
+	/** A system-only {@link SettingType#CONFIG} setting. */
 	public SettingDefinition(String key, String group, String label, String description, Type type,
 			List<String> options, Long min, Long max, boolean optional, Supplier<String> reader, Consumer<String> writer,
 			Supplier<List<String>> suggestions) {
-		this(key, group, label, description, type, options, min, max, optional, reader, writer, suggestions, false);
+		this(key, group, label, description, type, options, min, max, optional, reader, writer, suggestions, false,
+				SettingType.CONFIG);
 	}
 
-	/** A system-only setting without suggestions. */
+	/** A system-only {@link SettingType#CONFIG} setting without suggestions. */
 	public SettingDefinition(String key, String group, String label, String description, Type type,
 			List<String> options, Long min, Long max, boolean optional, Supplier<String> reader,
 			Consumer<String> writer) {
@@ -44,7 +50,13 @@ public record SettingDefinition(String key, String group, String label, String d
 	/** This setting, which a tenant may also have a value of its own for. */
 	public SettingDefinition perTenant() {
 		return new SettingDefinition(key, group, label, description, type, options, min, max, optional, reader, writer,
-				suggestions, true);
+				suggestions, true, settingType);
+	}
+
+	/** This setting as a {@link SettingType#LIMIT} rather than a configuration value. */
+	public SettingDefinition limit() {
+		return new SettingDefinition(key, group, label, description, type, options, min, max, optional, reader, writer,
+				suggestions, tenantLevel, SettingType.LIMIT);
 	}
 
 	public enum Type {

@@ -20,9 +20,12 @@ import org.mockito.ArgumentCaptor;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Setting;
 import com.knowgauge.core.model.TenantLimits;
-import com.knowgauge.core.model.enums.SettingType;
+import com.knowgauge.core.model.enums.SettingOwner;
 import com.knowgauge.core.model.enums.TestDifficulty;
 import com.knowgauge.core.port.pricing.TokenPriceCatalog;
+import com.knowgauge.core.model.SettingConfig;
+import com.knowgauge.core.model.enums.SettingType;
+import com.knowgauge.core.port.repository.SettingConfigRepository;
 import com.knowgauge.core.port.repository.SettingRepository;
 import com.knowgauge.core.service.ingestion.IngestionJobProperties;
 import com.knowgauge.core.service.invitation.InvitationProperties;
@@ -37,6 +40,7 @@ class SystemSettingsServiceImplTest {
 	private static final String BATCH = "kg.testgen.defaults.question-generation-batch-size";
 
 	private final SettingRepository repository = mock(SettingRepository.class);
+	private final SettingConfigRepository configs = mock(SettingConfigRepository.class);
 	private final TenantLimitProperties limits = new TenantLimitProperties();
 	private final TestGenerationDefaultsProperties testgen = new TestGenerationDefaultsProperties();
 	private SystemSettingsServiceImpl service;
@@ -57,7 +61,10 @@ class SystemSettingsServiceImplTest {
 		testgen.setDifficulty(TestDifficulty.MEDIUM);
 		CoreSystemSettings core = new CoreSystemSettings(limits, testgen, new InvitationProperties(),
 				new IngestionJobProperties(), mock(TokenPriceCatalog.class));
-		service = new SystemSettingsServiceImpl(repository, List.of(core));
+		// setting_configs as Flyway seeds it: every defined key with its type.
+		when(configs.findAll()).thenReturn(core.definitions().stream()
+				.map(d -> new SettingConfig(d.key(), d.settingType())).toList());
+		service = new SystemSettingsServiceImpl(repository, configs, List.of(core));
 	}
 
 	private SystemSettingValue setting(String key) {
@@ -103,9 +110,9 @@ class SystemSettingsServiceImplTest {
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<List<Setting>> saved = ArgumentCaptor.forClass(List.class);
 		verify(repository).saveAll(saved.capture());
-		assertThat(saved.getValue()).extracting(Setting::getType, Setting::getTenantId, Setting::getKey,
-				Setting::getValue).containsExactlyInAnyOrder(tuple(SettingType.SYSTEM, null, BATCH, "8"),
-						tuple(SettingType.SYSTEM, null, LIMIT, "0"));
+		assertThat(saved.getValue()).extracting(Setting::getOwner, Setting::getOwnerId, Setting::getKey,
+				Setting::getValue).containsExactlyInAnyOrder(tuple(SettingOwner.SYSTEM, null, BATCH, "8"),
+						tuple(SettingOwner.SYSTEM, null, LIMIT, "0"));
 		assertThat(testgen.getQuestionGenerationBatchSize()).isEqualTo(8);
 		assertThat(limits.getMonthlyTokenLimit()).isZero();
 		assertThat(setting(LIMIT).overridden()).isTrue();
@@ -153,5 +160,26 @@ class SystemSettingsServiceImplTest {
 	void onlyTheTenantLimitsAreTenantLevel() {
 		assertThat(service.definitions()).filteredOn(SettingDefinition::tenantLevel)
 				.extracting(SettingDefinition::key).containsExactlyElementsOf(TenantLimits.KEYS);
+	}
+
+	@Test
+	void theLimitsAreTheTenantLimitsAndTheInvitationsSentAtOnce() {
+		List<String> limitKeys = new java.util.ArrayList<>(TenantLimits.KEYS);
+		limitKeys.add("kg.invitations.max-per-request");
+		assertThat(service.definitions()).filteredOn(d -> d.settingType() == SettingType.LIMIT)
+				.extracting(SettingDefinition::key).containsExactlyElementsOf(limitKeys);
+		// A system-wide limit: not in a workspace's Limits dialog.
+		assertThat(service.definitions()).filteredOn(d -> d.key().equals("kg.invitations.max-per-request"))
+				.extracting(SettingDefinition::tenantLevel).containsExactly(false);
+	}
+
+	@Test
+	void startupFailsWhenADefinedKeyIsMissingFromSettingConfigsOrHasAnotherType() {
+		when(configs.findAll()).thenReturn(List.of(new SettingConfig(MODEL, SettingType.LIMIT)));
+
+		assertThatThrownBy(service::afterSingletonsInstantiated).isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining(BATCH + " is not in setting_configs")
+				.hasMessageContaining(MODEL + " is LIMIT in setting_configs but CONFIG");
+		verify(repository, never()).findSystem();
 	}
 }

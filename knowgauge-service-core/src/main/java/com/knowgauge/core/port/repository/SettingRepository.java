@@ -6,7 +6,10 @@ import java.util.Optional;
 
 import com.knowgauge.core.model.Setting;
 
-/** Stored settings (ADR014): system rows, one per key, and tenant rows, one per tenant and key. */
+/**
+ * Stored settings (ADR014): rows owned by the system, one per key, and rows owned by a tenant, one per tenant and key.
+ * Every key is one of {@code setting_configs}.
+ */
 public interface SettingRepository {
 
 	/** @return every {@code SYSTEM} row */

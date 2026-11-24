@@ -81,7 +81,7 @@ Some `kg.*` values can be changed at runtime on **Administration → System sett
 `ADMIN` only; API `/api/admin/settings/**`):
 
 - **Settings with defaults from the properties files.** `CoreSystemSettings` lists them: the monthly token limit, the storage limit, tests generating at once per user,
-  the generation model (and, from `VerificationSystemSettings`, the answer-checking model), questions per LLM call, the default question count and difficulty, invitations per request
+  the generation model (and, from `VerificationSystemSettings`, the answer-checking model), questions per LLM call, the default question count and difficulty, invitations sent at once (a system-wide limit)
   and the ingestion batch size. Only values read on each use are listed, so a change applies at once. The
   properties files give the default. A value saved on the page is stored as a `SYSTEM` row of `settings` (key = property
   name) and overrides it; `SystemSettingsServiceImpl` applies the saved values to the `@ConfigurationProperties`
@@ -90,7 +90,10 @@ Some `kg.*` values can be changed at runtime on **Administration → System sett
   **Reset to defaults** (`DELETE /api/admin/settings/values`), which deletes every `SYSTEM` row, so the properties
   values apply again; token prices are not touched. An unknown key or an invalid saved value is logged and ignored
   at startup. Other modules can add settings with a `SettingsContributor` (the verification model comes from
-  the testgeneration module this way).
+  the testgeneration module this way). Every key must also be a row of `setting_configs` (seeded by Flyway) with the
+  same type, `CONFIG` or `LIMIT`; startup fails otherwise. The page shows each type on a vertical tab
+  (**Configuration**, **Limits**; `?tab=limits`), with the groups as sections and the token prices and embeddings
+  under the AI models; one Save covers both tabs.
   Infrastructure (datasources, schedules, upload sizes, API keys) stays in the properties files only.
 - **Per workspace (ADR014).** The workspace limits are marked "Per workspace": a workspace may have its own value,
   a `TENANT` row of `settings`, which wins over the system value (0: no limit). They are set in the **Limits** dialog

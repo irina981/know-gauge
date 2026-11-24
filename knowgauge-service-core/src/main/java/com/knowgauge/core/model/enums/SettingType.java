@@ -1,14 +1,14 @@
 package com.knowgauge.core.model.enums;
 
-/** The level a stored setting applies to (ADR014). A more specific level overrides a general one. */
+/**
+ * What a setting is for (column {@code setting_configs.setting_type}). The System settings page shows each type on a
+ * tab of its own.
+ */
 public enum SettingType {
 
-    /** Applies everywhere, overriding the properties files. Kept on the System settings page. */
-    SYSTEM,
+    /** A configuration value, e.g. the default difficulty or number of questions of a test, or an AI model. */
+    CONFIG,
 
-    /**
-     * Applies to one tenant (workspace), overriding the system value. Only settings marked as tenant-level may
-     * have one, e.g. the tenant limits.
-     */
-    TENANT
+    /** A limit on what a workspace or user may use, e.g. storage, AI tokens per month or concurrent generations. */
+    LIMIT
 }

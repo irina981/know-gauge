@@ -139,7 +139,7 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 	@Transactional(readOnly = true)
 	public Map<Long, TenantLimits> limits(Collection<Long> tenantIds) {
 		Map<Long, List<Setting>> byTenant = repository.findByTenantIdIn(tenantIds).stream()
-				.collect(Collectors.groupingBy(Setting::getTenantId));
+				.collect(Collectors.groupingBy(Setting::getOwnerId));
 		Map<Long, TenantLimits> limits = new HashMap<>();
 		for (Long tenantId : tenantIds) {
 			limits.put(tenantId, limitsOf(ownValues(byTenant.getOrDefault(tenantId, List.of()))));
@@ -152,7 +152,7 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 	public Set<Long> withOwnValues(Collection<Long> tenantIds) {
 		Set<String> keys = tenantDefinitions().keySet();
 		return repository.findByTenantIdIn(tenantIds).stream().filter(s -> keys.contains(s.getKey()))
-				.map(Setting::getTenantId).collect(Collectors.toSet());
+				.map(Setting::getOwnerId).collect(Collectors.toSet());
 	}
 
 	/** The tenant's own value of each limit, else the system value. */
@@ -175,14 +175,14 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 		for (Setting row : rows) {
 			SettingDefinition definition = definitions.get(row.getKey());
 			if (definition == null) {
-				log.warn("Setting {} of tenant {} is not a tenant setting; ignored", row.getKey(), row.getTenantId());
+				log.warn("Setting {} of tenant {} is not a tenant setting; ignored", row.getKey(), row.getOwnerId());
 				continue;
 			}
 			try {
 				values.put(row.getKey(), definition.validate(row.getValue()));
 			} catch (IllegalArgumentException e) {
 				log.warn("Setting {} of tenant {} has an invalid value '{}' ({}); the system value applies",
-						row.getKey(), row.getTenantId(), row.getValue(), e.getMessage());
+						row.getKey(), row.getOwnerId(), row.getValue(), e.getMessage());
 			}
 		}
 		return values;

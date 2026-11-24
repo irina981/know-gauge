@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.Setting;
-import com.knowgauge.core.model.enums.SettingType;
+import com.knowgauge.core.model.enums.SettingOwner;
 import com.knowgauge.core.port.repository.SettingRepository;
 import com.knowgauge.infra.repository.jpa.mapper.SettingEntityMapper;
 import com.knowgauge.infra.repository.jpa.repository.SettingJpaRepository;
@@ -26,17 +26,17 @@ public class SettingJpaRepositoryAdapter implements SettingRepository {
 
 	@Override
 	public List<Setting> findSystem() {
-		return jpaRepository.findByType(SettingType.SYSTEM).stream().map(mapper::toDomain).toList();
+		return jpaRepository.findByOwner(SettingOwner.SYSTEM).stream().map(mapper::toDomain).toList();
 	}
 
 	@Override
 	public Optional<Setting> findSystem(String key) {
-		return jpaRepository.findByTypeAndKey(SettingType.SYSTEM, key).map(mapper::toDomain);
+		return jpaRepository.findByOwnerAndKey(SettingOwner.SYSTEM, key).map(mapper::toDomain);
 	}
 
 	@Override
 	public List<Setting> findByTenantId(Long tenantId) {
-		return jpaRepository.findByTypeAndTenantId(SettingType.TENANT, tenantId).stream().map(mapper::toDomain)
+		return jpaRepository.findByOwnerAndOwnerId(SettingOwner.TENANT, tenantId).stream().map(mapper::toDomain)
 				.toList();
 	}
 
@@ -45,7 +45,7 @@ public class SettingJpaRepositoryAdapter implements SettingRepository {
 		if (tenantIds.isEmpty()) {
 			return List.of();
 		}
-		return jpaRepository.findByTypeAndTenantIdIn(SettingType.TENANT, tenantIds).stream().map(mapper::toDomain)
+		return jpaRepository.findByOwnerAndOwnerIdIn(SettingOwner.TENANT, tenantIds).stream().map(mapper::toDomain)
 				.toList();
 	}
 
@@ -65,12 +65,12 @@ public class SettingJpaRepositoryAdapter implements SettingRepository {
 	@Override
 	@Transactional
 	public void deleteSystem() {
-		jpaRepository.deleteByType(SettingType.SYSTEM);
+		jpaRepository.deleteByOwner(SettingOwner.SYSTEM);
 	}
 
 	@Override
 	@Transactional
 	public void deleteByTenantId(Long tenantId) {
-		jpaRepository.deleteTenantRows(tenantId);
+		jpaRepository.deleteOwnerRows(SettingOwner.TENANT, tenantId);
 	}
 }

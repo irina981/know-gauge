@@ -23,9 +23,10 @@ import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Setting;
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.TenantLimits;
-import com.knowgauge.core.model.enums.SettingType;
+import com.knowgauge.core.model.enums.SettingOwner;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.pricing.TokenPriceCatalog;
+import com.knowgauge.core.port.repository.SettingConfigRepository;
 import com.knowgauge.core.port.repository.SettingRepository;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.service.ingestion.IngestionJobProperties;
@@ -56,7 +57,8 @@ class TenantSettingsServiceImplTest {
 		CoreSystemSettings core = new CoreSystemSettings(limits, new TestGenerationDefaultsProperties(),
 				new InvitationProperties(), new IngestionJobProperties(), mock(TokenPriceCatalog.class));
 		service = new TenantSettingsServiceImpl(repository, tenants,
-				new SystemSettingsServiceImpl(mock(SettingRepository.class), List.of(core)));
+				new SystemSettingsServiceImpl(mock(SettingRepository.class), mock(SettingConfigRepository.class),
+						List.of(core)));
 		when(tenants.findById(TENANT))
 				.thenReturn(Optional.of(Tenant.builder().id(TENANT).type(TenantType.PERSONAL).build()));
 		when(repository.findByTenantId(TENANT)).thenReturn(List.of());
@@ -113,9 +115,9 @@ class TenantSettingsServiceImplTest {
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<List<Setting>> saved = ArgumentCaptor.forClass(List.class);
 		verify(repository).saveAll(saved.capture());
-		assertThat(saved.getValue()).extracting(Setting::getType, Setting::getTenantId, Setting::getKey,
-				Setting::getValue).containsExactly(tuple(SettingType.TENANT, TENANT, TOKENS, "7000"),
-						tuple(SettingType.TENANT, TENANT, CONCURRENT, "0"));
+		assertThat(saved.getValue()).extracting(Setting::getOwner, Setting::getOwnerId, Setting::getKey,
+				Setting::getValue).containsExactly(tuple(SettingOwner.TENANT, TENANT, TOKENS, "7000"),
+						tuple(SettingOwner.TENANT, TENANT, CONCURRENT, "0"));
 	}
 
 	@Test

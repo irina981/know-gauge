@@ -92,7 +92,7 @@ public class SystemSettingsController {
 		SettingDefinition d = setting.definition();
 		return new SystemSettingDto(d.key(), d.group(), d.label(), d.description(), d.type().name(), d.options(),
 				d.min(), d.max(), d.optional(), setting.defaultValue(), setting.overridden(), setting.overrideValue(),
-				setting.value(), setting.suggestions(), d.tenantLevel());
+				setting.value(), setting.suggestions(), d.tenantLevel(), d.settingType().name());
 	}
 
 	@GetMapping("/api/admin/settings/token-prices")

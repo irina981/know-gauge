@@ -10,26 +10,25 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.knowgauge.core.model.enums.SettingType;
+import com.knowgauge.core.model.enums.SettingOwner;
 import com.knowgauge.infra.repository.jpa.entity.SettingEntity;
 
 @Repository
 public interface SettingJpaRepository extends JpaRepository<SettingEntity, Long> {
 
-	List<SettingEntity> findByType(SettingType type);
+	List<SettingEntity> findByOwner(SettingOwner owner);
 
-	Optional<SettingEntity> findByTypeAndKey(SettingType type, String key);
+	Optional<SettingEntity> findByOwnerAndKey(SettingOwner owner, String key);
 
-	List<SettingEntity> findByTypeAndTenantId(SettingType type, Long tenantId);
+	List<SettingEntity> findByOwnerAndOwnerId(SettingOwner owner, Long ownerId);
 
-	List<SettingEntity> findByTypeAndTenantIdIn(SettingType type, Collection<Long> tenantIds);
-
-	@Modifying
-	@Query("delete from SettingEntity s where s.type = :type")
-	int deleteByType(@Param("type") SettingType type);
+	List<SettingEntity> findByOwnerAndOwnerIdIn(SettingOwner owner, Collection<Long> ownerIds);
 
 	@Modifying
-	@Query("delete from SettingEntity s where s.type = com.knowgauge.core.model.enums.SettingType.TENANT"
-			+ " and s.tenantId = :tenantId")
-	int deleteTenantRows(@Param("tenantId") Long tenantId);
+	@Query("delete from SettingEntity s where s.owner = :owner")
+	int deleteByOwner(@Param("owner") SettingOwner owner);
+
+	@Modifying
+	@Query("delete from SettingEntity s where s.owner = :owner and s.ownerId = :ownerId")
+	int deleteOwnerRows(@Param("owner") SettingOwner owner, @Param("ownerId") Long ownerId);
 }

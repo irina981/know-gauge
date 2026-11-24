@@ -6,7 +6,7 @@ VALUES (1, 'LIBRARY', 'KnowGauge Samples', NULL)
 ON CONFLICT (id) DO UPDATE SET type = EXCLUDED.type, name = EXCLUDED.name, owner_user_id = NULL;
 
 -- The library has no limits (ADR014): its own value 0 for each, like an admin's workspace. Kept if changed since.
-INSERT INTO settings (setting_type, tenant_id, setting_key, setting_value)
+INSERT INTO settings (setting_owner, owner_id, setting_key, setting_value)
 SELECT 'TENANT', 1, k.setting_key, '0'
 FROM (VALUES ('kg.settings.tenant.monthly-token-limit'),
              ('kg.settings.tenant.storage-limit-mb'),
