@@ -160,6 +160,36 @@ class TenantScopingTest {
 	}
 
 	@Test
+	void applicationAdminCreatesRootTopicsInAChosenLibrary() {
+		when(topicRepository.save(any())).thenAnswer(inv -> {
+			Topic t = inv.getArgument(0);
+			t.setId(1300L);
+			return t;
+		});
+		Topic root = new Topic(null, "Kotlin", null);
+		root.setTenantId(LIBRARY);
+
+		Topic created = topics(true).create(root);
+
+		assertThat(created.getTenantId()).isEqualTo(LIBRARY);
+		verify(topicRepository).existsByTenantIdAndParentIdIsNullAndName(LIBRARY, "Kotlin");
+		verify(topicRepository).updatePath(LIBRARY, 1300L, "/1300");
+	}
+
+	@Test
+	void usersCannotCreateRootTopicsInALibraryOrAnotherTenant() {
+		Topic inLibrary = new Topic(null, "Kotlin", null);
+		inLibrary.setTenantId(LIBRARY);
+		Topic inOtherTenant = new Topic(null, "Kotlin", null);
+		inOtherTenant.setTenantId(77L);
+
+		assertThatThrownBy(() -> topics(false).create(inLibrary)).isInstanceOf(ReadOnlyContentException.class);
+		// Not even an admin picks a tenant that is not a library.
+		assertThatThrownBy(() -> topics(true).create(inOtherTenant)).isInstanceOf(IllegalArgumentException.class);
+		verify(topicRepository, never()).save(any());
+	}
+
+	@Test
 	void libraryDocumentsAreReadOnlyForUsers() {
 		Document upload = new Document();
 		upload.setTopicId(LIBRARY_TOPIC);

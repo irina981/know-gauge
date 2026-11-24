@@ -54,18 +54,20 @@ public class AccountController {
 	public ResponseEntity<CurrentUserDto> me() {
 		Optional<SignedInAccount> account = SignedInAccount.current();
 		long tenantId = executionContext.tenantId();
-		String tenantName = accountService.findTenant(tenantId).map(Tenant::getName).orElse(null);
+		Optional<Tenant> tenant = accountService.findTenant(tenantId);
+		String tenantName = tenant.map(Tenant::getName).orElse(null);
+		String tenantType = tenant.map(t -> t.getType().name()).orElse(null);
 		if (account.isEmpty()) {
 			// Security mode fixed: nobody signs in; the fixed user administers the fixed tenant.
 			Long userId = currentUserId();
-			return ResponseEntity.ok(new CurrentUserDto(userId, tenantId, tenantName, null, null,
+			return ResponseEntity.ok(new CurrentUserDto(userId, tenantId, tenantName, tenantType, null, null,
 					List.of(Role.TENANT_ADMIN.name()), securityMode, null));
 		}
 		User user = account.get().user();
 		// The user's roles from user_roles (ADR012), in the Role enum's order.
 		List<String> roles = user.getRoles().stream().sorted().map(Role::name).toList();
-		return ResponseEntity.ok(new CurrentUserDto(user.getId(), user.getTenantId(), tenantName, user.getEmail(),
-				user.getDisplayName(), roles, securityMode, user.getCreatedAt()));
+		return ResponseEntity.ok(new CurrentUserDto(user.getId(), user.getTenantId(), tenantName, tenantType,
+				user.getEmail(), user.getDisplayName(), roles, securityMode, user.getCreatedAt()));
 	}
 
 	@GetMapping("/api/me/preferences")

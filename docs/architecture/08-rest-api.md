@@ -21,6 +21,11 @@ Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
 | Method | Path | Body / params | Result |
 |---|---|---|---|
 | GET | `/tenants` | – | `200 TenantSummaryDto[] {tenantId, name, type, ownerUserId, ownerName, ownerEmail, createdAt, topics, documents}`: every tenant (user libraries and the shared library), by name. `403` without `ADMIN` |
+| POST | `/tenants` | `TenantCreateInput {type, name, emails[], message}` | `201 TenantCreatedDto {tenant, invitations[]}`: a new workspace (ADR015). `PERSONAL` needs exactly one address, `ORGANIZATION` at least one, `LIBRARY` none (no limits, readable by everyone). Invitees become `TENANT_ADMIN` on accepting; a failed send is kept on the invitation. `400` wrong number of invitees, invalid address or missing name |
+| GET | `/tenants/{id}/invitations` | – | `200 WorkspaceInvitationDto[] {id, tenantId, email, role, link, createdAt, sentAt, sendCount, sendError, acceptedAt}`, oldest first |
+| POST | `/tenants/{id}/invitations` | `WorkspaceInviteInput {emails[], message}` | `200 WorkspaceInvitationDto[]`: any number to an organization, one to a personal workspace without an owner and without an invitation to someone else, none to a library. An address invited before gets its link again. `409` personal workspace already taken |
+| POST | `/tenants/{id}/invitations/{invitationId}/resend` | – | `200 WorkspaceInvitationDto`, same link. `409` already accepted |
+| DELETE | `/tenants/{id}/invitations/{invitationId}` | – | `204`: the link stops working. `409` already accepted |
 
 An `ADMIN` reads any user's workspace through the normal APIs (ADR013): send the tenant id in the `X-KG-Tenant`
 header on `GET` requests under `/api/` (not `/api/me`, `/api/admin/**` or `/api/public/**`). The request then works
@@ -32,7 +37,8 @@ get `403`, unknown tenants `404`.
 
 | Method | Path | Body / params | Result |
 |---|---|---|---|
-| GET | `/me` | – | `200 CurrentUserDto {userId, tenantId, tenantName, email, displayName, roles, securityMode, createdAt}`. The first call with a new user's token creates the user and their personal tenant. `roles` lists the user's roles from `user_roles` (ADR012), e.g. `ADMIN` and `TENANT_ADMIN`. In mode `fixed`: the fixed tenant and user, roles `[TENANT_ADMIN]`, no `createdAt` |
+| GET | `/me` | – | `200 CurrentUserDto {userId, tenantId, tenantName, tenantType, email, displayName, roles, securityMode, createdAt}`. The first call with a new user's token creates the user and their personal tenant, or joins the workspace a pending invitation to their verified email is for (ADR015). `roles` lists the user's roles from `user_roles` (ADR012), e.g. `ADMIN` and `TENANT_ADMIN`. In mode `fixed`: the fixed tenant and user, roles `[TENANT_ADMIN]`, no `createdAt` |
+| POST | `/me/workspace-invitations/{token}/accept` | – | `200 WorkspaceJoinedDto {tenantId, workspaceName, previousTenantId}`: moves the user into the invited workspace (ADR015). `403` another or an unverified email, `404` unknown or revoked link, `409` accepted by someone else or the personal workspace has another owner. Accepting again is a no-op |
 | GET | `/me/preferences` | – | `200 UserPreferencesDto {theme}` (`LIGHT`/`DARK`/`SYSTEM`; `null` = never chosen, the app default). Stored as JSON in `users.preferences_json`. All `null` when there is no user row (mode `fixed`) |
 | PUT | `/me/preferences` | `UserPreferencesDto` | `200 UserPreferencesDto`. Replaces all settings. `400` unknown value, `404` no user row (mode `fixed`) |
 | GET | `/me/usage` | – | `200 UsageSummaryDto`: the own tenant's topics, documents (and ingested), storage bytes, plus this calendar month (UTC): tests created, AI-written question versions (`GENERATED` + `REGENERATED`), submitted attempts and LLM input/output tokens from `generation_runs`. The shared library is not counted; embedding tokens are not tracked yet |
@@ -46,9 +52,9 @@ get `403`, unknown tenants `404`.
 | GET | `/topics/children/{parentId}` | – | `200 List<TopicDto>` (direct children) |
 | GET | `/topics/descendants/{parentId}` | – | `200 List<TopicDto>` (all descendants, by path prefix) |
 | GET | `/topics/ingested-document-counts` | – | `200 List<TopicDocumentCountDto {topicId, ingestedDocuments}>`: ingested documents directly in each topic; topics without any are left out. Clients add up a subtree to know whether a topic can be used for generation |
-| POST | `/topics` | `TopicCreateInput` (parentId?, name, description) | `201 TopicDto` + `Location` |
+| POST | `/topics` | `TopicCreateInput` (parentId?, name, description, libraryTenantId?) | `201 TopicDto` + `Location`. A root topic goes into the own tenant, or for an `ADMIN` into the library `libraryTenantId` (ADR015; `403` for others, `400` if it is not a library) |
 | PUT | `/topics/{id}` | `TopicUpdateInput` (name, description; `null` = unchanged, body `id` ignored) | `200 TopicDto`. `404` if not found, `400` on a duplicate name under the same parent |
-| POST | `/topics/tree` | `TopicTreeNodeInput` (recursive name/description/children) | `201 TopicDto` (root with created children) |
+| POST | `/topics/tree` | `TopicTreeNodeInput` (recursive name/description/children; libraryTenantId? on the root) | `201 TopicDto` (root with created children) |
 | DELETE | `/topics/{id}` | – | `200` (DB cascade deletes subtopics, documents and chunks. MinIO objects and embeddings are **not** cleaned up) |
 | GET | `/documents/{id}` | – | `200 DocumentDto` (includes ingestion `status`, `errorMessage`, `ingestedAt`), `404` if not found |
 | GET | `/documents/all/{topicId}` | Spring `Pageable` (`page`, `size`, `sort`; default sort `id`, i.e. upload order) | `200 Page<DocumentDto>` |
@@ -106,6 +112,12 @@ Scoring is all-or-nothing per question: correct only if the chosen options exact
 `MULTIPLE_CORRECT`, every correct option and no other). Questions left out of the submission count as wrong.
 `scorePercent` is `correct / total × 100`, rounded to one decimal. Each answer stores the question version it was
 given for; published tests are frozen, so that is the current version.
+
+## Workspace invitations – `WorkspaceInvitationController` (`/api/public`)
+
+| Method | Path | Body / params | Result |
+|---|---|---|---|
+| GET | `/workspace-invitations/{token}` | – | `200 WorkspaceInvitationPreviewDto {workspaceName, workspaceType, email, accepted}`, no ids, for the join page `/join/{token}` before signing in. `404` unknown or revoked link |
 
 ## Public tests – `PublicTestController` (`/api/public`)
 

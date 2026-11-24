@@ -54,13 +54,11 @@ public class SecurityConfig {
 	@Bean
 	@ConditionalOnProperty(name = "kg.security.mode", havingValue = "oidc")
 	SecurityFilterChain oidcSecurityFilterChain(HttpSecurity http, AccountService accountService,
-			OidcProperties properties) throws Exception {
+			AccountResolver accountResolver) throws Exception {
 		// Keycloak only authenticates (ADR012): no authorities from the token; AccountResolutionFilter adds the user's
 		// roles from user_roles.
 		JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
 		converter.setJwtGrantedAuthoritiesConverter(jwt -> List.of());
-		AccountResolver accountResolver = new AccountResolver(accountService,
-				Duration.ofMinutes(properties.getAccountCacheMinutes()));
 		AccountResolutionFilter accountFilter = new AccountResolutionFilter(accountResolver, accountService);
 
 		return stateless(http).authorizeHttpRequests(auth -> auth
@@ -73,6 +71,13 @@ public class SecurityConfig {
 				.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
 				.addFilterAfter(accountFilter, BearerTokenAuthenticationFilter.class).build();
+	}
+
+	/** A bean so that accepting a workspace invitation can drop the user's cached account (ADR015). */
+	@Bean
+	@ConditionalOnProperty(name = "kg.security.mode", havingValue = "oidc")
+	AccountResolver accountResolver(AccountService accountService, OidcProperties properties) {
+		return new AccountResolver(accountService, Duration.ofMinutes(properties.getAccountCacheMinutes()));
 	}
 
 	@Bean

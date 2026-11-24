@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotEmpty;
 public record TopicTreeNodeInput(
 		@NotBlank @Schema(description = "Node name", example = "Backend") String name,
 		@Schema(description = "Optional node description", example = "Service-side implementation topics") String description,
-		@NotEmpty @Schema(description = "Child nodes", example = "[{\"name\":\"Spring\",\"description\":\"Core Spring modules\",\"children\":[{\"name\":\"Spring Boot\",\"description\":\"Auto-configuration and starters\",\"children\":[]}]}]") List<TopicTreeNodeInput> children) {
+		@NotEmpty @Schema(description = "Child nodes", example = "[{\"name\":\"Spring\",\"description\":\"Core Spring modules\",\"children\":[{\"name\":\"Spring Boot\",\"description\":\"Auto-configuration and starters\",\"children\":[]}]}]") List<TopicTreeNodeInput> children,
+		@Schema(description = "On the root node only: the shared library to create the tree in instead of the own one. ADMIN only (ADR015).", example = "1") Long libraryTenantId) {
 
 }

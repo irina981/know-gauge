@@ -28,7 +28,7 @@ public class User extends AuditableObject {
 	/** Subject ({@code sub} claim) of the identity provider; unique. */
 	private String externalId;
 
-	/** The one tenant the user belongs to. */
+	/** The one tenant the user belongs to; changes when they accept a workspace invitation (ADR015). */
 	private Long tenantId;
 
 	/**

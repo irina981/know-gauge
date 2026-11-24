@@ -22,11 +22,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.User;
+import com.knowgauge.core.model.WorkspaceInvitation;
 import com.knowgauge.core.model.enums.Role;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.port.repository.UserRepository;
+import com.knowgauge.core.port.repository.WorkspaceInvitationRepository;
 import com.knowgauge.core.service.settings.TenantSettingsService;
+import com.knowgauge.core.service.workspace.WorkspaceJoiner;
 
 class AccountServiceImplTest {
 
@@ -36,6 +39,7 @@ class AccountServiceImplTest {
 	private TenantRepository tenantRepository;
 	private AccountProperties properties;
 	private TenantSettingsService tenantSettings;
+	private WorkspaceInvitationRepository invitationRepository;
 	private ExecutionContext executionContext;
 	private AccountServiceImpl service;
 	private final AtomicLong ids = new AtomicLong(10);
@@ -54,9 +58,52 @@ class AccountServiceImplTest {
 		executionContext = mock(ExecutionContext.class);
 		when(executionContext.callAsSystemWithoutTenant(any()))
 				.thenAnswer(inv -> inv.getArgument(0, Supplier.class).get());
-		service = new AccountServiceImpl(
-				new AccountTransactionalServiceImpl(userRepository, tenantRepository, properties, tenantSettings),
-				executionContext);
+		invitationRepository = mock(WorkspaceInvitationRepository.class);
+		when(invitationRepository.findOldestPendingByEmail(any())).thenReturn(Optional.empty());
+		service = new AccountServiceImpl(new AccountTransactionalServiceImpl(userRepository, tenantRepository,
+				properties, tenantSettings, invitationRepository,
+				new WorkspaceJoiner(userRepository, tenantRepository, invitationRepository)), executionContext);
+	}
+
+	@Test
+	void firstSignInWithAPendingInvitationJoinsThatWorkspaceInsteadOfANewOne() {
+		Tenant organization = Tenant.builder().id(500L).type(TenantType.ORGANIZATION).name("Acme").build();
+		WorkspaceInvitation invitation = WorkspaceInvitation.builder().id(7L).tenantId(500L).email("ana@example.com")
+				.role(Role.TENANT_ADMIN).publicToken("t").build();
+		when(invitationRepository.findOldestPendingByEmail("ana@example.com")).thenReturn(Optional.of(invitation));
+		when(tenantRepository.findById(500L)).thenReturn(Optional.of(organization));
+
+		User user = service.signIn(SUBJECT, "Ana@Example.com", true, "Ana");
+
+		assertThat(user.getTenantId()).isEqualTo(500L);
+		assertThat(user.getRoles()).containsExactly(Role.TENANT_ADMIN);
+		assertThat(invitation.getAcceptedUserId()).isEqualTo(user.getId());
+		assertThat(invitation.getAcceptedAt()).isNotNull();
+		verify(invitationRepository).save(invitation);
+		// No personal tenant, and the organization's owner stays empty.
+		verify(tenantRepository, never()).save(any());
+	}
+
+	@Test
+	void firstSignInJoiningAPersonalWorkspaceMakesTheUserItsOwner() {
+		Tenant personal = Tenant.builder().id(501L).type(TenantType.PERSONAL).name("Ana's").build();
+		when(invitationRepository.findOldestPendingByEmail("ana@example.com")).thenReturn(Optional.of(WorkspaceInvitation
+				.builder().id(8L).tenantId(501L).email("ana@example.com").role(Role.TENANT_ADMIN).publicToken("t").build()));
+		when(tenantRepository.findById(501L)).thenReturn(Optional.of(personal));
+
+		User user = service.signIn(SUBJECT, "ana@example.com", true, "Ana");
+
+		assertThat(user.getTenantId()).isEqualTo(501L);
+		assertThat(personal.getOwnerUserId()).isEqualTo(user.getId());
+	}
+
+	@Test
+	void anUnverifiedEmailNeverJoinsAnInvitedWorkspace() {
+		User user = service.signIn(SUBJECT, "ana@example.com", false, "Ana");
+
+		verify(invitationRepository, never()).findOldestPendingByEmail(any());
+		assertThat(lastSavedTenant().getType()).isEqualTo(TenantType.PERSONAL);
+		assertThat(lastSavedTenant().getId()).isEqualTo(user.getTenantId());
 	}
 
 	@Test

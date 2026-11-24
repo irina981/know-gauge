@@ -38,6 +38,8 @@ import com.knowgauge.core.exception.RegenerationFailedException;
 import com.knowgauge.core.exception.ReadOnlyContentException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.exception.AttemptConflictException;
+import com.knowgauge.core.exception.WorkspaceInvitationConflictException;
+import com.knowgauge.core.exception.WorkspaceInvitationForbiddenException;
 import com.knowgauge.core.exception.ReviewConflictException;
 import com.knowgauge.core.exception.StorageAuthException;
 import com.knowgauge.core.exception.StorageBadRequestException;
@@ -298,6 +300,23 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.CONFLICT, request, ex);
 		log.warn("Review conflict: {}", ex.getMessage());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.CONFLICT, request);
+	}
+
+	// Workspace invitations (ADR015)
+	@ExceptionHandler(WorkspaceInvitationConflictException.class)
+	public ResponseEntity<Object> handleWorkspaceInvitationConflictException(WebRequest request,
+			WorkspaceInvitationConflictException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.CONFLICT, request, ex);
+		log.warn("Workspace invitation conflict: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.CONFLICT, request);
+	}
+
+	@ExceptionHandler(WorkspaceInvitationForbiddenException.class)
+	public ResponseEntity<Object> handleWorkspaceInvitationForbiddenException(WebRequest request,
+			WorkspaceInvitationForbiddenException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.FORBIDDEN, request, ex);
+		log.warn("Workspace invitation refused: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
 	}
 
 	@ExceptionHandler(AttemptConflictException.class)

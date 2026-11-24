@@ -39,8 +39,8 @@ public class UserEntity extends AuditableEntity {
 	@Column(name = "external_id", nullable = false, unique = true, updatable = false)
 	private String externalId;
 
-	/** {@code null} only for the system user (id 0). */
-	@Column(name = "tenant_id", updatable = false)
+	/** {@code null} only for the system user (id 0). Changes when the user accepts a workspace invitation (ADR015). */
+	@Column(name = "tenant_id")
 	private Long tenantId;
 
 	/** Rows of {@code user_roles} (ADR012); empty for the system user (id 0). Loaded with the user. */

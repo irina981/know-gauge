@@ -26,8 +26,10 @@ Design notes:
 
 ## Multi-tenancy
 
-Current state: **one personal tenant per user** when sign-in is on (security mode `oidc`), one fixed tenant without
-it (`fixed`), plus a shared read-only `LIBRARY` tenant for the samples (ADR010).
+Current state: **one tenant per user** when sign-in is on (security mode `oidc`), one fixed tenant without it
+(`fixed`), plus shared read-only `LIBRARY` tenants (ADR010). A user's tenant is the personal one created at their
+first sign-in, or one an `ADMIN` created and invited them to: a `PERSONAL` tenant for one owner or an
+`ORGANIZATION` for several users (ADR015).
 
 - `tenant_id` columns exist on `topics`, `documents`, `document_chunks`, `tests`, `test_questions`,
   `test_question_versions`, `test_events`, `generation_runs`, `attempts`, `attempt_answers` and `chunk_embeddings`. They do **not** exist on
@@ -39,7 +41,13 @@ it (`fixed`), plus a shared read-only `LIBRARY` tenant for the samples (ADR010).
   system user (`users` row 0, `SYSTEM_USER_ID`), and so does the startup seeder.
 - Accounts: `AccountResolutionFilter` maps the token's subject to a `users` row through `AccountService.signIn`,
   which creates the user (role `TENANT_ADMIN`) and a `PERSONAL` tenant on the first sign-in, and caches the
-  result per subject for `kg.security.oidc.account-cache-minutes`.
+  result per subject for `kg.security.oidc.account-cache-minutes`. A first sign-in whose verified email has a
+  pending workspace invitation joins that tenant instead (ADR015).
+- Workspace invitations (ADR015, `workspace_invitations`): an `ADMIN` creates a tenant of any type
+  (`WorkspaceAdminService`) and invites people by email. Accepting (`WorkspaceMembershipService`, `WorkspaceJoiner`)
+  moves the user: `users.tenant_id` becomes the invited tenant and the `TENANT_*` roles are replaced by the invited
+  one (`TENANT_ADMIN`). The tenant they leave keeps its content, without users. `AccountResolver.evict` drops the
+  cached account. A new library refreshes `ContentScope`'s library ids.
 - Every repository port method that reads or writes tenant data is filtered by tenant. Writes take the one tenant
   written to (`updatePath(tenantId, …)`, `markIngested(tenantId, …)`, …). Content reads (topics, documents,
   chunks, embeddings) take a set (`findByTenantIdIn…`, `tenant_id IN (:tenantIds)`): the own tenant plus the
@@ -54,8 +62,8 @@ it (`fixed`), plus a shared read-only `LIBRARY` tenant for the samples (ADR010).
   `TenantRepository` / `UserRepository` (account resolution).
 - Root topic names are unique per tenant (checked in `TopicServiceImpl`). The other unique constraints are per
   parent topic or per topic, so they are per tenant as well; `UNIQUE(path)` is global but paths are built from ids.
-- Planned (TODO.md): `ORGANIZATION` tenants shared by several users (Keycloak Organizations, `TENANT_USER` /
-  `TENANT_VIEWER` members), and per-tenant storage prefix or bucket policies.
+- Planned (TODO.md): members of several tenants with a switcher (Keycloak Organizations), enforced `TENANT_USER` /
+  `TENANT_VIEWER` roles, and per-tenant storage prefix or bucket policies.
 
 ## Auditing
 

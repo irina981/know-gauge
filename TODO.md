@@ -33,8 +33,9 @@
 - [ ] Screen or API to grant and revoke roles (today: `kg.account.admin-emails` and SQL)
 
 ### Multi-tenant support
-- [ ] Tenant domain entity
-- [ ] Two types of tenants: PERSONAL, ORGANIZATION
+- [x] Tenant domain entity
+- [x] Tenant types PERSONAL, ORGANIZATION, LIBRARY; admins create any of them and invite people (ADR015)
+- [ ] Membership in several tenants and a workspace switcher (today accepting an invitation moves the user)
 - [x] Add tenantId to all domain objects (topics and documents are misisng it for sure) and make all the topics and documents queries tenant scoped
 
 ### Spring Data auditing

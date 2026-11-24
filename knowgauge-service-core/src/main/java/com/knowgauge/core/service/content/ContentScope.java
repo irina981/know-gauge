@@ -21,7 +21,8 @@ import com.knowgauge.core.port.repository.TenantRepository;
  * <li>An {@code ADMIN} viewing another user's library (tenant) reads that tenant (it is the current tenant then) and
  * changes nothing (ADR013).</li>
  * </ul>
- * Library tenants are created by migrations, so their ids are read once and kept for the life of the application.
+ * The library tenant ids are read once and kept until {@link #refreshLibraries()}: migrations create libraries, and so
+ * does an ADMIN on the Workspaces page (ADR015), which refreshes them.
  */
 @Component
 public class ContentScope {
@@ -79,6 +80,11 @@ public class ContentScope {
 		if (!canWrite(tenantId)) {
 			throw new ReadOnlyContentException(what + " belongs to the shared library and cannot be changed.");
 		}
+	}
+
+	/** Reads the library tenant ids again on next use; call after creating a library. */
+	public void refreshLibraries() {
+		libraryTenantIds = null;
 	}
 
 	public boolean isLibrary(Long tenantId) {

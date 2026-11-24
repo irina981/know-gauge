@@ -76,7 +76,8 @@ public class AccountResolutionFilter extends OncePerRequestFilter {
 			SecurityContextHolder.getContext()
 					.setAuthentication(new JwtAuthenticationToken(token.getToken(), authorities, token.getName()));
 			request.setAttribute(SignedInAccount.REQUEST_ATTRIBUTE,
-					new SignedInAccount(user, applicationAdmin, viewedTenantId));
+					new SignedInAccount(user, applicationAdmin, viewedTenantId, token.getToken().getSubject(),
+							Boolean.TRUE.equals(token.getToken().getClaimAsBoolean("email_verified"))));
 		}
 		chain.doFilter(request, response);
 	}

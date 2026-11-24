@@ -38,6 +38,13 @@ public class TopicServiceImpl implements TopicService {
 			parent = requireTopic(topic.getParentId(), "Parent topic not found: ");
 			contentScope.requireWritable(parent.getTenantId(), "Topic " + parent.getId());
 			tenantId = parent.getTenantId();
+		} else if (topic.getTenantId() != null && topic.getTenantId().longValue() != tenantId.longValue()) {
+			// A root topic in a shared library (ADR015): only a library, and only for whoever may change it (an ADMIN).
+			if (!contentScope.isLibrary(topic.getTenantId())) {
+				throw new IllegalArgumentException("Root topics can only be created in your own library or a shared one.");
+			}
+			contentScope.requireWritable(topic.getTenantId(), "Topic " + topic.getName());
+			tenantId = topic.getTenantId();
 		}
 		validateUniqueNameUnderParent(tenantId, topic.getParentId(), topic.getName());
 

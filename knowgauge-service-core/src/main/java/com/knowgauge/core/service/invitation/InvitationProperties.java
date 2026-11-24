@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "kg.invitations")
 public class InvitationProperties {
 
-	/** Base URL of the UI; invitation links are {@code <base>/i/<token>}. */
+	/** Base URL of the UI; invitation links are {@code <base>/i/<token>}, workspace ones {@code <base>/join/<token>}. */
 	private String linkBaseUrl = "http://localhost:5173";
 
 	/** Most emails accepted in one invite request. */
@@ -35,6 +35,11 @@ public class InvitationProperties {
 	/** Personal link for an invitation token. */
 	public String linkFor(String token) {
 		return base() + "/i/" + token;
+	}
+
+	/** Link to accept a workspace invitation (ADR015). */
+	public String workspaceLinkFor(String token) {
+		return base() + "/join/" + token;
 	}
 
 	/** A participant's results page for an attempt token. */

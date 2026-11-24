@@ -7,5 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 public record TopicCreateInput(
 		@NotBlank @Schema(description = "Topic display name", example = "Databases") String name,
 		@Schema(description = "Optional topic description", example = "Relational and non-relational database concepts") String description,
-		@Schema(description = "Parent topic id for nested topics", example = "10") Long parentId) {
+		@Schema(description = "Parent topic id for nested topics", example = "10") Long parentId,
+		@Schema(description = "For a root topic (no parent): the shared library to create it in instead of the own one. ADMIN only (ADR015).", example = "1") Long libraryTenantId) {
 }

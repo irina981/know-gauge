@@ -41,6 +41,10 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   - Roles are KnowGauge's, never Keycloak's ([ADR012](docs/adr/ADR012-roles-kept-by-knowgauge.md)): tables `roles` and
     `user_roles` (several per user). Every user is `TENANT_ADMIN` of their tenant; a verified email in
     `kg.account.admin-emails` (`KG_ADMIN_EMAIL`) gets `ADMIN` at sign-in. Don't add roles to the realm files.
+  - An `ADMIN` creates workspaces of any type and invites people by email (`/join/{token}`,
+    [ADR015](docs/adr/ADR015-admins-create-workspaces-and-invite.md)): a personal one needs exactly one invitee, an
+    organization at least one (`TENANT_ADMIN`), a library none. A user still has one tenant: accepting moves them
+    (`users.tenant_id`), their old workspace keeps its content.
   - An `ADMIN` reads any user's workspace (library, tests, attempts), read-only, by sending its tenant id in
     `X-KG-Tenant` on `GET /api/**` reads; `GET /api/admin/tenants` lists them
     ([ADR013](docs/adr/ADR013-admins-view-every-workspace.md)). In the UI a tenant is a "library"; a "workspace" is

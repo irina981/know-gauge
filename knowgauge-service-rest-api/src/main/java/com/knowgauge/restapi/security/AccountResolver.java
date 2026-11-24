@@ -47,6 +47,13 @@ public class AccountResolver {
 		return user;
 	}
 
+	/** Forgets the cached user of {@code subject}, e.g. after they moved to another workspace (ADR015). */
+	public void evict(String subject) {
+		if (subject != null) {
+			cache.remove(subject);
+		}
+	}
+
 	private static String displayName(Jwt jwt) {
 		String name = jwt.getClaimAsString("name");
 		return name != null && !name.isBlank() ? name : jwt.getClaimAsString("preferred_username");
