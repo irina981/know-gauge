@@ -2,7 +2,12 @@ package com.knowgauge.infra.repository.jpa.entity;
 
 import java.time.Instant;
 
+import org.hibernate.annotations.Type;
+
+import com.knowgauge.core.model.UserPreferences;
 import com.knowgauge.core.model.enums.Role;
+
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,4 +49,9 @@ public class UserEntity extends AuditableEntity {
 
 	@Column(name = "last_seen_at")
 	private Instant lastSeenAt;
+
+	/** {@code null} until the user changes a setting. */
+	@Column(name = "preferences_json", columnDefinition = "jsonb")
+	@Type(JsonType.class)
+	private UserPreferences preferences;
 }

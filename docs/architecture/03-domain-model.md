@@ -70,7 +70,7 @@ erDiagram
 | Audit | `GenerationRun` | One row per LLM call (generation, regeneration, verification) with model, prompt template, chunks, prompt as sent, request params, tokens and raw response |
 | Attempt | `Attempt` / `AttemptAnswer` | An attempt at a `PUBLISHED` test (`AttemptService`) by a participant (name and email, through the shared link or a personal invitation) or the configured user. Read and submitted by its random `publicToken` (ADR009). Submitting scores it at once; each answer references the exact question version and stores the chosen options |
 | Invitation | `TestInvitation` | A personal link for one email (`InvitationService`), sent by the server, usable for one attempt; the attempt takes the invited address as its email (ADR009) |
-| Identity | `User`, `Tenant` | `users` (one per Keycloak subject, `external_id`; one tenant and a tenant `role`; row 0 is the system user) and `tenants` (`INDIVIDUAL` per user, `LIBRARY` for the shared samples, `ORGANIZATION` later). Created on first sign-in by `AccountService` (ADR010) |
+| Identity | `User`, `Tenant` | `users` (one per Keycloak subject, `external_id`; one tenant and a tenant `role`; `preferences` = `UserPreferences` (theme) as JSON; row 0 is the system user) and `tenants` (`INDIVIDUAL` per user, `LIBRARY` for the shared samples, `ORGANIZATION` later). Created on first sign-in by `AccountService` (ADR010) |
 
 ## Enums
 

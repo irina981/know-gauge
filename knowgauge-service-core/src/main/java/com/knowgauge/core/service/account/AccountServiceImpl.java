@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.User;
+import com.knowgauge.core.model.UserPreferences;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,6 +55,19 @@ public class AccountServiceImpl implements AccountService {
 	@Override
 	public Optional<Tenant> findTenant(Long tenantId) {
 		return transactionalService.findTenant(tenantId);
+	}
+
+	@Override
+	public UserPreferences getPreferences(Long userId) {
+		return transactionalService.getPreferences(userId);
+	}
+
+	@Override
+	public UserPreferences updatePreferences(Long userId, UserPreferences preferences) {
+		if (preferences == null) {
+			throw new IllegalArgumentException("Preferences are required.");
+		}
+		return transactionalService.updatePreferences(userId, preferences);
 	}
 
 	private static String truncate(String value, int maxLength) {

@@ -38,4 +38,7 @@ public class User extends AuditableObject {
 
 	/** When the service last resolved the user from a token (not on every request). */
 	private Instant lastSeenAt;
+
+	/** Settings the user chose for the app; {@code null} until they change one. */
+	private UserPreferences preferences;
 }

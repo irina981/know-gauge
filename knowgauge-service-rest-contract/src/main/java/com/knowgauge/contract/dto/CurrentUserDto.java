@@ -1,5 +1,6 @@
 package com.knowgauge.contract.dto;
 
+import java.time.Instant;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,5 +13,6 @@ public record CurrentUserDto(
 		String email,
 		String displayName,
 		@Schema(description = "APPLICATION_ADMIN (Keycloak realm role) and the role in the tenant (TENANT_ADMIN)") List<String> roles,
-		@Schema(description = "fixed (no sign-in, one tenant per deployment) or oidc (Keycloak)") String securityMode) {
+		@Schema(description = "fixed (no sign-in, one tenant per deployment) or oidc (Keycloak)") String securityMode,
+		@Schema(description = "When the user first signed in; null when sign-in is off") Instant createdAt) {
 }

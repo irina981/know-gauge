@@ -7,8 +7,10 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.User;
+import com.knowgauge.core.model.UserPreferences;
 import com.knowgauge.core.model.enums.Role;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
@@ -53,6 +55,22 @@ public class AccountTransactionalServiceImpl {
 	@Transactional(readOnly = true)
 	public Optional<Tenant> findTenant(Long tenantId) {
 		return tenantRepository.findById(tenantId);
+	}
+
+	@Transactional(readOnly = true)
+	public UserPreferences getPreferences(Long userId) {
+		if (userId == null) {
+			return UserPreferences.defaults();
+		}
+		return userRepository.findById(userId).map(User::getPreferences).orElseGet(UserPreferences::defaults);
+	}
+
+	@Transactional
+	public UserPreferences updatePreferences(Long userId, UserPreferences preferences) {
+		User user = (userId == null ? Optional.<User>empty() : userRepository.findById(userId))
+				.orElseThrow(() -> new ResourceNotFoundException("No stored user to keep the settings for."));
+		user.setPreferences(preferences);
+		return userRepository.save(user).getPreferences();
 	}
 
 	private User createWithPersonalTenant(String externalId, String email, String displayName, Instant now) {

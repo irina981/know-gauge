@@ -19,7 +19,10 @@ Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
 
 | Method | Path | Body / params | Result |
 |---|---|---|---|
-| GET | `/me` | – | `200 CurrentUserDto {userId, tenantId, tenantName, email, displayName, roles, securityMode}`. The first call with a new user's token creates the user and their personal tenant. In mode `fixed`: the fixed tenant and user, roles `[TENANT_ADMIN]` |
+| GET | `/me` | – | `200 CurrentUserDto {userId, tenantId, tenantName, email, displayName, roles, securityMode, createdAt}`. The first call with a new user's token creates the user and their personal tenant. `roles` holds the Keycloak realm role `APPLICATION_ADMIN` (if granted) and the role in the tenant (`TENANT_ADMIN`). In mode `fixed`: the fixed tenant and user, roles `[TENANT_ADMIN]`, no `createdAt` |
+| GET | `/me/preferences` | – | `200 UserPreferencesDto {theme}` (`LIGHT`/`DARK`/`SYSTEM`; `null` = never chosen, the app default). Stored as JSON in `users.preferences_json`. All `null` when there is no user row (mode `fixed`) |
+| PUT | `/me/preferences` | `UserPreferencesDto` | `200 UserPreferencesDto`. Replaces all settings. `400` unknown value, `404` no user row (mode `fixed`) |
+| GET | `/me/usage` | – | `200 UsageSummaryDto`: the own tenant's topics, documents (and ingested), storage bytes, plus this calendar month (UTC): tests created, AI-written question versions (`GENERATED` + `REGENERATED`), submitted attempts and LLM input/output tokens from `generation_runs`. The shared library is not counted; embedding tokens are not tracked yet |
 
 ## Content – `ContentController` (`/api/content`)
 
