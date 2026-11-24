@@ -22,11 +22,11 @@ Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
 |---|---|---|---|
 | GET | `/tenants` | – | `200 TenantSummaryDto[] {tenantId, name, type, ownerUserId, ownerName, ownerEmail, createdAt, topics, documents}`: every tenant (user libraries and the shared library), by name. `403` without `ADMIN` |
 
-An `ADMIN` reads any user's library through the normal content API (ADR013): send the tenant id in the
-`X-KG-Tenant` header on `GET /api/content/**`. The request then works in that tenant (its content plus the shared
-library), everything is reported `readOnly`, and any other method with the header gets `403`. The header is ignored
-outside `/api/content/**`, for the admin's own tenant and for a `LIBRARY` tenant; non-admins get `403`, unknown
-tenants `404`.
+An `ADMIN` reads any user's workspace through the normal APIs (ADR013): send the tenant id in the `X-KG-Tenant`
+header on `GET` requests under `/api/` (not `/api/me`, `/api/admin/**` or `/api/public/**`). The request then works
+in that tenant (content, tests, attempts, invitations), content is reported `readOnly`, and any other method with the
+header gets `403`. The header is ignored elsewhere, for the admin's own tenant and for a `LIBRARY` tenant; non-admins
+get `403`, unknown tenants `404`.
 
 ## Account – `AccountController` (`/api`)
 

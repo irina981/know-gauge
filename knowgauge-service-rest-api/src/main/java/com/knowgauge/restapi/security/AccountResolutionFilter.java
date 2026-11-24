@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AccountResolutionFilter extends OncePerRequestFilter {
 
-	/** Sent by an {@code ADMIN} to read another user's library (tenant): the tenant id (ADR013). */
+	/** Sent by an {@code ADMIN} to read another user's workspace (their tenant): the tenant id (ADR013). */
 	public static final String TENANT_HEADER = "X-KG-Tenant";
 
 	private final AccountResolver accountResolver;
@@ -83,11 +83,12 @@ public class AccountResolutionFilter extends OncePerRequestFilter {
 
 	/**
 	 * The tenant an {@code ADMIN} asked to read with {@link #TENANT_HEADER} (ADR013), or {@code null} for the
-	 * user's own. Only content reads ({@code GET /api/content/**}) honour it; the view never changes anything.
+	 * user's own. Reads of the workspace APIs (content, tests, attempts, invitations) honour it; the view never changes
+	 * anything, so any other method with the header is refused.
 	 */
 	private Long viewedTenant(HttpServletRequest request, User user, boolean admin) {
 		String header = request.getHeader(TENANT_HEADER);
-		if (header == null || header.isBlank() || !request.getRequestURI().startsWith("/api/content/")) {
+		if (header == null || header.isBlank() || !isWorkspaceApi(request.getRequestURI())) {
 			return null;
 		}
 		long tenantId;
@@ -113,6 +114,15 @@ public class AccountResolutionFilter extends OncePerRequestFilter {
 					"Another user's library is read-only.");
 		}
 		return tenant.getId();
+	}
+
+	/**
+	 * The APIs that work in the current tenant: everything under {@code /api/} except the caller's own account
+	 * ({@code /api/me}), administration and the participants' public API.
+	 */
+	static boolean isWorkspaceApi(String uri) {
+		return uri.startsWith("/api/") && !uri.equals("/api/me") && !uri.startsWith("/api/me/")
+				&& !uri.startsWith("/api/admin/") && !uri.startsWith("/api/public/");
 	}
 
 	private static final class TenantViewRefused extends RuntimeException {
