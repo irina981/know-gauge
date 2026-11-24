@@ -93,6 +93,12 @@
 
 		<dependency>
 			<groupId>com.knowgauge</groupId>
+			<artifactId>knowgauge-service-infra-pricing-litellm</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.knowgauge</groupId>
 			<artifactId>knowgauge-service-infra-embedding-langchain4j-openai</artifactId>
 			<version>${project.version}</version>
 		</dependency>

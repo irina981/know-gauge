@@ -66,12 +66,43 @@ the storage endpoint, so the application **does not start without a profile**. T
 | `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (`local` profile only) |
 | `kg.context.*` | `DefaultTenantProvider`, `DefaultUserProvider` | `tenant-id`, `user-id` (security mode `fixed` only) |
 | `kg.security.*` | `SecurityConfig`, `OidcProperties` | `mode` (`fixed`/`oidc`), `oidc.issuer-uri`, `oidc.jwk-set-uri`, `oidc.audience` (`knowgauge-api`), `oidc.account-cache-minutes` (10: how long a token's user is cached) |
+| `kg.settings.tenant.*` | `TenantLimitProperties`, `UsageServiceImpl` | `monthly-token-limit`: AI tokens (input + output) per workspace and calendar month (UTC), default 1000000 (`KG_TENANT_MONTHLY_TOKEN_LIMIT`), empty for no limit. At the limit new tests and regenerations get 429 |
+| `kg.settings.token-price-catalog.*` | `LiteLlmTokenPriceCatalog` | `url` (LiteLLM's `model_prices_and_context_window.json`), `cache-hours` (6) |
 | `kg.invitations.*` | `InvitationProperties` | `link-base-url` (public UI address; links are `<base>/i/<token>`), `max-per-request` (200) |
 | `kg.retrieval.focused.*` | `FocusedRetrievalProperties` | `max-distance` (0.65), `max-gap-to-best` (0.20): which chunks count as about the focus text in FOCUSED retrieval ([05](05-retrieval.md#focused-similarity-search)) |
 | `kg.mail.from` | `SpringMailInvitationMailer` | Sender of invitation emails. SMTP itself is Spring's `spring.mail.*` (Mailpit `localhost:1025` in `local`; `KG_MAIL_*` in `prod`). `management.health.mail.enabled=false`, so an unreachable SMTP server does not mark the service down |
 
 Property-name styles are mixed (`camelCase` in `kg.chunking`/`kg.storage` timeouts, `kebab-case` elsewhere).
 Spring relaxed binding accepts both for `@ConfigurationProperties`, but `@Value` needs the exact form.
+
+## System settings (admin page)
+
+Some `kg.*` values can be changed at runtime on **Administration → System settings** (`/admin/settings`,
+`ADMIN` only; API `/api/admin/settings/**`):
+
+- **Settings with defaults from the properties files.** `CoreSystemSettings` lists them: the monthly token limit,
+  the generation model (and, from `VerificationSystemSettings`, the answer-checking model), questions per LLM call, the default question count and difficulty, invitations per request
+  and the ingestion batch size. Only values read on each use are listed, so a change applies at once. The
+  properties files give the default. A value saved on the page is stored in `system_settings` (key = property
+  name) and overrides it; `SystemSettingsServiceImpl` applies the saved values to the `@ConfigurationProperties`
+  beans at startup, before the web server takes requests. The page has one **Save changes** for all changed values
+  (`PUT /api/admin/settings/values`; every value is checked first, and nothing is saved if one does not fit) and
+  **Reset to defaults** (`DELETE /api/admin/settings/values`), which deletes every override row, so the properties
+  values apply again; token prices are not touched. An unknown key or an invalid saved value is logged and ignored
+  at startup. Other modules can add settings with a `SystemSettingsContributor` (the verification model comes from
+  the testgeneration module this way).
+  Infrastructure (datasources, schedules, upload sizes, API keys) stays in the properties files only.
+- **AI token prices** (`token_prices`): USD per million input and output tokens per model name or prefix (longest
+  match wins). The usage page prices each workspace's recorded LLM tokens with them (`TokenPricing`) and lists
+  models without a price. "Look up" fills in a price from LiteLLM's public price catalog
+  (`knowgauge-service-infra-pricing-litellm`: the whole file is downloaded and cached, no model name leaves the
+  server). That catalog is third-party data, so the admin checks it before saving. It also supplies the OpenAI chat
+  model names offered for the generation model and for new prices.
+- **Embeddings** (read-only): the embedding model (`kg.embedding.openai.model`), the vector size
+  (`kg.embedding.dimension`) checked against the catalog's `output_vector_size`, the catalog price, and the stored
+  embeddings per model (`VectorStore.countByEmbeddingModel`). It is not an override: every vector belongs to the model
+  that made it and every vector query filters by model, so a change means re-ingesting all documents. Embedding
+  tokens are not counted in usage yet.
 
 ## Secrets and environment variables
 

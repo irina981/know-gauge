@@ -14,6 +14,7 @@ COPY knowgauge-service-infra/knowgauge-service-infra-testgeneration-langchain4j-
 COPY knowgauge-service-infra/knowgauge-service-infra-repository-springdata-jpa/pom.xml knowgauge-service-infra/knowgauge-service-infra-repository-springdata-jpa/
 COPY knowgauge-service-infra/knowgauge-service-infra-storage-minio/pom.xml knowgauge-service-infra/knowgauge-service-infra-storage-minio/
 COPY knowgauge-service-infra/knowgauge-service-infra-mail-springmail/pom.xml knowgauge-service-infra/knowgauge-service-infra-mail-springmail/
+COPY knowgauge-service-infra/knowgauge-service-infra-pricing-litellm/pom.xml knowgauge-service-infra/knowgauge-service-infra-pricing-litellm/
 COPY /pom.xml /
 COPY knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector/pom.xml knowgauge-service-infra/knowgauge-service-infra-vectorstore-pgvector/
 COPY knowgauge-service-infra/knowgauge-service-infra-documentparsing-pdfbox/pom.xml knowgauge-service-infra/knowgauge-service-infra-documentparsing-pdfbox/

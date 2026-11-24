@@ -151,6 +151,9 @@ services:
 
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in deploy/.env}
 
+      # AI tokens each workspace may use per month (default 1000000; an admin can override it on System settings)
+      KG_TENANT_MONTHLY_TOKEN_LIMIT: ${KG_TENANT_MONTHLY_TOKEN_LIMIT:-1000000}
+
       # Only used in security mode fixed (no sign-in); application-prod.properties needs a value.
       KG_TENANT_ID: ${KG_TENANT_ID:-1}
       KG_USER_ID: ${KG_USER_ID:-}

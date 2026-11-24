@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocChunkCount;
+import com.knowgauge.core.model.EmbeddingModelCount;
 
 public interface VectorStore {
 
@@ -25,6 +26,9 @@ public interface VectorStore {
 	long deleteByTenantIdAndChunkId(Long tenantId, Long chunkId);
 
 	List<DocChunkCount> loadDocChunkCounts(Collection<Long> tenantIds, String embeddingModel, Collection<Long> documentIds);
+
+	/** Chunk embeddings per embedding model, across all tenants (System settings page), by model name. */
+	List<EmbeddingModelCount> countByEmbeddingModel();
 
 	public List<ChunkEmbedding> findCandidates(Collection<Long> tenantIds, Collection<Long> documentIds, int maxChunksPerDoc,
 			String embeddingModel, boolean avoidRepeats);

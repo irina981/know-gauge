@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocChunkCount;
+import com.knowgauge.core.model.EmbeddingModelCount;
 import com.knowgauge.core.port.vectorstore.VectorStore;
 import com.knowgauge.infra.vectorstore.pgvector.jpa.entity.ChunkEmbeddingEntity;
 import com.knowgauge.infra.vectorstore.pgvector.jpa.mapper.ChunkEmbeddingEntityMapper;
@@ -163,6 +164,20 @@ public class PgVectorStore implements VectorStore {
 			sb.append(vector[i]);
 		}
 		return sb.append(']').toString();
+	}
+
+	@Override
+	@Transactional(transactionManager = "vectorTransactionManager", readOnly = true)
+	public List<EmbeddingModelCount> countByEmbeddingModel() {
+		@SuppressWarnings("unchecked")
+		List<Object[]> rows = em.createNativeQuery("""
+				SELECT embedding_model, count(*), count(DISTINCT document_id)
+				FROM chunk_embeddings
+				GROUP BY embedding_model
+				ORDER BY embedding_model
+				""").getResultList();
+		return rows.stream().map(r -> new EmbeddingModelCount((String) r[0], ((Number) r[1]).longValue(),
+				((Number) r[2]).longValue())).toList();
 	}
 
 	/**

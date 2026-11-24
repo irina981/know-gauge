@@ -28,6 +28,8 @@ import com.knowgauge.core.exception.EmbeddingRateLimitedException;
 import com.knowgauge.core.exception.EmbeddingUnavailableException;
 import com.knowgauge.core.exception.EmbeddingUnexpectedException;
 import com.knowgauge.core.exception.LlmResponseParsingException;
+import com.knowgauge.core.exception.PriceCatalogUnavailableException;
+import com.knowgauge.core.exception.TokenLimitReachedException;
 import com.knowgauge.core.exception.InsufficientContextException;
 import com.knowgauge.core.exception.QuestionValidationException;
 import com.knowgauge.core.exception.RegenerationFailedException;
@@ -317,6 +319,22 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.UNPROCESSABLE_ENTITY, request, ex);
 		log.warn("Insufficient context: {}", ex.getMessage());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.UNPROCESSABLE_ENTITY, request);
+	}
+
+	@ExceptionHandler(TokenLimitReachedException.class)
+	public ResponseEntity<Object> handleTokenLimitReachedException(WebRequest request,
+			TokenLimitReachedException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.TOO_MANY_REQUESTS, request, ex);
+		log.info("Token limit reached: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.TOO_MANY_REQUESTS, request);
+	}
+
+	@ExceptionHandler(PriceCatalogUnavailableException.class)
+	public ResponseEntity<Object> handlePriceCatalogUnavailableException(WebRequest request,
+			PriceCatalogUnavailableException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.BAD_GATEWAY, request, ex);
+		log.warn("Token price catalog unavailable: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.BAD_GATEWAY, request);
 	}
 
 	@ExceptionHandler(RegenerationFailedException.class)

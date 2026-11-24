@@ -77,6 +77,7 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 | `knowgauge-service-infra/*-vectorstore-pgvector` | Vector DB: `ChunkEmbeddingEntity`, `PgVectorStore` (native SQL sampling) |
 | `knowgauge-service-infra/*-storage-minio` | `MinIoStorageService` |
 | `knowgauge-service-infra/*-mail-springmail` | `SpringMailInvitationMailer` (invitation emails over SMTP) |
+| `knowgauge-service-infra/*-pricing-litellm` | `LiteLlmTokenPriceCatalog` (token prices and model names from LiteLLM's public price catalog) |
 | `knowgauge-service-infra/*-embedding-langchain4j-openai` | `OpenAiEmbeddingServiceImpl` |
 | `knowgauge-service-infra/*-testgeneration-langchain4j-openai` | LLM generation + verification adapters, LLM-response DTOs and mappers |
 | `knowgauge-service-infra/*-documentparsing-pdfbox` | `PdfPageExtractionService` |

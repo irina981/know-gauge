@@ -23,6 +23,7 @@ import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.service.content.ContentScope;
+import com.knowgauge.core.service.usage.UsageService;
 import com.knowgauge.core.service.retrieving.RetrievingService;
 import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator.BatchRequest;
 import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
@@ -57,14 +58,16 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final TestGenerationDefaultsProperties defaults;
 	private final TestQuestionValidator questionValidator;
 	private final ContentScope contentScope;
+	private final UsageService usageService;
 
 	public TestGenerationServiceImpl(RetrievingService retrievingService, QuestionBatchGenerator batchGenerator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
 			TestGenerationDefaultsProperties defaults, TestQuestionValidator questionValidator,
-			ContentScope contentScope) {
+			ContentScope contentScope, UsageService usageService) {
 		this.retrievingService = retrievingService;
+		this.usageService = usageService;
 		this.batchGenerator = batchGenerator;
 		this.testDraftValidator = testDraftValidator;
 		this.questionValidator = questionValidator;
@@ -88,6 +91,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	}
 
 	private Test doGenerate(Test testDraft) {
+		// Monthly AI token allowance (system setting): refuse before anything is persisted or sent to the LLM.
+		usageService.requireTokensLeft();
 		Long tenantId = executionContext.tenantId();
 		Long actorUserId = currentUserId();
 		applyDefaults(testDraft);

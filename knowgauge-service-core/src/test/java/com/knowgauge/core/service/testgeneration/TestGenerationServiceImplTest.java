@@ -25,6 +25,8 @@ import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.knowgauge.core.service.usage.UsageService;
 import org.mockito.ArgumentCaptor;
 
 import com.knowgauge.core.context.ExecutionContext;
@@ -96,7 +98,7 @@ class TestGenerationServiceImplTest {
 
 		service = new TestGenerationServiceImpl(retrievingService, batchGenerator, draftValidator, tx,
 				mock(TestRepository.class), mock(TestQuestionRepository.class), chunkRepository, ctx, defaults,
-				new TestQuestionValidator(), ContentScopes.ownTenantOnly(ctx));
+				new TestQuestionValidator(), ContentScopes.ownTenantOnly(ctx), mock(UsageService.class));
 	}
 
 	private static com.knowgauge.core.model.Test draft(int questionCount) {

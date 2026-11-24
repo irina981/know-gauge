@@ -1,6 +1,8 @@
 package com.knowgauge.core.model;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -10,7 +12,7 @@ import lombok.Getter;
  * never the shared library it reads.
  */
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class UsageSummary {
 
 	/** Start of the period, inclusive. */
@@ -34,4 +36,10 @@ public class UsageSummary {
 	/** LLM tokens of the generation and verification calls in the period (ingestion embeddings not yet counted). */
 	private final long llmInputTokens;
 	private final long llmOutputTokens;
+	/** What the LLM tokens cost in US dollars, with the configured token prices; {@code unpricedModels} not included. */
+	private final BigDecimal llmCostUsd;
+	/** Models used in the period that have no token price, so their tokens are missing from {@code llmCostUsd}. */
+	private final List<String> unpricedModels;
+	/** LLM tokens (input + output) the tenant may use this month; {@code null} when there is no limit. */
+	private final Long llmTokenLimit;
 }

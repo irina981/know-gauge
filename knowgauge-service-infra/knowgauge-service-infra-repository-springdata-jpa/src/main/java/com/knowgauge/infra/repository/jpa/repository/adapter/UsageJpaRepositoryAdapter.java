@@ -1,9 +1,11 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.springframework.stereotype.Repository;
 
+import com.knowgauge.core.model.ModelTokenUsage;
 import com.knowgauge.core.model.UsageSummary;
 import com.knowgauge.core.port.repository.UsageRepository;
 
@@ -44,6 +46,23 @@ public class UsageJpaRepositoryAdapter implements UsageRepository {
 				.documents(toLong(content[0])).ingestedDocuments(toLong(content[1])).storageBytes(toLong(content[2]))
 				.tests(tests).questions(questions).submittedAttempts(attempts).llmInputTokens(toLong(tokens[0]))
 				.llmOutputTokens(toLong(tokens[1])).build();
+	}
+
+	@Override
+	public List<ModelTokenUsage> tokensByModel(Long tenantId, Instant from, Instant to) {
+		List<Object[]> rows = em.createQuery("""
+				SELECT r.model, COALESCE(SUM(r.inputTokens), 0), COALESCE(SUM(r.outputTokens), 0)
+				FROM GenerationRunEntity r
+				WHERE r.tenantId = :tenantId AND r.createdAt >= :from AND r.createdAt < :to
+				GROUP BY r.model ORDER BY r.model""", Object[].class).setParameter("tenantId", tenantId)
+				.setParameter("from", from).setParameter("to", to).getResultList();
+		return rows.stream().map(row -> new ModelTokenUsage((String) row[0], toLong(row[1]), toLong(row[2]))).toList();
+	}
+
+	@Override
+	public List<String> findUsedModels() {
+		return em.createQuery("SELECT DISTINCT r.model FROM GenerationRunEntity r WHERE r.model IS NOT NULL ORDER BY r.model",
+				String.class).getResultList();
 	}
 
 	private long count(String jpql, Long tenantId, Instant from, Instant to) {

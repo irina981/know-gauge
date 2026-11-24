@@ -32,6 +32,7 @@ import com.knowgauge.core.port.repository.TestEventRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
 import com.knowgauge.core.service.content.ContentScope;
+import com.knowgauge.core.service.usage.UsageService;
 import com.knowgauge.core.service.testgeneration.validation.TestDetailsRules;
 import com.knowgauge.core.service.review.ManualQuestionDraft.ManualOption;
 import com.knowgauge.core.service.review.TestReviewTransactionalServiceImpl.VersionChange;
@@ -59,12 +60,14 @@ public class TestReviewServiceImpl implements TestReviewService {
 	private final TestReviewTransactionalServiceImpl tx;
 	private final ExecutionContext executionContext;
 	private final ContentScope contentScope;
+	private final UsageService usageService;
 
 	public TestReviewServiceImpl(TestRepository testRepository, TestQuestionRepository questionRepository,
 			TestEventRepository eventRepository, GenerationRunRepository generationRunRepository,
 			DocumentChunkRepository chunkRepository, QuestionBatchGenerator batchGenerator,
 			TestQuestionValidator validator, TestReviewTransactionalServiceImpl tx,
-			ExecutionContext executionContext, ContentScope contentScope) {
+			ExecutionContext executionContext, ContentScope contentScope, UsageService usageService) {
+		this.usageService = usageService;
 		this.testRepository = testRepository;
 		this.questionRepository = questionRepository;
 		this.eventRepository = eventRepository;
@@ -154,6 +157,8 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public TestQuestion regenerate(Long testId, Long questionId, Long expectedCurrentVersionId, String comment) {
+		// Monthly AI token allowance (system setting): refuse before the LLM is called.
+		usageService.requireTokensLeft();
 		ReviewContext ctx = loadForAction(testId, questionId, expectedCurrentVersionId);
 		Test test = ctx.test();
 		TestQuestion question = ctx.question();

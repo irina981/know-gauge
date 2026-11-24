@@ -19,6 +19,8 @@ import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.knowgauge.core.service.usage.UsageService;
 import org.mockito.ArgumentCaptor;
 
 import com.knowgauge.core.context.ExecutionContext;
@@ -75,7 +77,7 @@ class TestReviewServiceImplTest {
 
 		service = new TestReviewServiceImpl(testRepository, questionRepository, mock(TestEventRepository.class),
 				mock(GenerationRunRepository.class), chunkRepository, batchGenerator, new TestQuestionValidator(), tx,
-				ctx, ContentScopes.ownTenantOnly(ctx));
+				ctx, ContentScopes.ownTenantOnly(ctx), mock(UsageService.class));
 
 		TestQuestionVersion v = QuestionFixtures.defaultVersion();
 		v.getOption(OptionLetter.B).flag("ArrayDeque", "HashMap may keep order for small maps");

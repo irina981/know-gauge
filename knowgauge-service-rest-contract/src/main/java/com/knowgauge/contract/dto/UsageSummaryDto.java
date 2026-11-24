@@ -1,6 +1,8 @@
 package com.knowgauge.contract.dto;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -16,5 +18,8 @@ public record UsageSummaryDto(
 		@Schema(description = "Questions the AI wrote this month: new tests and regenerations") long questions,
 		@Schema(description = "Attempts participants submitted this month") long submittedAttempts,
 		@Schema(description = "LLM input tokens of question writing and checking this month") long llmInputTokens,
-		@Schema(description = "LLM output tokens of question writing and checking this month") long llmOutputTokens) {
+		@Schema(description = "LLM output tokens of question writing and checking this month") long llmOutputTokens,
+		@Schema(description = "What this month's LLM tokens cost in US dollars, with the token prices an admin set; models in unpricedModels not included") BigDecimal llmCostUsd,
+		@Schema(description = "Models used this month that have no token price yet") List<String> unpricedModels,
+		@Schema(description = "LLM tokens (input + output) the workspace may use per month; null for no limit") Long llmTokenLimit) {
 }
