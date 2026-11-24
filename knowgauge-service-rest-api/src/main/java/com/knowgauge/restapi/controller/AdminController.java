@@ -100,7 +100,8 @@ public class AdminController {
 
 	private static TenantSettingDto toDto(TenantSettingsService.TenantSettingValue setting) {
 		SettingDefinition d = setting.definition();
-		return new TenantSettingDto(d.key(), d.label(), d.description(), d.type().name(), d.min(), d.max(),
-				setting.systemValue(), setting.ownValue(), setting.value());
+		return new TenantSettingDto(d.key(), d.group(), d.label(), d.description(), d.type().name(), d.min(), d.max(),
+				d.options(), setting.suggestions(), setting.config().getType().name(), setting.systemValue(),
+				setting.ownValue(), setting.value());
 	}
 }

@@ -162,8 +162,13 @@ class SystemSettingsServiceImplTest {
 	void theOwnersComeFromTheDatabase() {
 		service.afterSingletonsInstantiated();
 
+		List<String> perTenant = new java.util.ArrayList<>(TenantLimits.KEYS);
+		perTenant.addAll(SettingConfigs.WORKSPACE_CONFIG);
+		// Only the core settings are defined here; the answer checking model comes from the testgeneration module.
+		perTenant.remove(ConfigKeys.VERIFICATION_MODEL);
 		assertThat(service.definitions(SettingOwner.TENANT)).extracting(SettingDefinition::key)
-				.containsExactlyElementsOf(TenantLimits.KEYS);
+				.containsExactlyInAnyOrderElementsOf(perTenant);
+		assertThat(service.config("kg.ingestion.job.batch-size").allows(SettingOwner.TENANT)).isFalse();
 		assertThat(service.definitions(SettingOwner.SYSTEM)).hasSameSizeAs(service.definitions());
 		assertThat(service.config(SettingConfigs.INVITATIONS_AT_ONCE).getType()).isEqualTo(SettingType.LIMIT);
 		assertThat(service.config(SettingConfigs.INVITATIONS_AT_ONCE).allows(SettingOwner.TENANT)).isFalse();

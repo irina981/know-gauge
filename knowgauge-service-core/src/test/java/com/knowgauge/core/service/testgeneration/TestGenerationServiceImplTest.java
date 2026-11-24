@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
@@ -37,6 +38,7 @@ import com.knowgauge.core.model.TestQuestion;
 import com.knowgauge.core.model.enums.AnswerCardinality;
 import com.knowgauge.core.model.enums.OptionLetter;
 import com.knowgauge.core.model.enums.TestCoverageMode;
+import com.knowgauge.core.model.enums.TestDifficulty;
 import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
@@ -48,6 +50,8 @@ import com.knowgauge.core.service.testgeneration.validation.TestDraftValidator;
 import com.knowgauge.core.service.testgeneration.validation.TestQuestionValidator;
 import com.knowgauge.core.support.ContentScopes;
 import com.knowgauge.core.support.QuestionFixtures;
+import com.knowgauge.core.service.settings.ConfigKeys;
+import com.knowgauge.core.service.settings.TenantSettingsService;
 import com.knowgauge.core.support.TenantSettings;
 
 class TestGenerationServiceImplTest {
@@ -59,10 +63,14 @@ class TestGenerationServiceImplTest {
 	private DocumentChunkRepository chunkRepository;
 	private QuestionBatchGenerator batchGenerator;
 	private TestGenerationTransactionalServiceImpl tx;
+	private TenantSettingsService tenantSettings;
 	private TestGenerationServiceImpl service;
 
 	@BeforeEach
 	void setUp() {
+		// No workspace values of its own unless a test says so: the system values (defaults below) apply.
+		tenantSettings = mock(TenantSettingsService.class);
+		when(tenantSettings.ownValues(TENANT)).thenReturn(Map.of());
 		retrievingService = mock(RetrievingService.class);
 		chunkRepository = mock(DocumentChunkRepository.class);
 		batchGenerator = mock(QuestionBatchGenerator.class);
@@ -100,7 +108,7 @@ class TestGenerationServiceImplTest {
 		service = new TestGenerationServiceImpl(retrievingService, batchGenerator, draftValidator, tx,
 				mock(TestRepository.class), mock(TestQuestionRepository.class), chunkRepository, ctx, defaults,
 				new TestQuestionValidator(), ContentScopes.ownTenantOnly(ctx), mock(UsageService.class),
-				new GenerationSlots(TenantSettings.noLimits()));
+				new GenerationSlots(TenantSettings.noLimits()), tenantSettings);
 	}
 
 	private static com.knowgauge.core.model.Test draft(int questionCount) {
@@ -179,6 +187,61 @@ class TestGenerationServiceImplTest {
 				9);
 		assertThat(new HashSet<>(questions.stream().map(TestQuestion::getQuestionText).toList())).hasSize(10);
 		verify(batchGenerator, times(3)).generateBatch(any());
+	}
+
+	@Test
+	void withoutOwnValuesTheSystemValuesFillInTheRequest() {
+		givenChunks(15);
+		givenBatches(bi -> "Question " + bi[0] + "." + bi[1]);
+
+		service.generate(com.knowgauge.core.model.Test.builder().documentIds(List.of(3L, 4L)).build());
+
+		ArgumentCaptor<com.knowgauge.core.model.Test> persisted = ArgumentCaptor.captor();
+		verify(tx).persistTest(eq(TENANT), persisted.capture(), any());
+		assertThat(persisted.getValue().getQuestionCount()).isEqualTo(10);
+		assertThat(persisted.getValue().getGenerationModel()).isEqualTo("gpt-4.1");
+		assertThat(persisted.getValue().getGenerationParams()).isNull();
+		// Batches of 5, the system value
+		verify(batchGenerator, times(2)).generateBatch(any());
+	}
+
+	@Test
+	void theWorkspacesOwnConfigurationWinsOverTheSystemValues() {
+		when(tenantSettings.ownValues(TENANT)).thenReturn(Map.of(ConfigKeys.QUESTION_COUNT, "6",
+				ConfigKeys.DIFFICULTY, "HARD", ConfigKeys.GENERATION_MODEL, "gpt-own",
+				ConfigKeys.VERIFICATION_MODEL, "gpt-check-own", ConfigKeys.QUESTIONS_PER_CALL, "3"));
+		givenChunks(15);
+		givenBatches(bi -> "Question " + bi[0] + "." + bi[1]);
+
+		service.generate(com.knowgauge.core.model.Test.builder().documentIds(List.of(3L, 4L)).build());
+
+		ArgumentCaptor<com.knowgauge.core.model.Test> persisted = ArgumentCaptor.captor();
+		verify(tx).persistTest(eq(TENANT), persisted.capture(), any());
+		com.knowgauge.core.model.Test test = persisted.getValue();
+		assertThat(test.getQuestionCount()).isEqualTo(6);
+		assertThat(test.getDifficulty()).isEqualTo(TestDifficulty.HARD);
+		assertThat(test.getGenerationModel()).isEqualTo("gpt-own");
+		// The answer checking model travels with the test to the testgeneration module.
+		assertThat(test.getGenerationParams()).containsEntry("verificationModel", "gpt-check-own");
+		// 6 questions in batches of 3, the workspace's own value
+		verify(batchGenerator, times(2)).generateBatch(any());
+	}
+
+	@Test
+	void aRequestsOwnChoicesWinOverTheWorkspaceValues() {
+		when(tenantSettings.ownValues(TENANT)).thenReturn(Map.of(ConfigKeys.QUESTION_COUNT, "6",
+				ConfigKeys.DIFFICULTY, "HARD"));
+		givenChunks(15);
+		givenBatches(bi -> "Question " + bi[0] + "." + bi[1]);
+		com.knowgauge.core.model.Test request = draft(10);
+		request.setDifficulty(TestDifficulty.EASY);
+
+		service.generate(request);
+
+		ArgumentCaptor<com.knowgauge.core.model.Test> persisted = ArgumentCaptor.captor();
+		verify(tx).persistTest(eq(TENANT), persisted.capture(), any());
+		assertThat(persisted.getValue().getQuestionCount()).isEqualTo(10);
+		assertThat(persisted.getValue().getDifficulty()).isEqualTo(TestDifficulty.EASY);
 	}
 
 	@Test

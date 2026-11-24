@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.knowgauge.core.model.SettingConfig;
 import com.knowgauge.core.model.TenantLimits;
 
 /**
@@ -15,13 +16,14 @@ import com.knowgauge.core.model.TenantLimits;
 public interface TenantSettingsService {
 
 	/**
-	 * A tenant-level setting of one tenant.
+	 * A tenant-level setting of one tenant, with its type and owners from the database.
 	 *
 	 * @param systemValue the system value in effect ({@code null} when empty)
 	 * @param ownValue    the tenant's own value; {@code null} when it uses the system value
 	 * @param value       the value in effect for the tenant
 	 */
-	record TenantSettingValue(SettingDefinition definition, String systemValue, String ownValue, String value) {
+	record TenantSettingValue(SettingDefinition definition, SettingConfig config, String systemValue,
+			String ownValue, String value, List<String> suggestions) {
 
 		public boolean overridden() {
 			return ownValue != null;
@@ -60,6 +62,14 @@ public interface TenantSettingsService {
 	/** @return the limits in effect for each of the tenants */
 	Map<Long, TenantLimits> limits(Collection<Long> tenantIds);
 
-	/** @return the tenants among the given ones that have a value of their own for any setting */
+	/**
+	 * The tenant's own values, e.g. its own question writing model or default difficulty, for code that uses them
+	 * in place of the system value (test generation). Invalid stored values are left out.
+	 *
+	 * @return the tenant's own valid values by key; a key it has no value of is missing
+	 */
+	Map<String, String> ownValues(Long tenantId);
+
+	/** @return the tenants among the given ones that have a value of their own for any limit */
 	Set<Long> withOwnValues(Collection<Long> tenantIds);
 }

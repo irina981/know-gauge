@@ -194,16 +194,6 @@ public class SystemSettingsServiceImpl implements SystemSettingsService, SmartIn
 	private SystemSettingValue valueOf(SettingDefinition definition) {
 		return new SystemSettingValue(definition, config(definition.key()), defaults.get(definition.key()),
 				overrides.containsKey(definition.key()), overrides.get(definition.key()), definition.reader().get(),
-				suggestions(definition));
-	}
-
-	/** The suggestions of a setting; none when they cannot be had (e.g. the price catalog is unreachable). */
-	private static List<String> suggestions(SettingDefinition definition) {
-		try {
-			return definition.suggestions().get();
-		} catch (RuntimeException e) {
-			log.warn("Suggestions for system setting {} not available: {}", definition.key(), e.getMessage());
-			return List.of();
-		}
+				definition.suggestionsOrNone());
 	}
 }

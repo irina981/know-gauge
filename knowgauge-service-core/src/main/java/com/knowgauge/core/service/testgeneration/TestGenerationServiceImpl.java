@@ -22,7 +22,10 @@ import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.port.repository.DocumentChunkRepository;
 import com.knowgauge.core.port.repository.TestQuestionRepository;
 import com.knowgauge.core.port.repository.TestRepository;
+import com.knowgauge.core.model.enums.TestDifficulty;
 import com.knowgauge.core.service.content.ContentScope;
+import com.knowgauge.core.service.settings.ConfigKeys;
+import com.knowgauge.core.service.settings.TenantSettingsService;
 import com.knowgauge.core.service.usage.UsageService;
 import com.knowgauge.core.service.retrieving.RetrievingService;
 import com.knowgauge.core.service.testgeneration.QuestionBatchGenerator.BatchRequest;
@@ -46,6 +49,8 @@ import lombok.extern.slf4j.Slf4j;
 public class TestGenerationServiceImpl implements TestGenerationService {
 
 	static final String MDC_TEST_ID = "testId";
+	/** Generation param naming the answer checking model of one test (read by the testgeneration module). */
+	private static final String VERIFICATION_MODEL_PARAM = "verificationModel";
 
 	private final RetrievingService retrievingService;
 	private final QuestionBatchGenerator batchGenerator;
@@ -60,13 +65,16 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final ContentScope contentScope;
 	private final UsageService usageService;
 	private final GenerationSlots generationSlots;
+	private final TenantSettingsService tenantSettings;
 
 	public TestGenerationServiceImpl(RetrievingService retrievingService, QuestionBatchGenerator batchGenerator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
 			TestGenerationDefaultsProperties defaults, TestQuestionValidator questionValidator,
-			ContentScope contentScope, UsageService usageService, GenerationSlots generationSlots) {
+			ContentScope contentScope, UsageService usageService, GenerationSlots generationSlots,
+			TenantSettingsService tenantSettings) {
+		this.tenantSettings = tenantSettings;
 		this.retrievingService = retrievingService;
 		this.generationSlots = generationSlots;
 		this.usageService = usageService;
@@ -98,7 +106,9 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		usageService.requireTokensLeft();
 		Long tenantId = executionContext.tenantId();
 		Long actorUserId = currentUserId();
-		applyDefaults(testDraft);
+		// The workspace's own configuration values (ADR014) win over the system values.
+		Map<String, String> own = tenantSettings.ownValues(tenantId);
+		applyDefaults(testDraft, own);
 		testDraft.setTenantId(tenantId);
 		// Sources may be the own tenant's content or the library's; the test itself is always in the own tenant.
 		List<Long> sourceTenantIds = contentScope.readableTenantIds(tenantId);
@@ -123,7 +133,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 			ChunksContext ctx = retrieveAndLoadChunks(tenantId, sourceTenantIds, test, documentIds, topicIds);
 
 			// 3) Generate, validate and verify questions in batches
-			List<TestQuestion> questions = generateAllBatches(test, ctx);
+			List<TestQuestion> questions = generateAllBatches(test, ctx, own);
 
 			// 4) Persist all questions (slots + version 1) and their history at once
 			List<TestQuestion> saved = tx.persistGeneratedQuestions(tenantId, test.getId(), questions,
@@ -215,8 +225,10 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	 * which questions the test already has. Questions that still duplicate an
 	 * earlier one are dropped.
 	 */
-	private List<TestQuestion> generateAllBatches(Test test, ChunksContext ctx) {
-		int batchSize = defaults.getQuestionGenerationBatchSize();
+	private List<TestQuestion> generateAllBatches(Test test, ChunksContext ctx, Map<String, String> own) {
+		int batchSize = own.containsKey(ConfigKeys.QUESTIONS_PER_CALL)
+				? Integer.parseInt(own.get(ConfigKeys.QUESTIONS_PER_CALL))
+				: defaults.getQuestionGenerationBatchSize();
 		int totalQuestions = test.getQuestionCount();
 		int maxZeroProgress = defaults.getMaxConsecutiveZeroProgressBatches() != null
 				? defaults.getMaxConsecutiveZeroProgressBatches()
@@ -306,9 +318,15 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 		return Math.max(defaults.getMinChunksPerTest(), test.getQuestionCount() * defaults.getChunksPerQuestion());
 	}
 
-	private void applyDefaults(Test test) {
+	/**
+	 * Fills in what the request left open: the workspace's own value where it has one (difficulty, question count,
+	 * models), else the system value.
+	 */
+	private void applyDefaults(Test test, Map<String, String> own) {
 		if (test.getDifficulty() == null) {
-			test.setDifficulty(defaults.getDifficulty());
+			test.setDifficulty(own.containsKey(ConfigKeys.DIFFICULTY)
+					? TestDifficulty.valueOf(own.get(ConfigKeys.DIFFICULTY))
+					: defaults.getDifficulty());
 		}
 		if (test.getAvoidRepeats() == null) {
 			test.setAvoidRepeats(defaults.getAvoidRepeats());
@@ -317,7 +335,9 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 			test.setCoverageMode(defaults.getCoverageMode());
 		}
 		if (test.getQuestionCount() == null) {
-			test.setQuestionCount(defaults.getQuestionCount());
+			test.setQuestionCount(own.containsKey(ConfigKeys.QUESTION_COUNT)
+					? Integer.valueOf(own.get(ConfigKeys.QUESTION_COUNT))
+					: defaults.getQuestionCount());
 		}
 		if (test.getAnswerCardinality() == null) {
 			test.setAnswerCardinality(defaults.getAnswerCardinality());
@@ -333,7 +353,15 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 			test.setPromptTemplateId(defaults.getPromptTemplateId());
 		}
 		if (isBlank(test.getGenerationModel())) {
-			test.setGenerationModel(defaults.getGenerationModel());
+			test.setGenerationModel(own.getOrDefault(ConfigKeys.GENERATION_MODEL, defaults.getGenerationModel()));
+		}
+		// The answer checking model is chosen by the testgeneration module; a test-level choice (generation params)
+		// wins there, so the workspace's own model travels with the test. Without one, the system value applies.
+		if (own.containsKey(ConfigKeys.VERIFICATION_MODEL)) {
+			Map<String, Object> params = test.getGenerationParams() == null ? new HashMap<>()
+					: new HashMap<>(test.getGenerationParams());
+			params.putIfAbsent(VERIFICATION_MODEL_PARAM, own.get(ConfigKeys.VERIFICATION_MODEL));
+			test.setGenerationParams(params);
 		}
 	}
 

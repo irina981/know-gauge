@@ -39,6 +39,17 @@ public record SettingDefinition(String key, String group, String label, String d
 		INTEGER, TEXT, CHOICE
 	}
 
+	/** The values to offer; none when they cannot be had (e.g. the price catalog is unreachable). */
+	public List<String> suggestionsOrNone() {
+		try {
+			return suggestions.get();
+		} catch (RuntimeException e) {
+			org.slf4j.LoggerFactory.getLogger(SettingDefinition.class)
+					.warn("Suggestions for setting {} not available: {}", key, e.getMessage());
+			return List.of();
+		}
+	}
+
 	/**
 	 * Checks a value and returns it trimmed, or {@code null} for an empty value of an optional setting.
 	 *

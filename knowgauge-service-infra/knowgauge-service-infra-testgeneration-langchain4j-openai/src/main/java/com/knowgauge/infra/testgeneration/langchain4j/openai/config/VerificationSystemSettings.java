@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.port.pricing.TokenPriceCatalog;
+import com.knowgauge.core.service.settings.ConfigKeys;
 import com.knowgauge.core.service.settings.SettingDefinition;
 import com.knowgauge.core.service.settings.SettingsContributor;
 
@@ -26,7 +27,7 @@ public class VerificationSystemSettings implements SettingsContributor {
 
 	@Override
 	public List<SettingDefinition> definitions() {
-		return List.of(new SettingDefinition("kg.testgen.verification.chat-model.openai.model", "AI models",
+		return List.of(new SettingDefinition(ConfigKeys.VERIFICATION_MODEL, "AI models",
 				"Answer checking model",
 				"The OpenAI model that checks the wrong answers of new questions (verification provider openai). The"
 						+ " list shows the OpenAI chat models of the price catalog. Give it a token price too.",

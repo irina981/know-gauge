@@ -24,11 +24,18 @@ Settings have **levels**. A value is resolved the same way for every workspace (
   value it reads and writes); `SystemSettingsServiceImpl` reads the type and owners at startup and fails when a
   defined key has no `setting_configs` row. A new setting needs its definition and a migration adding its rows.
 - **Settings with a `SYSTEM` owner are on the System settings page**, one vertical tab per type (Configuration,
-  Limits), grouped in sections (all limits under System limits: the page shows system values only). **Settings with a `TENANT` owner may have
-  a value per workspace.** For now these are the workspace limits: AI tokens per month, storage, tests generating
-  at once per user, and participants per test (`V8__participants_per_test_limit.sql`). The models, batch sizes,
-  invitations sent at once and similar are system-only; saving one for a workspace is refused, by the service and
-  by the foreign key.
+  Limits), grouped in sections (all limits under System limits: the page shows system values only). **Settings with
+  a `TENANT` owner may have a value per workspace**, configuration and limits alike:
+  - the workspace limits: AI tokens per month, storage, tests generating at once per user, and participants per
+    test (`V8__participants_per_test_limit.sql`);
+  - the test generation configuration (`V10__workspace_configuration.sql`): the question writing and answer
+    checking models, questions per LLM call, and the default question count and difficulty of new tests.
+    `TestGenerationServiceImpl` takes them from `TenantSettingsService.ownValues` before the system values (a
+    request's own choice still wins); the workspace's checking model travels with the test in its generation
+    params (`verificationModel`), which the testgeneration module already honours.
+
+  The ingestion batch size (the scheduled job serves every workspace at once) and the invitations sent at once are
+  system-only; saving one for a workspace is refused, by the service and by the foreign key.
 - **0 means no limit, at every level.** An empty value of a workspace means "use the system value", so "no limit"
   needs a value of its own. The system level uses 0 too, so there is one rule.
 - **No special cases in code.** `TenantSettingsService.limits(tenantId)` gives the `TenantLimits` in effect, and
@@ -40,7 +47,9 @@ Settings have **levels**. A value is resolved the same way for every workspace (
   (`AccountTransactionalServiceImpl`), and the local profile's library in `R__dev_library_tenant.sql`. An admin may
   change them like any other workspace's.
 - **API and UI.** `GET`/`PUT`/`DELETE /api/admin/tenants/{id}/settings` list, save and reset a workspace's own
-  values (`ADMIN` only). The Workspaces page has a **Limits** dialog per workspace and an "Own limits" badge.
+  values (`ADMIN` only). The Workspaces page has a settings dialog per workspace, with the same vertical
+  Configuration and Limits tabs as the System settings page, and an "Own limits" badge (own limits only; own
+  configuration values do not count).
 
 ## Context
 Workspace limits (ADR010 tenants; monthly AI tokens, storage, tests generating at once) started as system settings

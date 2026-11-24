@@ -17,6 +17,7 @@ import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Setting;
 import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.model.enums.SettingOwner;
+import com.knowgauge.core.model.enums.SettingType;
 import com.knowgauge.core.port.repository.SettingRepository;
 import com.knowgauge.core.port.repository.TenantRepository;
 
@@ -75,7 +76,8 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 		return tenantDefinitions().values().stream().map(d -> {
 			String system = d.reader().get();
 			String mine = own.get(d.key());
-			return new TenantSettingValue(d, system, mine, mine != null ? mine : system);
+			return new TenantSettingValue(d, systemSettings.config(d.key()), system, mine, mine != null ? mine : system,
+					d.suggestionsOrNone());
 		}).toList();
 	}
 
@@ -150,8 +152,16 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 
 	@Override
 	@Transactional(readOnly = true)
+	public Map<String, String> ownValues(Long tenantId) {
+		return ownValues(repository.findByTenantId(tenantId));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public Set<Long> withOwnValues(Collection<Long> tenantIds) {
-		Set<String> keys = tenantDefinitions().keySet();
+		// The Workspaces list marks own limits; a workspace's own configuration values do not count.
+		Set<String> keys = tenantDefinitions().keySet().stream()
+				.filter(key -> systemSettings.config(key).getType() == SettingType.LIMIT).collect(Collectors.toSet());
 		return repository.findByTenantIdIn(tenantIds).stream().filter(s -> keys.contains(s.getKey()))
 				.map(Setting::getOwnerId).collect(Collectors.toSet());
 	}

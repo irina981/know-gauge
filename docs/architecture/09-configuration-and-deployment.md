@@ -97,9 +97,11 @@ Some `kg.*` values can be changed at runtime on **Administration → System sett
   `?tab=limits`), with the groups as sections (every limit under **System limits**; a setting a workspace may also set says so in its description) and the token
   prices and embeddings under the AI models; one Save covers both tabs.
   Infrastructure (datasources, schedules, upload sizes, API keys) stays in the properties files only.
-- **Per workspace (ADR014).** Settings with a `TENANT` owner, for now the workspace limits, may have a value per
-  workspace, a `TENANT` row of `settings`, which wins over the system value (0: no limit). They are set in the **Limits** dialog
-  on Administration → Workspaces (`GET`/`PUT`/`DELETE /api/admin/tenants/{id}/settings`; empty goes back to the
+- **Per workspace (ADR014).** Settings with a `TENANT` owner may have a value per workspace, a `TENANT` row of
+  `settings`, which wins over the system value: the workspace limits (0: no limit) and the test generation
+  configuration (models, questions per LLM call, default question count and difficulty; test generation reads them
+  through `TenantSettingsService.ownValues`). They are set in the workspace's settings dialog (Configuration and
+  Limits tabs) on Administration → Workspaces (`GET`/`PUT`/`DELETE /api/admin/tenants/{id}/settings`; empty goes back to the
   system value). The shared library and admins' own workspaces have their own value 0 for every limit.
 - **AI token prices** (`token_prices`): USD per million input and output tokens per model name or prefix (longest
   match wins). The usage page prices each workspace's recorded LLM tokens with them (`TokenPricing`) and lists

@@ -24,6 +24,7 @@ import com.knowgauge.core.model.Setting;
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.model.enums.SettingOwner;
+import com.knowgauge.core.model.enums.SettingType;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.pricing.TokenPriceCatalog;
 import com.knowgauge.core.port.repository.SettingRepository;
@@ -77,8 +78,13 @@ class TenantSettingsServiceImplTest {
 	@Test
 	void withoutValuesOfItsOwnATenantHasTheSystemLimits() {
 		assertThat(service.limits(TENANT)).isEqualTo(new TenantLimits(1_000L, 10L * 1024 * 1024, 1, 100));
-		assertThat(service.list(TENANT)).extracting(TenantSettingValue::definition)
-				.extracting(SettingDefinition::key).containsExactly(TOKENS, STORAGE, CONCURRENT, PARTICIPANTS);
+		assertThat(service.list(TENANT)).filteredOn(v -> v.config().getType() == SettingType.LIMIT)
+				.extracting(TenantSettingValue::definition).extracting(SettingDefinition::key)
+				.containsExactly(TOKENS, STORAGE, CONCURRENT, PARTICIPANTS);
+		// The configuration a workspace may set too (V10); the ingestion batch size is system-only.
+		assertThat(service.list(TENANT)).filteredOn(v -> v.config().getType() == SettingType.CONFIG)
+				.extracting(v -> v.definition().key()).containsExactly(ConfigKeys.GENERATION_MODEL,
+						ConfigKeys.QUESTIONS_PER_CALL, ConfigKeys.QUESTION_COUNT, ConfigKeys.DIFFICULTY);
 		assertThat(service.list(TENANT)).noneMatch(TenantSettingValue::overridden);
 	}
 
@@ -87,8 +93,9 @@ class TenantSettingsServiceImplTest {
 		when(repository.findByTenantId(TENANT)).thenReturn(List.of(own(TENANT, TOKENS, "5000"), own(TENANT, STORAGE, "0")));
 
 		assertThat(service.limits(TENANT)).isEqualTo(new TenantLimits(5_000L, null, 1, 100));
-		assertThat(service.list(TENANT)).extracting(TenantSettingValue::systemValue, TenantSettingValue::ownValue,
-				TenantSettingValue::value).containsExactly(tuple("1000", "5000", "5000"), tuple("10", "0", "0"),
+		assertThat(service.list(TENANT)).filteredOn(v -> v.config().getType() == SettingType.LIMIT)
+				.extracting(TenantSettingValue::systemValue, TenantSettingValue::ownValue, TenantSettingValue::value)
+				.containsExactly(tuple("1000", "5000", "5000"), tuple("10", "0", "0"),
 						tuple("1", null, "1"), tuple("100", null, "100"));
 	}
 
@@ -101,6 +108,29 @@ class TenantSettingsServiceImplTest {
 		assertThat(limits.get(TENANT).concurrentGenerations()).isEqualTo(1);
 		assertThat(limits.get(OTHER).concurrentGenerations()).isEqualTo(3);
 		assertThat(service.withOwnValues(List.of(TENANT, OTHER))).containsExactly(OTHER);
+	}
+
+	@Test
+	void ownConfigurationValuesAreReadButDoNotCountAsOwnLimits() {
+		when(repository.findByTenantId(TENANT)).thenReturn(List.of(own(TENANT, ConfigKeys.DIFFICULTY, "HARD"),
+				own(TENANT, ConfigKeys.QUESTION_COUNT, "999"), own(TENANT, TOKENS, "5000")));
+		when(repository.findByTenantIdIn(List.of(TENANT))).thenReturn(List.of(own(TENANT, ConfigKeys.DIFFICULTY, "HARD")));
+
+		// 999 questions is over the allowed 100, so that stored value is left out.
+		assertThat(service.ownValues(TENANT)).containsExactlyInAnyOrderEntriesOf(
+				Map.of(ConfigKeys.DIFFICULTY, "HARD", TOKENS, "5000"));
+		assertThat(service.withOwnValues(List.of(TENANT))).isEmpty();
+	}
+
+	@Test
+	void aWorkspaceMaySaveItsOwnConfiguration() {
+		service.setAll(TENANT, Map.of(ConfigKeys.DIFFICULTY, "hard"));
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<List<Setting>> saved = ArgumentCaptor.forClass(List.class);
+		verify(repository).saveAll(saved.capture());
+		assertThat(saved.getValue()).extracting(Setting::getOwner, Setting::getOwnerId, Setting::getKey, Setting::getValue)
+				.containsExactly(tuple(SettingOwner.TENANT, TENANT, ConfigKeys.DIFFICULTY, "HARD"));
 	}
 
 	@Test
@@ -141,7 +171,7 @@ class TenantSettingsServiceImplTest {
 		assertThatThrownBy(() -> service.setAll(TENANT, Map.of(TOKENS, "-1", CONCURRENT, "99")))
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("at least 0")
 				.hasMessageContaining("between 0 and 20");
-		assertThatThrownBy(() -> service.setAll(TENANT, Map.of("kg.testgen.defaults.generation-model", "gpt-b")))
+		assertThatThrownBy(() -> service.setAll(TENANT, Map.of("kg.ingestion.job.batch-size", "5")))
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("cannot have a value per workspace");
 		assertThatThrownBy(() -> service.setAll(TENANT, Map.of("kg.unknown", "1")))
 				.isInstanceOf(ResourceNotFoundException.class);
