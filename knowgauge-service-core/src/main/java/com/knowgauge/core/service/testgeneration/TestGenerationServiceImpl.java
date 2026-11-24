@@ -11,6 +11,7 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.context.ExecutionContext;
+import com.knowgauge.core.service.access.RolePermissions;
 import com.knowgauge.core.exception.InsufficientContextException;
 import com.knowgauge.core.model.ChunkEmbedding;
 import com.knowgauge.core.model.DocumentChunk;
@@ -67,13 +68,16 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	private final GenerationSlots generationSlots;
 	private final TenantSettingsService tenantSettings;
 
+	private final RolePermissions permissions;
+
 	public TestGenerationServiceImpl(RetrievingService retrievingService, QuestionBatchGenerator batchGenerator,
 			TestDraftValidator testDraftValidator, TestGenerationTransactionalServiceImpl tx,
 			TestRepository testRepository, TestQuestionRepository testQuestionRepository,
 			DocumentChunkRepository documentChunkRepository, ExecutionContext executionContext,
 			TestGenerationDefaultsProperties defaults, TestQuestionValidator questionValidator,
 			ContentScope contentScope, UsageService usageService, GenerationSlots generationSlots,
-			TenantSettingsService tenantSettings) {
+			TenantSettingsService tenantSettings, RolePermissions permissions) {
+		this.permissions = permissions;
 		this.tenantSettings = tenantSettings;
 		this.retrievingService = retrievingService;
 		this.generationSlots = generationSlots;
@@ -92,6 +96,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	@Override
 	public Test generate(Test testDraft) {
+		permissions.requireCreateTests();
 		// testId is added to the log context (MDC) once the test is persisted, so structured logs can be filtered by it.
 		// One of the user's generation slots (workspace limit) is held until the test is ready or failed.
 		try (GenerationSlots.Slot slot = generationSlots.acquire(currentUserId(), executionContext.tenantId())) {
@@ -400,6 +405,7 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 
 	@Override
 	public void deleteById(Long testId) {
+		permissions.requireChangeTest(testId);
 		testRepository.deleteByTenantIdAndId(executionContext.tenantId(), testId);
 	}
 }

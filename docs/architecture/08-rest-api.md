@@ -12,6 +12,7 @@ Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
   - Open without a token: `/api/public/**`, `/actuator/health`, `/actuator/info`, the landing page and Swagger.
   - Needs the `ADMIN` role (from `user_roles`, ADR012): `/api/admin/**` and the other actuator endpoints. The token's
     own roles are ignored.
+  - Needs the `TENANT_ADMIN` role: `/api/tenant/**` (ADR016).
   - Everything else needs a signed-in user and works in that user's tenant (plus the read-only `LIBRARY` tenant for
     content).
   - Responses: `401` without a valid token, `403` without the role.
@@ -22,9 +23,9 @@ Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
 |---|---|---|---|
 | GET | `/tenants` | – | `200 TenantSummaryDto[] {tenantId, name, type, ownerUserId, ownerName, ownerEmail, createdAt, topics, documents}`: every tenant (user libraries and the shared library), by name. `403` without `ADMIN` |
 | POST | `/tenants` | `TenantCreateInput {type, name, emails[], message}` | `201 TenantCreatedDto {tenant, invitations[]}`: a new workspace (ADR015). `PERSONAL` needs exactly one address, `ORGANIZATION` at least one, `LIBRARY` none (no limits, readable by everyone). Invitees become `TENANT_ADMIN` on accepting; a failed send is kept on the invitation. `400` wrong number of invitees, invalid address or missing name |
-| GET | `/tenants/{id}/invitations` | – | `200 WorkspaceInvitationDto[] {id, tenantId, email, role, link, createdAt, sentAt, sendCount, sendError, acceptedAt}`, oldest first |
-| POST | `/tenants/{id}/invitations` | `WorkspaceInviteInput {emails[], message}` | `200 WorkspaceInvitationDto[]`: any number to an organization, one to a personal workspace without an owner and without an invitation to someone else, none to a library. An address invited before gets its link again. `409` personal workspace already taken |
-| POST | `/tenants/{id}/invitations/{invitationId}/resend` | – | `200 WorkspaceInvitationDto`, same link. `409` already accepted |
+| GET | `/tenants/{id}/invitations` | – | `200 TenantInvitationDto[] {id, tenantId, email, role, link, createdAt, sentAt, sendCount, sendError, acceptedAt}`, oldest first |
+| POST | `/tenants/{id}/invitations` | `TenantInviteInput {emails[], message, role}` | `200 TenantInvitationDto[]`: any number to an organization, one to a personal workspace without an owner and without an invitation to someone else, none to a library. `role` is `TENANT_ADMIN` (default), `TENANT_USER` or `TENANT_VIEWER`; a personal workspace takes only `TENANT_ADMIN` (ADR016). An address invited before gets its link again, with the new role. `400` other role, `409` personal workspace already taken |
+| POST | `/tenants/{id}/invitations/{invitationId}/resend` | – | `200 TenantInvitationDto`, same link. `409` already accepted |
 | DELETE | `/tenants/{id}/invitations/{invitationId}` | – | `204`: the link stops working. `409` already accepted |
 
 An `ADMIN` reads any user's workspace through the normal APIs (ADR013): send the tenant id in the `X-KG-Tenant`
@@ -33,12 +34,28 @@ in that tenant (content, tests, attempts, invitations), content is reported `rea
 header gets `403`. The header is ignored elsewhere, for the admin's own tenant and for a `LIBRARY` tenant; non-admins
 get `403`, unknown tenants `404`.
 
+## Workspace – `TenantController` (`/api/tenant`, `TENANT_ADMIN` role)
+
+The signed-in user's own **organization** workspace (ADR016). Every endpoint returns `403` for a workspace that is
+not an organization; changes also `403` while an `ADMIN` views another workspace (ADR013).
+
+| Method | Path | Body / params | Result |
+|---|---|---|---|
+| GET | `/users` | – | `200 TenantUserDto[] {id, email, displayName, roles, createdAt, lastSeenAt}`, by name |
+| GET | `/invitations` | – | `200 TenantInvitationDto[]`, oldest first |
+| POST | `/invitations` | `TenantInviteInput {emails[], message, role}` | `200 TenantInvitationDto[]`: `role` `TENANT_ADMIN` (default), `TENANT_USER` or `TENANT_VIEWER`. An address invited before gets its link again with the new role; one that joined is returned unchanged. `400` invalid address or role |
+| POST | `/invitations/{invitationId}/resend` | – | `200 TenantInvitationDto`, same link. `404` not this workspace's, `409` already accepted |
+| DELETE | `/invitations/{invitationId}` | – | `204`: the link stops working. `404` not this workspace's, `409` already accepted |
+| GET | `/settings` | – | `200 TenantSettingDto[]`: the workspace's **configuration** (`CONFIG` settings with a `TENANT` owner, ADR014), never its limits |
+| PUT | `/settings` | `TenantSettingsInput {values}` | `200 TenantSettingDto[]`: saves the workspace's own values; empty removes one. `400` a value does not fit, `403` a limit |
+| DELETE | `/settings` | – | `200 TenantSettingDto[]`: removes the workspace's own configuration values; its limits stay |
+
 ## Account – `AccountController` (`/api`)
 
 | Method | Path | Body / params | Result |
 |---|---|---|---|
 | GET | `/me` | – | `200 CurrentUserDto {userId, tenantId, tenantName, tenantType, email, displayName, roles, securityMode, createdAt}`. The first call with a new user's token creates the user and their personal tenant, or joins the workspace a pending invitation to their verified email is for (ADR015). `roles` lists the user's roles from `user_roles` (ADR012), e.g. `ADMIN` and `TENANT_ADMIN`. In mode `fixed`: the fixed tenant and user, roles `[TENANT_ADMIN]`, no `createdAt` |
-| POST | `/me/workspace-invitations/{token}/accept` | – | `200 WorkspaceJoinedDto {tenantId, workspaceName, previousTenantId}`: moves the user into the invited workspace (ADR015). `403` another or an unverified email, `404` unknown or revoked link, `409` accepted by someone else or the personal workspace has another owner. Accepting again is a no-op |
+| POST | `/me/tenant-invitations/{token}/accept` | – | `200 TenantJoinedDto {tenantId, tenantName, previousTenantId}`: moves the user into the invited workspace (ADR015). `403` another or an unverified email, `404` unknown or revoked link, `409` accepted by someone else or the personal workspace has another owner. Accepting again is a no-op |
 | GET | `/me/preferences` | – | `200 UserPreferencesDto {theme}` (`LIGHT`/`DARK`/`SYSTEM`; `null` = never chosen, the app default). Stored as JSON in `users.preferences_json`. All `null` when there is no user row (mode `fixed`) |
 | PUT | `/me/preferences` | `UserPreferencesDto` | `200 UserPreferencesDto`. Replaces all settings. `400` unknown value, `404` no user row (mode `fixed`) |
 | GET | `/me/usage` | – | `200 UsageSummaryDto`: the own tenant's topics, documents (and ingested), storage bytes, plus this calendar month (UTC): tests created, AI-written question versions (`GENERATED` + `REGENERATED`), submitted attempts and LLM input/output tokens from `generation_runs`. The shared library is not counted; embedding tokens are not tracked yet |
@@ -113,11 +130,11 @@ Scoring is all-or-nothing per question: correct only if the chosen options exact
 `scorePercent` is `correct / total × 100`, rounded to one decimal. Each answer stores the question version it was
 given for; published tests are frozen, so that is the current version.
 
-## Workspace invitations – `WorkspaceInvitationController` (`/api/public`)
+## Workspace invitations – `TenantInvitationController` (`/api/public`)
 
 | Method | Path | Body / params | Result |
 |---|---|---|---|
-| GET | `/workspace-invitations/{token}` | – | `200 WorkspaceInvitationPreviewDto {workspaceName, workspaceType, email, accepted}`, no ids, for the join page `/join/{token}` before signing in. `404` unknown or revoked link |
+| GET | `/tenant-invitations/{token}` | – | `200 TenantInvitationPreviewDto {tenantName, tenantType, email, accepted}`, no ids, for the join page `/join/{token}` before signing in. `404` unknown or revoked link |
 
 ## Public tests – `PublicTestController` (`/api/public`)
 

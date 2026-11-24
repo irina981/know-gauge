@@ -71,7 +71,7 @@ erDiagram
 | Attempt | `Attempt` / `AttemptAnswer` | An attempt at a `PUBLISHED` test (`AttemptService`) by a participant (name and email, through the shared link or a personal invitation) or the configured user. Read and submitted by its random `publicToken` (ADR009). Submitting scores it at once; each answer references the exact question version and stores the chosen options |
 | Invitation | `TestInvitation` | A personal link for one email (`InvitationService`), sent by the server, usable for one attempt; the attempt takes the invited address as its email (ADR009) |
 | Identity | `User`, `Tenant` | `users` (one per Keycloak subject, `external_id`; one tenant and a tenant `role`; `preferences` = `UserPreferences` (theme) as JSON; row 0 is the system user) and `tenants` (`PERSONAL` for one owner, `ORGANIZATION` for several users, `LIBRARY` for shared content). A personal tenant is created on first sign-in by `AccountService` (ADR010); an `ADMIN` creates any type (ADR015) |
-| Workspace invitation | `WorkspaceInvitation` | One email invited to a tenant an `ADMIN` created, with the role it gets (`TENANT_ADMIN`) and a random token (`/join/{token}`). Accepting moves the user into the tenant (ADR015) |
+| Workspace invitation | `TenantInvitation` | One email invited to a tenant, by an `ADMIN` or a tenant admin of the organization, with the role it gets (`TENANT_ADMIN`, `TENANT_USER` or `TENANT_VIEWER`, ADR016) and a random token (`/join/{token}`). Accepting moves the user into the tenant (ADR015) |
 
 ## Enums
 
@@ -90,7 +90,7 @@ erDiagram
 | `GenerationRunPurpose` | `TEST_GENERATION`, `REGENERATION`, `VERIFICATION` | Why an LLM call was made |
 | `AttemptStatus` | `STARTED`, `SUBMITTED`, `SCORED` | Attempts. Submit goes straight from `STARTED` to `SCORED`; `SUBMITTED` is unused for now |
 | `GenerationRunStatus` | `SUCCESS`, `FAILED` | Outcome of an LLM call |
-| `Role` | `ADMIN`, `TENANT_ADMIN`, `TENANT_USER`, `TENANT_VIEWER` | Tables `roles` and `user_roles`; a user has several. Everyone is `TENANT_ADMIN` of their tenant, `ADMIN` comes from `kg.account.admin-emails` (ADR012) |
+| `Role` | `ADMIN`, `TENANT_ADMIN`, `TENANT_USER`, `TENANT_VIEWER` | Tables `roles` and `user_roles`; a user has several. Everyone is `TENANT_ADMIN` of their own tenant; an invitation may give `TENANT_USER` or `TENANT_VIEWER` instead (ADR016), which only `/api/tenant/**` checks so far. `ADMIN` comes from `kg.account.admin-emails` (ADR012) |
 | `TenantType` | `PERSONAL`, `ORGANIZATION`, `LIBRARY` | Tenants (ADR010) |
 
 ## Lifecycles

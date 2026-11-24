@@ -206,7 +206,7 @@ class TestGenerationServiceImplTest {
 	}
 
 	@Test
-	void theWorkspacesOwnConfigurationWinsOverTheSystemValues() {
+	void theTenantsOwnConfigurationWinsOverTheSystemValues() {
 		when(tenantSettings.ownValues(TENANT)).thenReturn(Map.of(ConfigKeys.QUESTION_COUNT, "6",
 				ConfigKeys.DIFFICULTY, "HARD", ConfigKeys.GENERATION_MODEL, "gpt-own",
 				ConfigKeys.VERIFICATION_MODEL, "gpt-check-own", ConfigKeys.QUESTIONS_PER_CALL, "3"));
@@ -228,7 +228,7 @@ class TestGenerationServiceImplTest {
 	}
 
 	@Test
-	void aRequestsOwnChoicesWinOverTheWorkspaceValues() {
+	void aRequestsOwnChoicesWinOverTheTenantValues() {
 		when(tenantSettings.ownValues(TENANT)).thenReturn(Map.of(ConfigKeys.QUESTION_COUNT, "6",
 				ConfigKeys.DIFFICULTY, "HARD"));
 		givenChunks(15);

@@ -89,7 +89,7 @@ public class AccountResolutionFilter extends OncePerRequestFilter {
 	 */
 	private Long viewedTenant(HttpServletRequest request, User user, boolean admin) {
 		String header = request.getHeader(TENANT_HEADER);
-		if (header == null || header.isBlank() || !isWorkspaceApi(request.getRequestURI())) {
+		if (header == null || header.isBlank() || !isTenantApi(request.getRequestURI())) {
 			return null;
 		}
 		long tenantId;
@@ -121,7 +121,7 @@ public class AccountResolutionFilter extends OncePerRequestFilter {
 	 * The APIs that work in the current tenant: everything under {@code /api/} except the caller's own account
 	 * ({@code /api/me}), administration and the participants' public API.
 	 */
-	static boolean isWorkspaceApi(String uri) {
+	static boolean isTenantApi(String uri) {
 		return uri.startsWith("/api/") && !uri.equals("/api/me") && !uri.startsWith("/api/me/")
 				&& !uri.startsWith("/api/admin/") && !uri.startsWith("/api/public/");
 	}

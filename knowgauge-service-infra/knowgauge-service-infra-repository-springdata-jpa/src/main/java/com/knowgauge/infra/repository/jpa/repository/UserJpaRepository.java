@@ -1,5 +1,6 @@
 package com.knowgauge.infra.repository.jpa.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,4 +12,6 @@ import com.knowgauge.infra.repository.jpa.entity.UserEntity;
 public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
 
 	Optional<UserEntity> findByExternalId(String externalId);
+
+	List<UserEntity> findByTenantId(Long tenantId);
 }

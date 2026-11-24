@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.context.ExecutionContext;
+import com.knowgauge.core.service.access.RolePermissions;
 import com.knowgauge.core.exception.AttemptConflictException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Attempt;
@@ -57,10 +58,13 @@ public class AttemptServiceImpl implements AttemptService {
 
 	private final TestParticipants participants;
 
+	private final RolePermissions permissions;
+
 	public AttemptServiceImpl(AttemptRepository attemptRepository, AttemptAnswerRepository answerRepository,
 			TestRepository testRepository, TestQuestionRepository questionRepository,
 			TestInvitationRepository invitationRepository, ExecutionContext executionContext,
-			ApplicationEventPublisher events, TestParticipants participants) {
+			ApplicationEventPublisher events, TestParticipants participants, RolePermissions permissions) {
+		this.permissions = permissions;
 		this.participants = participants;
 		this.attemptRepository = attemptRepository;
 		this.answerRepository = answerRepository;
@@ -137,6 +141,7 @@ public class AttemptServiceImpl implements AttemptService {
 	@Override
 	@Transactional
 	public AttemptView start(Long testId) {
+		permissions.requireTakeTests();
 		return startAttempt(executionContext.tenantId(), testId, Attempt.builder().userId(currentUserId()));
 	}
 
@@ -176,6 +181,7 @@ public class AttemptServiceImpl implements AttemptService {
 	@Override
 	@Transactional
 	public AttemptView submit(Long attemptId, Map<Long, List<OptionLetter>> chosen) {
+		permissions.requireTakeTests();
 		return submit(executionContext.tenantId(), attemptId, chosen);
 	}
 

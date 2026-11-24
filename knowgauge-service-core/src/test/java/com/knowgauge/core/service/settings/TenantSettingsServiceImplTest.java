@@ -123,7 +123,7 @@ class TenantSettingsServiceImplTest {
 	}
 
 	@Test
-	void aWorkspaceMaySaveItsOwnConfiguration() {
+	void aTenantMaySaveItsOwnConfiguration() {
 		service.setAll(TENANT, Map.of(ConfigKeys.DIFFICULTY, "hard"));
 
 		@SuppressWarnings("unchecked")

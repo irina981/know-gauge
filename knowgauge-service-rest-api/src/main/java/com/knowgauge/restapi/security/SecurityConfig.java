@@ -68,6 +68,8 @@ public class SecurityConfig {
 				// Off in prod (springdoc.*.enabled); locally Swagger UI takes a token through "Authorize".
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 				.requestMatchers("/api/admin/**", "/actuator/**").hasRole(Role.ADMIN.name())
+				// The own organization workspace's users and settings (ADR016); the service checks the workspace type.
+				.requestMatchers("/api/tenant/**").hasRole(Role.TENANT_ADMIN.name())
 				.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
 				.addFilterAfter(accountFilter, BearerTokenAuthenticationFilter.class).build();

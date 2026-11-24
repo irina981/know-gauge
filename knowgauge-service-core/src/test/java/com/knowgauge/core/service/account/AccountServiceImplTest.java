@@ -22,14 +22,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.User;
-import com.knowgauge.core.model.WorkspaceInvitation;
+import com.knowgauge.core.model.TenantInvitation;
 import com.knowgauge.core.model.enums.Role;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.port.repository.UserRepository;
-import com.knowgauge.core.port.repository.WorkspaceInvitationRepository;
+import com.knowgauge.core.port.repository.TenantInvitationRepository;
 import com.knowgauge.core.service.settings.TenantSettingsService;
-import com.knowgauge.core.service.workspace.WorkspaceJoiner;
+import com.knowgauge.core.service.tenant.TenantJoiner;
 
 class AccountServiceImplTest {
 
@@ -39,7 +39,7 @@ class AccountServiceImplTest {
 	private TenantRepository tenantRepository;
 	private AccountProperties properties;
 	private TenantSettingsService tenantSettings;
-	private WorkspaceInvitationRepository invitationRepository;
+	private TenantInvitationRepository invitationRepository;
 	private ExecutionContext executionContext;
 	private AccountServiceImpl service;
 	private final AtomicLong ids = new AtomicLong(10);
@@ -58,17 +58,17 @@ class AccountServiceImplTest {
 		executionContext = mock(ExecutionContext.class);
 		when(executionContext.callAsSystemWithoutTenant(any()))
 				.thenAnswer(inv -> inv.getArgument(0, Supplier.class).get());
-		invitationRepository = mock(WorkspaceInvitationRepository.class);
+		invitationRepository = mock(TenantInvitationRepository.class);
 		when(invitationRepository.findOldestPendingByEmail(any())).thenReturn(Optional.empty());
 		service = new AccountServiceImpl(new AccountTransactionalServiceImpl(userRepository, tenantRepository,
 				properties, tenantSettings, invitationRepository,
-				new WorkspaceJoiner(userRepository, tenantRepository, invitationRepository)), executionContext);
+				new TenantJoiner(userRepository, tenantRepository, invitationRepository)), executionContext);
 	}
 
 	@Test
-	void firstSignInWithAPendingInvitationJoinsThatWorkspaceInsteadOfANewOne() {
+	void firstSignInWithAPendingInvitationJoinsThatTenantInsteadOfANewOne() {
 		Tenant organization = Tenant.builder().id(500L).type(TenantType.ORGANIZATION).name("Acme").build();
-		WorkspaceInvitation invitation = WorkspaceInvitation.builder().id(7L).tenantId(500L).email("ana@example.com")
+		TenantInvitation invitation = TenantInvitation.builder().id(7L).tenantId(500L).email("ana@example.com")
 				.role(Role.TENANT_ADMIN).publicToken("t").build();
 		when(invitationRepository.findOldestPendingByEmail("ana@example.com")).thenReturn(Optional.of(invitation));
 		when(tenantRepository.findById(500L)).thenReturn(Optional.of(organization));
@@ -85,9 +85,9 @@ class AccountServiceImplTest {
 	}
 
 	@Test
-	void firstSignInJoiningAPersonalWorkspaceMakesTheUserItsOwner() {
+	void firstSignInJoiningAPersonalTenantMakesTheUserItsOwner() {
 		Tenant personal = Tenant.builder().id(501L).type(TenantType.PERSONAL).name("Ana's").build();
-		when(invitationRepository.findOldestPendingByEmail("ana@example.com")).thenReturn(Optional.of(WorkspaceInvitation
+		when(invitationRepository.findOldestPendingByEmail("ana@example.com")).thenReturn(Optional.of(TenantInvitation
 				.builder().id(8L).tenantId(501L).email("ana@example.com").role(Role.TENANT_ADMIN).publicToken("t").build()));
 		when(tenantRepository.findById(501L)).thenReturn(Optional.of(personal));
 
@@ -98,7 +98,7 @@ class AccountServiceImplTest {
 	}
 
 	@Test
-	void anUnverifiedEmailNeverJoinsAnInvitedWorkspace() {
+	void anUnverifiedEmailNeverJoinsAnInvitedTenant() {
 		User user = service.signIn(SUBJECT, "ana@example.com", false, "Ana");
 
 		verify(invitationRepository, never()).findOldestPendingByEmail(any());

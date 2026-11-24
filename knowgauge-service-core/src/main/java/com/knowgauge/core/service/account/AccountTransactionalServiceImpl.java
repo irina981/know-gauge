@@ -13,14 +13,14 @@ import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Tenant;
 import com.knowgauge.core.model.User;
 import com.knowgauge.core.model.UserPreferences;
-import com.knowgauge.core.model.WorkspaceInvitation;
+import com.knowgauge.core.model.TenantInvitation;
 import com.knowgauge.core.model.enums.Role;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.port.repository.UserRepository;
-import com.knowgauge.core.port.repository.WorkspaceInvitationRepository;
+import com.knowgauge.core.port.repository.TenantInvitationRepository;
 import com.knowgauge.core.service.settings.TenantSettingsService;
-import com.knowgauge.core.service.workspace.WorkspaceJoiner;
+import com.knowgauge.core.service.tenant.TenantJoiner;
 import com.knowgauge.core.util.Emails;
 
 import lombok.extern.slf4j.Slf4j;
@@ -36,12 +36,12 @@ public class AccountTransactionalServiceImpl {
 	private final TenantRepository tenantRepository;
 	private final AccountProperties properties;
 	private final TenantSettingsService tenantSettings;
-	private final WorkspaceInvitationRepository invitationRepository;
-	private final WorkspaceJoiner joiner;
+	private final TenantInvitationRepository invitationRepository;
+	private final TenantJoiner joiner;
 
 	public AccountTransactionalServiceImpl(UserRepository userRepository, TenantRepository tenantRepository,
 			AccountProperties properties, TenantSettingsService tenantSettings,
-			WorkspaceInvitationRepository invitationRepository, WorkspaceJoiner joiner) {
+			TenantInvitationRepository invitationRepository, TenantJoiner joiner) {
 		this.userRepository = userRepository;
 		this.tenantRepository = tenantRepository;
 		this.properties = properties;
@@ -71,7 +71,7 @@ public class AccountTransactionalServiceImpl {
 			}
 			return saved;
 		}
-		Optional<User> invited = joinInvitedWorkspace(externalId, email, emailVerified, displayName, now);
+		Optional<User> invited = joinInvitedTenant(externalId, email, emailVerified, displayName, now);
 		if (invited.isPresent()) {
 			return invited.get();
 		}
@@ -83,17 +83,17 @@ public class AccountTransactionalServiceImpl {
 	 * oldest invitation) instead of getting an empty personal one. Others stay pending: accepting one later moves the
 	 * user again.
 	 */
-	private Optional<User> joinInvitedWorkspace(String externalId, String email, boolean emailVerified,
+	private Optional<User> joinInvitedTenant(String externalId, String email, boolean emailVerified,
 			String displayName, Instant now) {
 		String address = emailVerified ? Emails.normalizeOrNull(email) : null;
 		if (address == null) {
 			return Optional.empty();
 		}
-		Optional<WorkspaceInvitation> pending = invitationRepository.findOldestPendingByEmail(address);
+		Optional<TenantInvitation> pending = invitationRepository.findOldestPendingByEmail(address);
 		if (pending.isEmpty()) {
 			return Optional.empty();
 		}
-		WorkspaceInvitation invitation = pending.get();
+		TenantInvitation invitation = pending.get();
 		Optional<Tenant> tenant = tenantRepository.findById(invitation.getTenantId());
 		boolean takenPersonal = tenant.isPresent() && tenant.get().getType() == TenantType.PERSONAL
 				&& tenant.get().getOwnerUserId() != null;

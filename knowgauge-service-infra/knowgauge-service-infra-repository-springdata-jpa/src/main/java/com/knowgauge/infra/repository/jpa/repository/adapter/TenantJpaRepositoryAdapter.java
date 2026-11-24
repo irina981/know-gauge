@@ -32,7 +32,7 @@ public class TenantJpaRepositoryAdapter implements TenantRepository {
 	private static final String TOPICS = "(select count(tp) from TopicEntity tp where tp.tenantId = t.id)";
 	private static final String DOCUMENTS = "(select count(d) from DocumentEntity d where d.tenantId = t.id)";
 	/** Workspace invitations of the tenant (ADR015), accepted or not. */
-	private static final String INVITATIONS = "(select count(wi) from WorkspaceInvitationEntity wi where wi.tenantId = t.id)";
+	private static final String INVITATIONS = "(select count(wi) from TenantInvitationEntity wi where wi.tenantId = t.id)";
 	/** Total size of the tenant's documents in bytes. */
 	private static final String STORAGE = "(select coalesce(sum(ds.fileSizeBytes), 0L) from DocumentEntity ds where ds.tenantId = t.id)";
 	/** LLM tokens (input + output) of the tenant's calls in the usage period. */

@@ -45,10 +45,14 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
     [ADR015](docs/adr/ADR015-admins-create-workspaces-and-invite.md)): a personal one needs exactly one invitee, an
     organization at least one (`TENANT_ADMIN`), a library none. A user still has one tenant: accepting moves them
     (`users.tenant_id`), their old workspace keeps its content.
+  - A `TENANT_ADMIN` of an organization manages it on the sidebar pages Users and Workspace settings
+    (`/api/tenant/**`, [ADR016](docs/adr/ADR016-tenant-admins-manage-their-organization.md)): invites people as
+    `TENANT_ADMIN`, `TENANT_USER` or `TENANT_VIEWER`, and changes the workspace's configuration, never its limits (only an
+    `ADMIN` sets those). Nothing else checks `TENANT_USER` / `TENANT_VIEWER` yet.
   - An `ADMIN` reads any user's workspace (library, tests, attempts), read-only, by sending its tenant id in
     `X-KG-Tenant` on `GET /api/**` reads; `GET /api/admin/tenants` lists them
-    ([ADR013](docs/adr/ADR013-admins-view-every-workspace.md)). In the UI a tenant is a "library"; a "workspace" is
-    everything a user works with: their library, tests and attempts, plus the shared libraries.
+    ([ADR013](docs/adr/ADR013-admins-view-every-workspace.md)). A UI "workspace" is a backend tenant (see
+    Conventions).
   - Local Keycloak: compose service `keycloak` on http://localhost:8180, realm `knowgauge` from
     `keycloak/knowgauge-realm.json`, the template shared with `deploy/` (`${VAR:default}` placeholders
     filled from the compose environment; users in `<env>/keycloak/knowgauge-users-0.json`). Its users and their passwords are in the
@@ -170,6 +174,12 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - Commit messages: Conventional Commits with scope, one capitalised summary line plus a body of `- ` items. **Use the
   `commit` skill ([`.claude/skills/commit/SKILL.md`](.claude/skills/commit/SKILL.md)) for every commit.** Always show
   the proposed message and wait for the user's approval before running `git commit`.
+- **Tenant, not workspace, in backend names.** What the UI calls a "workspace" is the backend's tenant. Classes,
+  packages, methods, fields and variables say `Tenant` / `tenant` (`TenantInvitation`, `core.service.tenant`,
+  `TenantController`), never `Workspace`, and so do URLs (`/api/tenant/**`), JSON fields (`tenantName`), tables,
+  columns and constraints (`tenant_invitations`). "Workspace" stays only in text people read: user-facing messages,
+  emails and OpenAPI descriptions. Rename an existing table with a new `V{n}` migration (as `V11` did), never by
+  editing an applied one.
 - Packages: `com.knowgauge.core.*`, `com.knowgauge.infra.<capability>.<tech>.*`, `com.knowgauge.restapi.*`,
   `com.knowgauge.contract.*`.
 - Logging: `@Slf4j`. Include the `testId`/`documentId` and batch number in log lines (match the existing style).

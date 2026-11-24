@@ -38,7 +38,7 @@ public class InvitationProperties {
 	}
 
 	/** Link to accept a workspace invitation (ADR015). */
-	public String workspaceLinkFor(String token) {
+	public String tenantLinkFor(String token) {
 		return base() + "/join/" + token;
 	}
 

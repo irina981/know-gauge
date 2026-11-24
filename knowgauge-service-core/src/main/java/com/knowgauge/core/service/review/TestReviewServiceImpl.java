@@ -9,6 +9,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.context.ExecutionContext;
+import com.knowgauge.core.service.access.RolePermissions;
 import com.knowgauge.core.exception.QuestionValidationException;
 import com.knowgauge.core.exception.RegenerationFailedException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
@@ -62,11 +63,14 @@ public class TestReviewServiceImpl implements TestReviewService {
 	private final ContentScope contentScope;
 	private final UsageService usageService;
 
+	private final RolePermissions permissions;
+
 	public TestReviewServiceImpl(TestRepository testRepository, TestQuestionRepository questionRepository,
 			TestEventRepository eventRepository, GenerationRunRepository generationRunRepository,
 			DocumentChunkRepository chunkRepository, QuestionBatchGenerator batchGenerator,
 			TestQuestionValidator validator, TestReviewTransactionalServiceImpl tx,
-			ExecutionContext executionContext, ContentScope contentScope, UsageService usageService) {
+			ExecutionContext executionContext, ContentScope contentScope, UsageService usageService, RolePermissions permissions) {
+		this.permissions = permissions;
 		this.usageService = usageService;
 		this.testRepository = testRepository;
 		this.questionRepository = questionRepository;
@@ -92,6 +96,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public TestQuestion acceptFix(Long testId, Long questionId, Long expectedCurrentVersionId, String comment) {
+		permissions.requireChangeTest(testId);
 		ReviewContext ctx = loadForAction(testId, questionId, expectedCurrentVersionId);
 		TestQuestionVersion current = ctx.current();
 		if (!current.isFixApplicable()) {
@@ -123,6 +128,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public TestQuestion dismissFlags(Long testId, Long questionId, Long expectedCurrentVersionId, String comment) {
+		permissions.requireChangeTest(testId);
 		if (comment == null || comment.isBlank()) {
 			throw new IllegalArgumentException(
 					"A comment is required to keep a question as it is: say why the verifier's flags are wrong.");
@@ -157,6 +163,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public TestQuestion regenerate(Long testId, Long questionId, Long expectedCurrentVersionId, String comment) {
+		permissions.requireChangeTest(testId);
 		// Monthly AI token allowance (system setting): refuse before the LLM is called.
 		usageService.requireTokensLeft();
 		ReviewContext ctx = loadForAction(testId, questionId, expectedCurrentVersionId);
@@ -218,6 +225,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public TestQuestion manualReplace(Long testId, Long questionId, ManualQuestionDraft input) {
+		permissions.requireChangeTest(testId);
 		if (input == null) {
 			throw new IllegalArgumentException("Manual question is required");
 		}
@@ -262,6 +270,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public Test updateDetails(Long testId, String name, String description) {
+		permissions.requireChangeTest(testId);
 		Long actorUserId = actorUserId();
 		Test updated = tx.updateDetails(executionContext.tenantId(), testId, actorUserId,
 				TestDetailsRules.normalizeName(name), TestDetailsRules.normalizeDescription(description));
@@ -271,6 +280,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public Test publish(Long testId, String comment) {
+		permissions.requireChangeTest(testId);
 		Long actorUserId = actorUserId();
 		Test published = tx.publish(executionContext.tenantId(), testId, actorUserId, comment);
 		log.info("Review: test {} - published by user {}", testId, actorUserId);
@@ -279,6 +289,7 @@ public class TestReviewServiceImpl implements TestReviewService {
 
 	@Override
 	public Test unpublish(Long testId, String comment) {
+		permissions.requireChangeTest(testId);
 		Long actorUserId = actorUserId();
 		Test unpublished = tx.unpublish(executionContext.tenantId(), testId, actorUserId, comment);
 		log.info("Review: test {} - unpublished by user {} (back to {})", testId, actorUserId,

@@ -98,7 +98,8 @@ public class AdminController {
 		return ResponseEntity.ok(tenantSettingsService.resetAll(id).stream().map(AdminController::toDto).toList());
 	}
 
-	private static TenantSettingDto toDto(TenantSettingsService.TenantSettingValue setting) {
+	/** Also used by {@link TenantController}. */
+	static TenantSettingDto toDto(TenantSettingsService.TenantSettingValue setting) {
 		SettingDefinition d = setting.definition();
 		return new TenantSettingDto(d.key(), d.group(), d.label(), d.description(), d.type().name(), d.min(), d.max(),
 				d.options(), setting.suggestions(), setting.config().getType().name(), setting.systemValue(),

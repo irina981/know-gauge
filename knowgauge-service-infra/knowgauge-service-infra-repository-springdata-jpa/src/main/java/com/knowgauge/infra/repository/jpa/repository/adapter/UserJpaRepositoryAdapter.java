@@ -1,5 +1,6 @@
 package com.knowgauge.infra.repository.jpa.repository.adapter;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
@@ -33,5 +34,10 @@ public class UserJpaRepositoryAdapter implements UserRepository {
 	@Override
 	public Optional<User> findByExternalId(String externalId) {
 		return jpaRepository.findByExternalId(externalId).map(mapper::toDomain);
+	}
+
+	@Override
+	public List<User> findByTenantId(Long tenantId) {
+		return jpaRepository.findByTenantId(tenantId).stream().map(mapper::toDomain).toList();
 	}
 }

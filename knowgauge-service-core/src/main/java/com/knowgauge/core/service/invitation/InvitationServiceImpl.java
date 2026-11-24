@@ -8,6 +8,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.context.ExecutionContext;
+import com.knowgauge.core.service.access.RolePermissions;
 import com.knowgauge.core.exception.MailDeliveryException;
 import com.knowgauge.core.model.Attempt;
 import com.knowgauge.core.model.TestInvitation;
@@ -33,8 +34,11 @@ public class InvitationServiceImpl implements InvitationService {
 	private final InvitationProperties properties;
 	private final ExecutionContext executionContext;
 
+	private final RolePermissions permissions;
+
 	public InvitationServiceImpl(InvitationTransactionalServiceImpl transactionalService, InvitationMailer mailer,
-			InvitationProperties properties, ExecutionContext executionContext) {
+			InvitationProperties properties, ExecutionContext executionContext, RolePermissions permissions) {
+		this.permissions = permissions;
 		this.transactionalService = transactionalService;
 		this.mailer = mailer;
 		this.properties = properties;
@@ -43,6 +47,7 @@ public class InvitationServiceImpl implements InvitationService {
 
 	@Override
 	public List<InvitationView> invite(Long testId, List<String> emails, String personalMessage) {
+		permissions.requireChangeTest(testId);
 		List<String> addresses = normalizeAll(emails);
 		String message = normalizeMessage(personalMessage);
 		long tenantId = executionContext.tenantId();
@@ -69,6 +74,7 @@ public class InvitationServiceImpl implements InvitationService {
 
 	@Override
 	public InvitationView resend(Long testId, Long invitationId, String personalMessage) {
+		permissions.requireChangeTest(testId);
 		String message = normalizeMessage(personalMessage);
 		long tenantId = executionContext.tenantId();
 		Prepared prepared = transactionalService.prepareResend(tenantId, testId, invitationId);

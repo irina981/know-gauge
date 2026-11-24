@@ -43,8 +43,8 @@ first sign-in, or one an `ADMIN` created and invited them to: a `PERSONAL` tenan
   which creates the user (role `TENANT_ADMIN`) and a `PERSONAL` tenant on the first sign-in, and caches the
   result per subject for `kg.security.oidc.account-cache-minutes`. A first sign-in whose verified email has a
   pending workspace invitation joins that tenant instead (ADR015).
-- Workspace invitations (ADR015, `workspace_invitations`): an `ADMIN` creates a tenant of any type
-  (`WorkspaceAdminService`) and invites people by email. Accepting (`WorkspaceMembershipService`, `WorkspaceJoiner`)
+- Workspace invitations (ADR015, `tenant_invitations`): an `ADMIN` creates a tenant of any type
+  (`TenantProvisioningService`) and invites people by email. Accepting (`TenantMembershipService`, `TenantJoiner`)
   moves the user: `users.tenant_id` becomes the invited tenant and the `TENANT_*` roles are replaced by the invited
   one (`TENANT_ADMIN`). The tenant they leave keeps its content, without users. `AccountResolver.evict` drops the
   cached account. A new library refreshes `ContentScope`'s library ids.

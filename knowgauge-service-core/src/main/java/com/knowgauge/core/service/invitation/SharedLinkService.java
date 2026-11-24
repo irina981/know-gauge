@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.context.ExecutionContext;
+import com.knowgauge.core.service.access.RolePermissions;
 import com.knowgauge.core.exception.AttemptConflictException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Test;
@@ -30,8 +31,11 @@ public class SharedLinkService {
 	private final TestHistoryRecorder history;
 	private final ExecutionContext executionContext;
 
+	private final RolePermissions permissions;
+
 	public SharedLinkService(TestRepository testRepository, TestHistoryRecorder history,
-			ExecutionContext executionContext) {
+			ExecutionContext executionContext, RolePermissions permissions) {
+		this.permissions = permissions;
 		this.testRepository = testRepository;
 		this.history = history;
 		this.executionContext = executionContext;
@@ -46,6 +50,7 @@ public class SharedLinkService {
 	 */
 	@Transactional
 	public Test createOrRegenerate(Long testId) {
+		permissions.requireChangeTest(testId);
 		long tenantId = executionContext.tenantId();
 		Test test = testRepository.findByTenantIdAndIdForUpdate(tenantId, testId)
 				.orElseThrow(() -> new ResourceNotFoundException("Test not found: " + testId));
