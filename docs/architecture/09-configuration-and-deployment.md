@@ -7,7 +7,7 @@ All application configuration is in `knowgauge-service-rest-api/src/main/resourc
 | File | Purpose |
 |---|---|
 | `application.properties` | Values common to all environments: multipart limits, actuator, springdoc, JPA `validate`, Flyway, JDBC drivers, all shared `kg.*` properties |
-| `application-local.properties` | Local development against `local-development/docker-compose.yml` on `localhost` (5432, 5433, 9000). Local credentials, seed topic migration and seed PDFs, DEBUG logging. The app container in compose uses it too, with hostnames overridden through env vars |
+| `application-local.properties` | Local development against `local-development/docker-compose.yml` on `localhost` (5432, 9000, 8180). Local credentials, seed topic migration and seed PDFs, DEBUG logging. The app container in compose uses it too, with hostnames overridden through env vars |
 | `application-test.properties` | Automated tests only. Schema migrations without seed data, no seeder, a placeholder OpenAI key. Datasources and the MinIO endpoint are supplied by the test (for example Testcontainers) |
 | `application-prod.properties` | Production. Every environment-specific value comes from an env var (see below); required ones have no default, so a missing one fails startup. No seed data, Swagger off, actuator limited to `health,info,metrics` |
 | `resilience4j.properties` | Retry, bulkhead and circuit breaker instances (imported through `spring.config.import`) |
@@ -81,8 +81,8 @@ an optional override file; `local-development/.env.example` is its template:
 
 | Variable | Default | Used for |
 |---|---|---|
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | `knowgauge`, `knowgauge_user`, `knowgauge_pass` | Main DB container and `SPRING_DATASOURCE_*` |
-| `POSTGRES_VECTORS_DB`, `POSTGRES_VECTORS_USER`, `POSTGRES_VECTORS_PASSWORD` | `knowgauge_vectors`, `knowgauge_user`, `knowgauge_pass` | Vector DB container and `KG_PGVECTOR_DATASOURCE_*` |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | `knowgauge`, `knowgauge_user`, `knowgauge_pass` | The one Postgres database and its owner; `SPRING_DATASOURCE_*` (schema `knowgauge`) and `KG_PGVECTOR_DATASOURCE_*` (schema `vectors`) |
+| `KEYCLOAK_DB_USER`, `KEYCLOAK_DB_PASSWORD` | `keycloak_user`, `keycloak_pass` | Keycloak's own login, limited to the `keycloak` schema (created with the data volume) |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | `minio`, `minio12345` | MinIO container and `KG_STORAGE_ACCESSKEY/SECRETKEY` |
 | `MINIO_BUCKET` | – | Informational (the app uses `kg.storage.bucket`) |
 | `OPENAI_API_KEY` | none | `kg.embedding.openai.api-key`, `kg.testgen.chat-model.openai.api-key` |
@@ -104,8 +104,8 @@ All services join the `knowgauge-network` bridge:
 
 | Service | Image | Ports | Volume |
 |---|---|---|---|
-| `postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` |
-| `postgres-vectors` | `pgvector/pgvector:pg15` | 5433→5432 | `postgres_vectors_data` |
+| `postgres` | `pgvector/pgvector:pg15` | 5432 | `db_data` (database `knowgauge`: schemas `knowgauge`, `vectors`, `keycloak`, created by `postgres/initdb` on the first start, ADR011) |
+| `keycloak` | `quay.io/keycloak/keycloak:26.8.2` | 8180→8080 on `127.0.0.1` | – (data in the `keycloak` schema) |
 | `minio` | `cgr.dev/chainguard/minio:latest` | 9000 (S3), 9001 (console) | `minio_data` |
 | `ollama` (profile `ollama`) | `ollama/ollama:latest` | 11434 | `ollama_data` |
 | `ollama-pull` (profile `ollama`, one-shot) | `ollama/ollama:latest` | – | – (pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits) |
@@ -113,8 +113,8 @@ All services join the `knowgauge-network` bridge:
 | `mailpit` | `axllent/mailpit:latest` | 1025 (SMTP), 8025 (inbox UI) on `127.0.0.1` | – (catches every invitation email) |
 | app (`knowgauge-service`, profile `full`) | built from `Dockerfile` | 8080, 5005 (JDWP, `suspend=n`) | – |
 
-The databases and the app have healthchecks; MinIO has none (its image has no shell or curl). The app `depends_on`
-the databases with `condition: service_healthy` and on MinIO with `condition: service_started`. Its own healthcheck polls `/actuator/health/readiness`. The app uses
+Postgres and the app have healthchecks; MinIO has none (its image has no shell or curl). The app `depends_on`
+Postgres with `condition: service_healthy` and on MinIO with `condition: service_started`. Its own healthcheck polls `/actuator/health/readiness`. The app uses
 `SPRING_PROFILES_ACTIVE=local`, and the compose file overrides the `localhost` values with the service hostnames
 through env vars, which take precedence over properties files (`SPRING_DATASOURCE_*`, `KG_PGVECTOR_DATASOURCE_*`,
 `KG_STORAGE_ENDPOINT`/`ACCESSKEY`/`SECRETKEY`, `OPENAI_API_KEY`, `KG_TESTGEN_VERIFICATION_*`).
@@ -125,7 +125,9 @@ For local development in the IDE, run only the backing services
 ### Deployment compose
 
 [`deploy/docker-compose.yml`](../../deploy/README.md) runs the same stack on one server with the `prod` profile:
-the app (all settings from `deploy/.env`, `KG_STORAGE_CREATE_BUCKET=true`), both databases, MinIO, the UI built
+the app (all settings from `deploy/.env`, `KG_STORAGE_CREATE_BUCKET=true`, security mode `oidc`), the same single
+Postgres with the three schemas, Keycloak in production mode (`start`, realm from `deploy/keycloak/knowgauge-realm.json`
+without the demo users, on `127.0.0.1:8180` for a reverse proxy with HTTPS at `KG_AUTH_URL`), MinIO, the UI built
 from a `know-gauge-ui` clone (the only published port, `KG_HTTP_PORT`, default 80) and Dozzle on `127.0.0.1:8888`
 with a login from `deploy/dozzle/users.yml`. Every container restarts `unless-stopped` and rotates its Docker log
 (3 × 20 MB). The compose project is named `knowgauge`. See [ADR007](../adr/ADR007-json-logs-and-dozzle.md).

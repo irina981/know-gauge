@@ -1,11 +1,13 @@
-# Production-style deployment on a single server: the app (prod profile), its databases, MinIO, the web UI and the
-# Dozzle log viewer. See deploy/README.md for the first-time setup.
+# Production-style deployment on a single server: the app (prod profile), one Postgres (schemas knowgauge, vectors
+# and keycloak), Keycloak for sign-in, MinIO, the web UI and the Dozzle log viewer. See deploy/README.md for the
+# first-time setup.
 #
 #   cp .env.example .env        # then fill in the secrets
 #   docker compose up -d --build
 #
-# Only the UI is published on the network (KG_HTTP_PORT, default 80); it forwards /api to the app. The databases,
-# MinIO and the app are reachable only inside the compose network. Dozzle listens on 127.0.0.1 and needs a login.
+# Only the UI is published on the network (KG_HTTP_PORT, default 80); it forwards /api to the app. Keycloak listens
+# on 127.0.0.1 for a reverse proxy with HTTPS (KG_AUTH_URL). Postgres, MinIO and the app are reachable only inside the
+# compose network. Dozzle listens on 127.0.0.1 and needs a login.
 name: knowgauge
 
 # Every container rotates its Docker log: at most 3 files of 20 MB. This is also how far back Dozzle can show.
@@ -16,6 +18,9 @@ x-logging: &default-logging
     max-file: "3"
 
 services:
+  # One Postgres for everything (ADR011): database knowgauge with the schemas knowgauge (app), vectors (embeddings,
+  # pgvector) and keycloak (Keycloak, own login). ../postgres/initdb creates them when the volume is first created.
+  # One pg_dump of this database backs up all three.
   postgres:
     image: pgvector/pgvector:pg15
     container_name: knowgauge-postgres
@@ -25,8 +30,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-knowgauge}
       POSTGRES_USER: ${POSTGRES_USER:-knowgauge_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in deploy/.env}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+      - ../postgres/initdb:/docker-entrypoint-initdb.d:ro
     networks: [knowgauge-network]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -34,23 +42,48 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres-vectors:
-    image: pgvector/pgvector:pg15
-    container_name: knowgauge-postgres-vectors
+  # Sign-in (ADR010), in production mode. Tables in the keycloak schema of the shared Postgres. The knowgauge realm
+  # (keycloak/knowgauge-realm.json: UI client, APPLICATION_ADMIN role, the first admin) is imported on the first start
+  # only. It listens on 127.0.0.1: put a reverse proxy with HTTPS in front of it at KG_AUTH_URL.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2
+    container_name: knowgauge-keycloak
     restart: unless-stopped
     logging: *default-logging
+    command: ["start", "--import-realm"]
     environment:
-      POSTGRES_DB: ${POSTGRES_VECTORS_DB:-knowgauge_vectors}
-      POSTGRES_USER: ${POSTGRES_VECTORS_USER:-knowgauge_user}
-      POSTGRES_PASSWORD: ${POSTGRES_VECTORS_PASSWORD:?Set POSTGRES_VECTORS_PASSWORD in deploy/.env}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}
+      KC_DB_SCHEMA: keycloak
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      # Public address (the token issuer); HTTP inside, HTTPS terminated by the reverse proxy
+      KC_HOSTNAME: ${KG_AUTH_URL:?Set KG_AUTH_URL (public Keycloak address, e.g. https://auth.example.com) in deploy/.env}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      # Keycloak's own admin (master realm), for the admin console
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?Set KC_BOOTSTRAP_ADMIN_PASSWORD in deploy/.env}
+      # Placeholders of the realm import
+      KG_ADMIN_EMAIL: ${KG_ADMIN_EMAIL:?Set KG_ADMIN_EMAIL (the first KnowGauge admin) in deploy/.env}
+      KG_ADMIN_PASSWORD: ${KG_ADMIN_PASSWORD:?Set KG_ADMIN_PASSWORD (temporary, changed at the first sign-in) in deploy/.env}
+      KG_PUBLIC_UI_URL: ${KG_PUBLIC_UI_URL}
+      KG_MAIL_HOST: ${KG_MAIL_HOST:-}
+      KG_MAIL_PORT: ${KG_MAIL_PORT:-587}
+      KG_MAIL_USERNAME: ${KG_MAIL_USERNAME:-}
+      KG_MAIL_PASSWORD: ${KG_MAIL_PASSWORD:-}
+      KG_MAIL_FROM_ADDRESS: ${KG_MAIL_FROM_ADDRESS:-no-reply@knowgauge.local}
+    ports:
+      - "127.0.0.1:${KG_KEYCLOAK_PORT:-8180}:8080"
     volumes:
-      - postgres_vectors_data:/var/lib/postgresql/data
+      - ./keycloak:/opt/keycloak/data/import:ro
+      # The KnowGauge login theme, built in the know-gauge-ui clone with `npm run build-keycloak-theme`
+      - ${KG_UI_SOURCE:-../../know-gauge-ui}/dist_keycloak:/opt/keycloak/providers:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks: [knowgauge-network]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   minio:
     # Same image and settings as local-development (minio/minio is no longer published). Runs as root so it can
@@ -81,13 +114,20 @@ services:
       # (see knowgauge-service-rest-api/src/main/resources/application-prod.properties).
       SPRING_PROFILES_ACTIVE: prod
 
-      KG_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}
+      # One database, two schemas of the app (ADR011)
+      KG_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}?currentSchema=knowgauge
       KG_DB_USERNAME: ${POSTGRES_USER:-knowgauge_user}
       KG_DB_PASSWORD: ${POSTGRES_PASSWORD}
 
-      KG_VECTOR_DB_URL: jdbc:postgresql://postgres-vectors:5432/${POSTGRES_VECTORS_DB:-knowgauge_vectors}
-      KG_VECTOR_DB_USERNAME: ${POSTGRES_VECTORS_USER:-knowgauge_user}
-      KG_VECTOR_DB_PASSWORD: ${POSTGRES_VECTORS_PASSWORD}
+      KG_VECTOR_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}?currentSchema=vectors
+      KG_VECTOR_DB_USERNAME: ${POSTGRES_USER:-knowgauge_user}
+      KG_VECTOR_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # Sign-in through the keycloak service (ADR010). Tokens carry the public issuer; the app fetches the signing
+      # keys inside the network.
+      KG_SECURITY_MODE: oidc
+      KG_OIDC_ISSUER_URI: ${KG_AUTH_URL}/realms/knowgauge
+      KG_OIDC_JWK_SET_URI: http://keycloak:8080/realms/knowgauge/protocol/openid-connect/certs
 
       KG_STORAGE_ENDPOINT: http://minio:9000
       KG_STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:-knowgauge}
@@ -105,6 +145,7 @@ services:
 
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in deploy/.env}
 
+      # Only used in security mode fixed (no sign-in); application-prod.properties needs a value.
       KG_TENANT_ID: ${KG_TENANT_ID:-1}
       KG_USER_ID: ${KG_USER_ID:-}
 
@@ -115,9 +156,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      postgres-vectors:
-        condition: service_healthy
       minio:
+        condition: service_started
+      keycloak:
         condition: service_started
     networks: [knowgauge-network]
     healthcheck:
@@ -137,6 +178,9 @@ services:
     logging: *default-logging
     environment:
       BACKEND_URL: http://knowgauge-service:8080
+      # The app signs in at the public Keycloak address (src/app/config.ts reads these from /config.js)
+      OIDC_AUTHORITY: ${KG_AUTH_URL}/realms/knowgauge
+      OIDC_CLIENT_ID: knowgauge-ui
     ports:
       - "${KG_HTTP_PORT:-80}:80"
     depends_on:
@@ -163,8 +207,7 @@ services:
     networks: [knowgauge-network]
 
 volumes:
-  postgres_data:
-  postgres_vectors_data:
+  db_data:
   minio_data:
 
 networks:

@@ -63,7 +63,7 @@ it (`fixed`), plus a shared read-only `LIBRARY` tenant for the samples (ADR010).
 - Entities: `AuditableEntity` carries Spring Data `@CreatedDate/@CreatedBy/...` and the `AuditingEntityListener`.
   `AuditingConfig` (rest-api) enables auditing with `AuditorAware` = `ExecutionContext.userId()` and `Instant.now()`.
   Both entity manager factories use Spring's bean container (`SpringBeanContainer`), so the listener gets its handler
-  in the vector DB too.
+  in the vectors schema too.
 - `created_by` / `updated_by`: the signed-in (or fixed) user, `0` for the system user (jobs, seeding), `NULL` when
   nobody is signed in (participants on public links).
 - The vector module has its own copies of `PersistedEntity` and `AuditableEntity`.

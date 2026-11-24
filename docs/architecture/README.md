@@ -14,7 +14,7 @@ This folder describes the architecture **as implemented** in the code (not aspir
 | 04 | [Document Ingestion](04-document-ingestion.md) | Upload → storage → parse → chunk → embed pipeline |
 | 05 | [Chunk Retrieval](05-retrieval.md) | Coverage modes, per-document quotas, pgvector candidate sampling |
 | 06 | [Test Generation](06-test-generation.md) | Batch generation, prompts, validation, incorrect-option verification |
-| 07 | [Persistence & Storage](07-persistence-and-storage.md) | Two databases, transaction managers, Flyway, schema, MinIO |
+| 07 | [Persistence & Storage](07-persistence-and-storage.md) | One database with two app schemas, transaction managers, Flyway, MinIO |
 | 08 | [REST API](08-rest-api.md) | Endpoints, DTOs, error mapping |
 | 09 | [Configuration & Deployment](09-configuration-and-deployment.md) | Properties, profiles, Docker Compose, environment variables |
 | 10 | [Cross-Cutting Concerns](10-cross-cutting-concerns.md) | Resilience, multi-tenancy, auditing, exceptions, logging, security |
@@ -41,8 +41,8 @@ flowchart LR
         Core[core: services + domain + ports]
         Adapters[infra adapters]
     end
-    MainDB[(PostgreSQL<br/>main DB)]
-    VecDB[(PostgreSQL + pgvector<br/>vector DB)]
+    MainDB[(PostgreSQL<br/>schema knowgauge)]
+    VecDB[(PostgreSQL + pgvector<br/>schema vectors, same database)]
     MinIO[(MinIO<br/>object storage)]
     OpenAI[[OpenAI API<br/>embeddings + chat]]
 

@@ -485,9 +485,10 @@ Maps which Documents are cited as sources in a Test.
 
 **Purpose:** Track document usage for test statistics and audit
 
-## Vector Database (Separate PostgreSQL with pgvector)
+## Vector Store (schema `vectors`, pgvector)
 
-This is a separate database (postgres-vectors) containing only embedding data for efficient similarity search.
+The `vectors` schema of the same PostgreSQL database (ADR011) holds only embedding data, behind its own datasource and
+persistence unit, with no foreign keys to the domain tables.
 
 ### ChunkEmbedding (Vector Storage)
 Maps DocumentChunks to their vectorized embeddings for semantic search.
@@ -544,7 +545,7 @@ src/main/resources/db/migration/V1__create_initial_schema.sql
 ### Key Features:
 - ✅ Multi-tenant isolation with tenantId on all core entities
 - ✅ Complete audit trail (createdBy, updatedBy, createdAt, updatedAt)
-- ✅ pgvector extension enabled in vector database
+- ✅ pgvector extension enabled in the `vectors` schema
 - ✅ All tables with proper constraints and CHECK clauses
 - ✅ Foreign keys with appropriate cascade rules (CASCADE or SET NULL)
 - ✅ Unique constraints for data integrity (e.g., UNIQUE(tenantId, documentId, ordinal))

@@ -28,7 +28,7 @@ docker compose -f local-development/docker-compose.yml --profile full up --build
 Compose files and `.env.example` live in [`local-development/`](local-development/README.md). The single-server
 production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/README.md).
 
-- Spring profiles: `local` (development; localhost ports 5432/5433/9000, also used by the compose app container with
+- Spring profiles: `local` (development; localhost ports 5432/9000/8180, also used by the compose app container with
   env-var host overrides), `test` (automated tests only) and `prod` (every environment-specific value from env vars,
   required ones without defaults; the `Dockerfile` defaults to it). `application.properties` holds the values common
   to all. One profile is **required**: without it the datasources are missing and startup fails.
@@ -82,9 +82,11 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   in `restapi.mapper`, entity mappers in `infra.*.mapper`). Don't leak entities or DTOs into core.
 - Domain objects are Lombok POJOs (`@SuperBuilder`, `@Getter/@Setter`) extending `AuditableObject`, with no
   persistence annotations.
-- **Two databases, two transaction managers**: `transactionManager` (main, `@Primary`) and
-  `vectorTransactionManager`. Vector writes need
-  `@Transactional(transactionManager = "vectorTransactionManager")`. There are no cross-DB transactions.
+- **One Postgres database, two app schemas, two transaction managers** ([ADR011](docs/adr/ADR011-one-postgres-with-three-schemas.md)):
+  schema `knowgauge` with `transactionManager` (`@Primary`) and schema `vectors` with `vectorTransactionManager`
+  (each datasource URL sets `?currentSchema=`; each Flyway has its own history). Keycloak uses a third schema,
+  `keycloak`, with its own login (`postgres/initdb`). Vector writes need
+  `@Transactional(transactionManager = "vectorTransactionManager")`. There are no cross-schema transactions or FKs.
 - **Keep external calls out of DB transactions.** Orchestrators (`IngestionServiceImpl`,
   `TestGenerationServiceImpl`) are non-transactional and call separate `*TransactionalServiceImpl` beans for short
   transactions. Don't add `@Transactional` to the orchestrators, and don't self-invoke transactional methods.

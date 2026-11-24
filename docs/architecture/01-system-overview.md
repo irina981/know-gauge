@@ -22,8 +22,8 @@ flowchart TB
     User([User / API client])
     KG[KnowGauge Service<br/>Spring Boot 3.5, Java 21]
     OpenAI[[OpenAI<br/>text-embedding-3-small<br/>gpt-4.1 chat]]
-    PG[(knowgauge<br/>PostgreSQL 15)]
-    PGV[(knowgauge_vectors<br/>PostgreSQL 15 + pgvector)]
+    PG[(schema knowgauge<br/>PostgreSQL 15)]
+    PGV[(schema vectors<br/>same database, pgvector)]
     S3[(MinIO bucket<br/>knowgauge-content)]
 
     User -- REST / Swagger UI --> KG
@@ -35,8 +35,8 @@ flowchart TB
 
 | External system | Role | Adapter module |
 |---|---|---|
-| PostgreSQL (`knowgauge`) | System of record for the relational domain | `knowgauge-service-infra-repository-springdata-jpa` |
-| PostgreSQL + pgvector (`knowgauge_vectors`) | Chunk embeddings and chunk sampling | `knowgauge-service-infra-vectorstore-pgvector` |
+| PostgreSQL, schema `knowgauge` | System of record for the relational domain | `knowgauge-service-infra-repository-springdata-jpa` |
+| PostgreSQL + pgvector, schema `vectors` of the same database (ADR011) | Chunk embeddings and chunk sampling | `knowgauge-service-infra-vectorstore-pgvector` |
 | MinIO | Original document binaries | `knowgauge-service-infra-storage-minio` |
 | OpenAI embeddings | Chunk embeddings (1536-dim) | `knowgauge-service-infra-embedding-langchain4j-openai` |
 | OpenAI chat | MCQ generation and incorrect-option verification | `knowgauge-service-infra-testgeneration-langchain4j-openai` |
@@ -47,17 +47,15 @@ flowchart TB
 flowchart LR
     subgraph net[knowgauge-network  bridge]
         app[knowgauge-service<br/>:8080 http, :5005 jdwp]
-        pg[(knowgauge-postgres<br/>:5432)]
-        pgv[(knowgauge-postgres-vectors<br/>host :5433 → 5432)]
+        pg[(knowgauge-postgres<br/>:5432<br/>schemas knowgauge, vectors, keycloak)]
         minio[(knowgauge-minio<br/>:9000 S3, :9001 console)]
     end
     app --> pg
-    app --> pgv
     app --> minio
 ```
 
-The app is a **single deployable** (`knowgauge-service-rest-api` fat jar). The app container waits for the three
-backing services to report healthy before it starts. See [09](09-configuration-and-deployment.md).
+The app is a **single deployable** (`knowgauge-service-rest-api` fat jar). The app container waits for Postgres to report
+healthy and for MinIO, Mailpit and Keycloak to start. See [09](09-configuration-and-deployment.md).
 
 ## Technology stack
 
@@ -70,7 +68,7 @@ backing services to report healthy before it starts. See [09](09-configuration-a
 | PDF parsing | Apache PDFBox 3 (`Loader`, `PDFTextStripper`) |
 | Relational persistence | Hibernate 6.6 / Spring Data JPA, PostgreSQL 15, Hypersistence Utils (`hypersistence-utils-hibernate-63`) `JsonType` for JSONB |
 | Vector store | pgvector (`vector(1536)`, IVFFlat cosine index), Hibernate `SqlTypes.VECTOR` |
-| Schema migrations | Flyway 11 (with `flyway-database-postgresql`), two independent Flyway instances (one per database) |
+| Schema migrations | Flyway 11 (with `flyway-database-postgresql`), two independent Flyway instances (one per schema: `knowgauge`, `vectors`) |
 | Object storage | MinIO Java SDK (OkHttp client with explicit timeouts) |
 | Resilience | Resilience4j 2.2 (Retry, CircuitBreaker, Bulkhead annotations) |
 | Mapping | MapStruct 1.5.5 (entity↔domain, domain↔DTO) |

@@ -5,7 +5,8 @@ This folder runs KnowGauge on one server with the `prod` Spring profile. For dev
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` | The app, its databases, MinIO, the web UI and the Dozzle log viewer |
+| `docker-compose.yml` | The app, one Postgres, Keycloak, MinIO, the web UI and the Dozzle log viewer |
+| `keycloak/knowgauge-realm.json` | The `knowgauge` realm imported on the first start: UI client, `APPLICATION_ADMIN` role, the first admin (no demo users) |
 | `.env.example` | Every variable `docker-compose.yml` reads, with the required secrets first |
 | `.env` | Your copy of `.env.example` with real values (gitignored, never commit it) |
 | `dozzle/users.yml` | Dozzle login (gitignored, created in step 3) |
@@ -16,14 +17,14 @@ This folder runs KnowGauge on one server with the `prod` Spring profile. For dev
 |---|---|---|---|
 | `knowgauge-ui` | built from `know-gauge-ui` | `KG_HTTP_PORT` (80) | The web UI. Forwards `/api` to the app |
 | `knowgauge-service` | built from the root `Dockerfile` | – | The Spring Boot app, `prod` profile, JSON logs |
-| `postgres` | `pgvector/pgvector:pg15` | – | Main database |
-| `postgres-vectors` | `pgvector/pgvector:pg15` | – | Vector database |
+| `postgres` | `pgvector/pgvector:pg15` | – | One database (`knowgauge`) with three schemas (ADR011): `knowgauge` (app data), `vectors` (embeddings) and `keycloak` (Keycloak, its own login). [`../postgres/initdb`](../postgres/initdb/01-schemas.sh) creates them on the first start |
+| `keycloak` | `quay.io/keycloak/keycloak:26.8.2` | `127.0.0.1:8180` | Sign-in (ADR010), production mode, for a reverse proxy with HTTPS at `KG_AUTH_URL`. Loads the login theme from the `know-gauge-ui` clone |
 | `minio` | `cgr.dev/chainguard/minio:latest` | – | Object storage for the uploaded PDFs. The app creates the bucket at startup |
 | `dozzle` | `amir20/dozzle:latest` | `127.0.0.1:8888` | Log viewer, behind a login |
 
-Only the UI is reachable from the network. Every container restarts automatically and keeps at most 3 × 20 MB
-of Docker logs. Data lives in the named volumes `knowgauge_postgres_data`, `knowgauge_postgres_vectors_data` and
-`knowgauge_minio_data`, so it survives `docker compose down` (but not `down -v`).
+Only the UI is reachable from the network; Keycloak and Dozzle listen on `127.0.0.1`. Every container restarts
+automatically and keeps at most 3 × 20 MB of Docker logs. Data lives in the named volumes `knowgauge_db_data`
+(all three schemas) and `knowgauge_minio_data`, so it survives `docker compose down` (but not `down -v`).
 
 ## First-time setup
 
@@ -39,10 +40,17 @@ The server needs Docker with the Compose plugin and about 4 GB of RAM.
 
    If the UI is elsewhere, set `KG_UI_SOURCE` in `.env`.
 
-2. Create `.env` and fill in the four secrets:
+2. Create `.env` and fill in the required values: the secrets, the public UI and Keycloak addresses
+   (`KG_PUBLIC_UI_URL`, `KG_AUTH_URL`) and the first admin (`KG_ADMIN_EMAIL`, `KG_ADMIN_PASSWORD`, temporary):
 
    ```bash
    cp .env.example .env
+   ```
+
+   Build the Keycloak login theme in the UI clone (needs Node 20 and Maven):
+
+   ```bash
+   cd ../../know-gauge-ui && npm ci && npm run build-keycloak-theme && cd -
    ```
 
 3. Create the Dozzle login. This writes a bcrypt hash, not the password:
@@ -59,8 +67,9 @@ The server needs Docker with the Compose plugin and about 4 GB of RAM.
    ```
 
    The first build downloads the Maven and npm dependencies and takes a few minutes. The UI starts once the app's
-   healthcheck reports `UP`. Flyway creates the schema on the first start. The `prod` profile seeds no topics or
-   documents.
+   healthcheck reports `UP`. Flyway creates the app's tables on the first start, and Keycloak imports the realm.
+   The `prod` profile seeds no topics or documents. Sign in at the UI with `KG_ADMIN_EMAIL`; Keycloak asks for a new
+   password.
 
 ## Logs
 
@@ -91,7 +100,8 @@ docker compose up -d --build
 
 ## Not covered yet
 
-- **HTTPS.** The UI is published as plain HTTP. Put a reverse proxy with TLS (for example Caddy or Traefik) in
-  front of it, or set `KG_HTTP_PORT` to a local port and route to it from your provider's load balancer.
-- **Backups.** Back up the three volumes (or use `pg_dump` for the databases).
-- **Authentication.** There is no login yet: anyone who can open the UI uses the single tenant `KG_TENANT_ID`.
+- **HTTPS.** The UI and Keycloak speak plain HTTP. Put a reverse proxy with TLS (for example Caddy) in front of both:
+  the UI at `KG_PUBLIC_UI_URL` and Keycloak (`127.0.0.1:8180`) at `KG_AUTH_URL`. Sign-in needs HTTPS outside
+  localhost.
+- **Backups.** One `pg_dump` of the `knowgauge` database covers the app data, the embeddings and Keycloak. Back up
+  the MinIO volume too.

@@ -127,7 +127,7 @@ as a short transaction:
 | Orchestrator (no tx) | Helper bean | Transaction manager |
 |---|---|---|
 | `IngestionServiceImpl` | `IngestionTransactionalServiceImpl` | `transactionManager` (main DB) |
-| `IngestionServiceImpl` | `IngestionVectorTransactionalServiceImpl` | `vectorTransactionManager` (vector DB) |
+| `IngestionServiceImpl` | `IngestionVectorTransactionalServiceImpl` | `vectorTransactionManager` (vectors schema) |
 | `TestGenerationServiceImpl` | `TestGenerationTransactionalServiceImpl` | `transactionManager` |
 
 This keeps long-running external calls (OpenAI, MinIO) **outside** DB transactions. Status updates such as

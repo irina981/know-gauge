@@ -63,7 +63,7 @@ erDiagram
 | Content | `Topic` | Materialized path (`/1000/2000/2100`) enables subtree queries via `LIKE 'prefix%'`. Unique name per parent |
 | Document | `Document` | Versioned (`version`, currently always 1). Unique per topic by file name **and** by SHA-256 content checksum |
 | Chunks | `DocumentChunk` | Keyed by `(tenant, document, version, ordinal)`. Carries page range, char offsets and a SHA-256 checksum |
-| Embedding | `ChunkEmbedding` | Lives in the **vector DB**. Denormalizes tenant/topic/document/version/section so it can be filtered without joins. Unique per `(tenant, chunk, embedding_model)` |
+| Embedding | `ChunkEmbedding` | Lives in the **vectors schema**. Denormalizes tenant/topic/document/version/section so it can be filtered without joins. Unique per `(tenant, chunk, embedding_model)` |
 | Test | `Test` | Holds the generation config, scope (topic and document IDs), used chunks, status and lifecycle timestamps |
 | Question | `TestQuestion` | A stable **slot** (position, status, pointer to its current version). Content lives in immutable `TestQuestionVersion`s (see [below](#questions-versions-and-review-adr001)) |
 | History | `TestEvent` | Append-only trail of a test: generation, flags, review actions, status changes, with actor and time |

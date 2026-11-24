@@ -7,6 +7,8 @@
 # `docker compose --profile full up --build` also builds and starts the app container (local profile).
 # `--profile ollama` also starts Ollama and pulls the model (about 4.7 GB) for the opt-in local verifier.
 services:
+  # One Postgres for everything (ADR011): database knowgauge with the schemas knowgauge (app), vectors (embeddings,
+  # pgvector) and keycloak (Keycloak, own login). ../postgres/initdb creates them when the volume is first created.
   postgres:
     image: pgvector/pgvector:pg15
     container_name: knowgauge-postgres
@@ -14,28 +16,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-knowgauge}
       POSTGRES_USER: ${POSTGRES_USER:-knowgauge_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-knowgauge_pass}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks: [knowgauge-network]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-vectors:
-    image: pgvector/pgvector:pg15
-    container_name: knowgauge-postgres-vectors
-    environment:
-      POSTGRES_DB: ${POSTGRES_VECTORS_DB:-knowgauge_vectors}
-      POSTGRES_USER: ${POSTGRES_VECTORS_USER:-knowgauge_user}
-      POSTGRES_PASSWORD: ${POSTGRES_VECTORS_PASSWORD:-knowgauge_pass}
-    ports:
-      - "5433:5432"   # host 5433 -> container 5432 (avoid conflict with main)
-    volumes:
-      - postgres_vectors_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+      - ../postgres/initdb:/docker-entrypoint-initdb.d:ro
     networks: [knowgauge-network]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -86,12 +73,18 @@ services:
   # Sign-in (ADR010): Keycloak with the knowgauge realm imported from keycloak/knowgauge-realm.json on the first
   # start (realm, UI client, roles and the users admin / alice / bob). Used when the app runs with
   # KG_SECURITY_MODE=oidc. Admin console: http://localhost:8180 (KC_BOOTSTRAP_ADMIN_*, master realm).
-  # Registration and password-reset emails go to Mailpit. Delete the keycloak_data volume to import the realm again.
+  # Registration and password-reset emails go to Mailpit. Its tables are in the keycloak schema of the shared Postgres;
+  # the realm is imported only while it does not exist there (delete the db_data volume to import it again).
   keycloak:
     image: quay.io/keycloak/keycloak:26.8.2
     container_name: knowgauge-keycloak
     command: ["start-dev", "--import-realm"]
     environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}
+      KC_DB_SCHEMA: keycloak
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}
       # The KnowGauge application admin (APPLICATION_ADMIN realm role) created by the realm import
@@ -106,8 +99,9 @@ services:
       # The KnowGauge login theme (loginTheme in the realm), built in know-gauge-ui with `npm run build-keycloak-theme`.
       # Without it Keycloak shows its own pages. Stop keycloak while rebuilding the theme (Windows locks the mounted jar).
       - ${KG_KEYCLOAK_THEME_DIR:-../../know-gauge-ui/dist_keycloak}:/opt/keycloak/providers:ro
-      # The whole data folder (owned by the keycloak user in the image); the import folder is mounted inside it
-      - keycloak_data:/opt/keycloak/data
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks: [knowgauge-network]
 
   # Opt-in local LLM for distractor verification (kg.testgen.verification.provider=ollama). Not started by default.
@@ -150,15 +144,15 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: local
 
-      # Main DB (Spring default datasource)
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}
+      # Main data: schema knowgauge (Spring default datasource)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}?currentSchema=knowgauge
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-knowgauge_user}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-knowgauge_pass}
 
-      # Vector DB (kg.pgvector.datasource.*, bound to DataSourceProperties)
-      KG_PGVECTOR_DATASOURCE_URL: jdbc:postgresql://postgres-vectors:5432/${POSTGRES_VECTORS_DB:-knowgauge_vectors}
-      KG_PGVECTOR_DATASOURCE_USERNAME: ${POSTGRES_VECTORS_USER:-knowgauge_user}
-      KG_PGVECTOR_DATASOURCE_PASSWORD: ${POSTGRES_VECTORS_PASSWORD:-knowgauge_pass}
+      # Embeddings: schema vectors of the same database (kg.pgvector.datasource.*)
+      KG_PGVECTOR_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-knowgauge}?currentSchema=vectors
+      KG_PGVECTOR_DATASOURCE_USERNAME: ${POSTGRES_USER:-knowgauge_user}
+      KG_PGVECTOR_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-knowgauge_pass}
       KG_PGVECTOR_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
 
       # MinIO (kg.storage.endpoint / accessKey / secretKey)
@@ -195,8 +189,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      postgres-vectors:
-        condition: service_healthy
       minio:
         condition: service_started
       mailpit:
@@ -210,9 +202,7 @@ services:
       start_period: 30s
 
 volumes:
-  keycloak_data:
-  postgres_data:
-  postgres_vectors_data:
+  db_data:
   minio_data:
   ollama_data:
 

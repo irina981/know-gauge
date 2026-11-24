@@ -134,9 +134,10 @@ docker compose -f local-development/docker-compose.yml --profile full up --build
 Without `--profile full`, compose starts only the backing services. See
 [local-development/README.md](local-development/README.md) for details, including how to run the app from the IDE.
 
-This will start 4 containers:
-- **postgres**: Main PostgreSQL database for storing application domain objects (port 5432)
-- **postgres-vectors**: Separate PostgreSQL database with pgvector extension for vector embeddings (port 5433)
+This starts, among others:
+- **postgres**: One PostgreSQL database (`knowgauge`, port 5432) with three schemas: `knowgauge` (domain objects),
+  `vectors` (embeddings, pgvector) and `keycloak` (sign-in). See [ADR011](docs/adr/ADR011-one-postgres-with-three-schemas.md)
+- **keycloak**: Sign-in (port 8180)
 - **minio**: MinIO object storage for document files (ports 9000, 9001)
 - **knowgauge-service**: KnowGauge Spring Boot application (port 8080, debug 5005)
 
@@ -169,9 +170,10 @@ java -jar knowgauge-service-rest-api/target/knowgauge-service-rest-api-1.0.0-SNA
 
 ## Database Schema
 
-The application uses PostgreSQL with pgvector extension (main DB) and a separate vector database for embeddings. Flyway manages all migrations.
+The application uses one PostgreSQL database with two schemas: `knowgauge` for the domain and `vectors` (pgvector) for
+embeddings. Each has its own datasource and Flyway history. Keycloak keeps its tables in a third schema, `keycloak`.
 
-**Primary Database (postgres) - Migration V1:**
+**Schema `knowgauge` - migrations V1, V2:**
 - **topics**: Hierarchical topic structure (supports unlimited depth via parent_id, tenant-scoped)
 - **documents**: Uploaded documents with metadata and status tracking (UPLOADED, INGESTING, INGESTED, FAILED)
 - **document_sections**: Optional document structure for better chunking with page ranges
@@ -194,7 +196,7 @@ The application uses PostgreSQL with pgvector extension (main DB) and a separate
 Review of flagged questions (accept fix / regenerate / manual replace) and the history trail are described in
 [ADR001](docs/adr/ADR001-review-process.md).
 
-**Vector Database (postgres-vectors):**
+**Schema `vectors`:**
 - **chunk_embeddings**: Vector embeddings storage (via pgvector extension)
   - pgvector data type for 1536-dimensional embeddings
   - IVFFlat index for efficient similarity search using cosine distance

@@ -16,7 +16,7 @@ has a default that matches `application-local.properties`:
 | Variable | Default |
 |---|---|
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `knowgauge` / `knowgauge_user` / `knowgauge_pass` |
-| `POSTGRES_VECTORS_DB` / `POSTGRES_VECTORS_USER` / `POSTGRES_VECTORS_PASSWORD` | `knowgauge_vectors` / `knowgauge_user` / `knowgauge_pass` |
+| `KEYCLOAK_DB_USER` / `KEYCLOAK_DB_PASSWORD` | `keycloak_user` / `keycloak_pass` (Keycloak's login, limited to the `keycloak` schema) |
 | `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | `minio` / `minio12345` |
 | `OPENAI_API_KEY` | none (needed for ingestion and test generation) |
 | `KG_TESTGEN_VERIFICATION_PROVIDER` | `openai` (set `ollama`, with `--profile ollama`, to verify locally) |
@@ -32,18 +32,22 @@ shell, or copy `.env.example` to `.env` and put it there. Compose reads `.env` f
 All containers join the `knowgauge-network` bridge network. The databases and the app have healthchecks, and data is kept in
 named volumes, so it survives `docker compose down` (use `down -v` to wipe it).
 
+Before ADR011 there were two Postgres containers and Keycloak kept a file database. Their volumes
+(`postgres_data`, `postgres_vectors_data`, `keycloak_data`) are no longer used: the new `db_data` volume starts empty
+and the dev seed fills it again. Remove the old ones with
+`docker volume rm local-development_postgres_data local-development_postgres_vectors_data local-development_keycloak_data`.
+
 | Service | Container | Image | Host ports | Volume | What it is for |
 |---|---|---|---|---|---|
-| `postgres` | `knowgauge-postgres` | `pgvector/pgvector:pg15` | 5432 | `postgres_data` | Main database: topics, documents, chunks, tests, questions, attempts, generation runs. Schema created by Flyway on app startup |
-| `postgres-vectors` | `knowgauge-postgres-vectors` | `pgvector/pgvector:pg15` | 5433 → 5432 | `postgres_vectors_data` | Vector database: chunk embeddings (`vector(1536)`) used for retrieval |
+| `postgres` | `knowgauge-postgres` | `pgvector/pgvector:pg15` | 5432 | `db_data` | The one database (`knowgauge`, ADR011), with three schemas: `knowgauge` (topics, documents, chunks, tests, attempts, users; Flyway on app startup), `vectors` (chunk embeddings, `vector(1536)`) and `keycloak` (Keycloak, its own login). [`../postgres/initdb`](../postgres/initdb/01-schemas.sh) creates the schemas and Keycloak's login when the volume is first created |
 | `minio` | `knowgauge-minio` | `cgr.dev/chainguard/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
-| `keycloak` | `knowgauge-keycloak` | `quay.io/keycloak/keycloak:26.8.2` | 8180 → 8080 (localhost only) | `keycloak_data` | Sign-in (ADR010), used when the app runs with `KG_SECURITY_MODE=oidc`. Imports the `knowgauge` realm from `keycloak/knowgauge-realm.json` on first start and loads the login theme from `../../know-gauge-ui/dist_keycloak` (see [Sign-in](#sign-in-keycloak)) |
+| `keycloak` | `knowgauge-keycloak` | `quay.io/keycloak/keycloak:26.8.2` | 8180 → 8080 (localhost only) | – (schema `keycloak`) | Sign-in (ADR010), used when the app runs with `KG_SECURITY_MODE=oidc`. Starts after `postgres` is healthy. Imports the `knowgauge` realm from `keycloak/knowgauge-realm.json` on first start and loads the login theme from `../../know-gauge-ui/dist_keycloak` (see [Sign-in](#sign-in-keycloak)) |
 | `dozzle` | `knowgauge-dozzle` | `amir20/dozzle:latest` | 8888 → 8080 (localhost only) | – | Web log viewer for all containers on this Docker host (see [Logs](#logs)) |
 | `ollama` | `knowgauge-ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` | Opt-in (`--profile ollama`). Local LLM server for the optional local distractor verifier |
 | `ollama-pull` | `knowgauge-ollama-pull` | `ollama/ollama:latest` | – | – | Opt-in (`--profile ollama`). One-shot: pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits. The first pull downloads about 4.7 GB |
 | `knowgauge-service` | `knowgauge-service` | built from the root `Dockerfile` | 8080 (HTTP), 5005 (JDWP debugger) | – | The Spring Boot app, run with the `local` profile (hostnames overridden through env vars). Only in the `full` compose profile (see option 2). Starts only after the other services are healthy |
 
-The database and MinIO credentials come from `POSTGRES_*`, `POSTGRES_VECTORS_*` and `MINIO_ROOT_*` (defaults
+The database and MinIO credentials come from `POSTGRES_*`, `KEYCLOAK_DB_*` and `MINIO_ROOT_*` (defaults
 above). The app also needs `OPENAI_API_KEY` for embeddings and test generation.
 
 With the `local` profile the app seeds a fixed topic tree (two root topics, "Programming"
@@ -55,7 +59,7 @@ the ingestion endpoint for each document before generating tests. The onboarding
 ## Option 1: backing services only (run the app from the IDE)
 
 This is the usual setup while coding. Start the databases and MinIO in Docker, then run the app locally with the
-`local` profile, which points at `localhost:5432`, `localhost:5433` and `localhost:9000`.
+`local` profile, which points at `localhost:5432` (schemas `knowgauge` and `vectors`) and `localhost:9000`.
 
 A plain `up` starts only these backing services and Dozzle. The app sits in the `full` compose profile and Ollama in the
 `ollama` compose profile. From the repository root:
@@ -113,7 +117,8 @@ personal tenant on their first sign-in. Registration emails go to Mailpit.
 
 The Keycloak admin console (http://localhost:8180, master realm) has its own login: `KC_BOOTSTRAP_ADMIN_USERNAME` /
 `KC_BOOTSTRAP_ADMIN_PASSWORD`, `admin` / `admin` by default. The realm is imported only when it doesn't exist yet:
-after changing `knowgauge-realm.json`, delete the `keycloak_data` volume (or change the setting in the console).
+after changing `knowgauge-realm.json`, change the setting in the console, or delete the `db_data` volume (this resets
+the app's data too).
 
 To call the API without the UI, get a token for a local user and send it as `Authorization: Bearer …` (or paste it
 into Swagger UI's **Authorize**):

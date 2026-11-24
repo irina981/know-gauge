@@ -77,7 +77,7 @@ sequenceDiagram
     end
     IS->>ITX: persistChunks – delete old chunks for (tenant,doc,version) + saveAll  [commit #2]
     IS->>E: embed(List<chunkText>) – batch
-    IS->>VTX: persistEmbeddings – delete old (tenant,doc,version,model) + saveAll  [commit #3, vector DB]
+    IS->>VTX: persistEmbeddings – delete old (tenant,doc,version,model) + saveAll  [commit #3, vectors schema]
     IS->>ITX: markIngested  [commit #4]
     Note over IS: on any exception → ITX.markFailed(id, message) [commit], rethrow RuntimeException
 ```
@@ -157,9 +157,9 @@ In `prod` they come from `KG_INGESTION_JOB_ENABLED`, `KG_INGESTION_JOB_CRON` and
 - **Re-ingestion is idempotent per (document, version)**: old chunks and old embeddings (for the current model)
   are deleted before the new ones are inserted. `FAILED` documents can be re-ingested.
 - **No distributed transaction**: the chunk commit (#2) and the embedding commit (#3) go to different databases.
-  If embedding fails, the document is marked `FAILED`. The chunks stay in the main DB without embeddings until the
-  next successful re-ingestion. Because retrieval reads only from the vector DB, orphan chunks are never sampled.
+  If embedding fails, the document is marked `FAILED`. The chunks stay in the main schema without embeddings until the
+  next successful re-ingestion. Because retrieval reads only from the vectors schema, orphan chunks are never sampled.
 - Deleting old chunks cascades (FK `ON DELETE CASCADE`) to `test_used_chunks` rows. Re-ingesting a document
   therefore erases the used-chunk history of earlier tests that used it.
-- Embeddings are not deleted when a document is deleted, because the vector DB has no FK to the main DB.
+- Embeddings are not deleted when a document is deleted, because the vectors schema has no FK to the main schema.
   See [11](11-known-issues-and-roadmap.md).

@@ -1,7 +1,8 @@
 # 07 – Persistence & Storage
 
-KnowGauge uses **three stores**: a relational PostgreSQL database (system of record), a separate PostgreSQL
-database with the pgvector extension for embeddings, and MinIO for the original files.
+KnowGauge uses **three stores**: the relational data (system of record) and the embeddings (pgvector) in two schemas
+of one PostgreSQL database, and MinIO for the original files. The same database also holds Keycloak's schema
+(ADR011).
 
 ```mermaid
 flowchart LR
@@ -12,15 +13,19 @@ flowchart LR
         DS2[vectorDataSource] --> EMF2[vectorEntityManagerFactory<br/>PU 'pgvector'] --> TM2[vectorTransactionManager]
         DS2 --> FW2[pgvectorFlyway bean]
     end
-    DS1 --> MAIN[(knowgauge<br/>db/migration + db/dev-migration)]
-    DS2 --> VEC[(knowgauge_vectors<br/>db/pgvector-migration)]
+    DS1 --> MAIN[(schema knowgauge<br/>db/migration + db/dev-migration)]
+    DS2 --> VEC[(schema vectors<br/>db/pgvector-migration)]
 ```
 
-## Why two databases?
+## Why two persistence units?
 
-The embeddings sit in their own database (`chunk_embeddings` copies the tenant, topic, document, version and
-section metadata) so the vector store can later move to a dedicated vector DB without touching the relational
-model. The cost is **no foreign keys and no transactions across the two stores**. See
+The embeddings sit in their own schema, behind their own datasource and persistence unit (`chunk_embeddings` copies
+the tenant, topic, document, version and section metadata), so the vector store can later move to a dedicated vector
+DB without touching the relational model. Each datasource selects its schema (`?currentSchema=knowgauge` or
+`?currentSchema=vectors`), and each Flyway keeps its history in its own schema (`spring.flyway.schemas`,
+`kg.pgvector.flyway.schemas`). ADR011 explains why both share one database.
+
+The cost is **no foreign keys and no transactions across the two stores**. See
 [04](04-document-ingestion.md#consistency-and-idempotency).
 
 ## Wiring
@@ -35,7 +40,7 @@ model. The cost is **no foreign keys and no transactions across the two stores**
 `KnowGaugeApplication` `@Import`s both JPA configs explicitly. Hibernate runs with `ddl-auto=validate`, so
 **Flyway owns the schema** and the entities must match it exactly.
 
-Code that writes to the vector DB must use `@Transactional(transactionManager = "vectorTransactionManager")`
+Code that writes to the vectors schema must use `@Transactional(transactionManager = "vectorTransactionManager")`
 (see `IngestionVectorTransactionalServiceImpl`). Native queries in `PgVectorStore` use
 `@PersistenceContext(unitName = "pgvector")`. Spring Data derived **delete** methods misbehave on the secondary
 persistence unit, so `ChunkEmbeddingJpaRepository` uses explicit `@Modifying` JPQL deletes. The repository has a
@@ -85,7 +90,7 @@ current user from `ExecutionContext`, `0` (system user) for jobs, `NULL` for ano
 
 JSONB columns are mapped with Hypersistence `@Type(JsonType.class)` (`Map<String,Object>`, `List<Long>`).
 
-## Vector schema (vector DB)
+## Vector schema (`vectors`)
 
 ```sql
 chunk_embeddings(

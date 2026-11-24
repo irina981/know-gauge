@@ -55,7 +55,7 @@ flowchart TD
 | `BALANCED_PER_DOC_CHUNKS` (default) | `round(limit × docChunks / totalChunks)`, then a rounding-drift correction: missing slots go to the largest documents first, extra slots are removed from the largest budgets first | Representation proportional to content volume. Small documents can end up with a quota of 0 |
 | `FOCUSED` | None: similarity decides (see below) | Questions about one subject inside broad material |
 
-### Candidate SQL (vector DB)
+### Candidate SQL (vectors schema)
 
 ```sql
 WITH ranked AS (
@@ -134,6 +134,6 @@ small last batch does not take chunks that a full batch needs.
 ## Extension points
 
 - **Avoid repeats**: exclude chunk IDs found in `test_used_chunks` of earlier `GENERATED` tests. `test_used_chunks`
-  is in the main DB, so the excluded IDs have to be passed to the vector DB query as a parameter. A cross-DB join
-  is not possible.
+  is in the `knowgauge` schema, so the excluded IDs have to be passed to the `vectors` query as a parameter. The two
+  schemas share a database, but they are separate persistence units, so the query cannot join them.
 - **Re-ranking**: an optional second stage after candidate retrieval.

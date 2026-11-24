@@ -1,0 +1,77 @@
+{
+  "realm": "knowgauge",
+  "displayName": "KnowGauge",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": true,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(8) and notUsername and notEmail",
+  "accessTokenLifespan": 300,
+  "loginTheme": "knowgauge",
+  "smtpServer": {
+    "host": "${KG_MAIL_HOST}",
+    "port": "${KG_MAIL_PORT:587}",
+    "auth": "true",
+    "starttls": "true",
+    "user": "${KG_MAIL_USERNAME}",
+    "password": "${KG_MAIL_PASSWORD}",
+    "from": "${KG_MAIL_FROM_ADDRESS}",
+    "fromDisplayName": "KnowGauge"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "APPLICATION_ADMIN",
+        "description": "KnowGauge application admin, across all tenants"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "knowgauge-ui",
+      "name": "KnowGauge UI",
+      "enabled": true,
+      "publicClient": true,
+      "rootUrl": "${KG_PUBLIC_UI_URL}",
+      "baseUrl": "/",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["${KG_PUBLIC_UI_URL}/*"],
+      "webOrigins": ["${KG_PUBLIC_UI_URL}"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${KG_PUBLIC_UI_URL}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "knowgauge-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "knowgauge-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "${KG_ADMIN_EMAIL}",
+      "email": "${KG_ADMIN_EMAIL}",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "KnowGauge",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "${KG_ADMIN_PASSWORD}", "temporary": true }],
+      "realmRoles": ["default-roles-knowgauge", "APPLICATION_ADMIN"]
+    }
+  ]
+}
