@@ -58,7 +58,7 @@ public class AccountTransactionalServiceImpl {
 			boolean madeAdmin = grantAdminIfListed(user, emailVerified);
 			User saved = userRepository.save(user);
 			if (madeAdmin) {
-				giveAdminWorkspaceNoLimits(saved);
+				giveAdminTenantNoLimits(saved);
 			}
 			return saved;
 		}
@@ -99,7 +99,7 @@ public class AccountTransactionalServiceImpl {
 		tenant.setOwnerUserId(user.getId());
 		tenantRepository.save(tenant);
 		if (madeAdmin) {
-			giveAdminWorkspaceNoLimits(user);
+			giveAdminTenantNoLimits(user);
 		}
 		log.info("First sign-in: user {} created with personal tenant {}", user.getId(), tenant.getId());
 		return user;
@@ -126,11 +126,11 @@ public class AccountTransactionalServiceImpl {
 	}
 
 	/**
-	 * An application admin's own workspace has no limits (ADR014): its own value 0 for each, which an admin may change
+	 * An application admin's own tenant has no limits (ADR014): its own value 0 for each, which an admin may change
 	 * later on the Workspaces page.
 	 */
-	private void giveAdminWorkspaceNoLimits(User admin) {
+	private void giveAdminTenantNoLimits(User admin) {
 		tenantSettings.setUnlimited(admin.getTenantId());
-		log.info("Workspace {} of admin user {} set to no limits", admin.getTenantId(), admin.getId());
+		log.info("Tenant {} of admin user {} set to no limits", admin.getTenantId(), admin.getId());
 	}
 }

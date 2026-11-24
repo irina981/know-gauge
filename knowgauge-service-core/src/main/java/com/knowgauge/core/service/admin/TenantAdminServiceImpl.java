@@ -18,7 +18,7 @@ import com.knowgauge.core.model.TenantSearch;
 import com.knowgauge.core.model.TenantSummary;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.service.settings.TenantSettingsService;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.service.usage.UsagePeriod;
 
 @Service
@@ -49,11 +49,11 @@ public class TenantAdminServiceImpl implements TenantAdminService {
 						+ String.join(", ", new TreeSet<>(TenantSearch.SORTABLE)));
 			}
 		}
-		// Tokens this month (UTC), like the usage page and the limit check, with each workspace's limits in effect.
+		// Tokens this month (UTC), like the usage page and the limit check, with each tenant's limits in effect.
 		UsagePeriod month = UsagePeriod.currentMonth(clock);
 		Page<TenantSummary> page = tenantRepository.findTenantSummaries(search, pageable, month.from(), month.to());
 		List<Long> ids = page.getContent().stream().map(TenantSummary::tenantId).toList();
-		Map<Long, WorkspaceLimits> limits = tenantSettings.limits(ids);
+		Map<Long, TenantLimits> limits = tenantSettings.limits(ids);
 		Set<Long> ownLimits = tenantSettings.withOwnValues(ids);
 		return page.map(summary -> summary.withLimits(limits.get(summary.tenantId()),
 				ownLimits.contains(summary.tenantId())));

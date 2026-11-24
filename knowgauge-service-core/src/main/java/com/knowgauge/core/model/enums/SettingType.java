@@ -7,8 +7,8 @@ public enum SettingType {
     SYSTEM,
 
     /**
-     * Applies to one tenant (workspace), overriding the system value. Only settings marked as workspace-level may
-     * have one, e.g. the workspace limits.
+     * Applies to one tenant (workspace), overriding the system value. Only settings marked as tenant-level may
+     * have one, e.g. the tenant limits.
      */
     TENANT
 }

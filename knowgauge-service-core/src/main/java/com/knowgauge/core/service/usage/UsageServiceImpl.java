@@ -17,7 +17,7 @@ import com.knowgauge.core.model.UsageSummary;
 import com.knowgauge.core.port.repository.TokenPriceRepository;
 import com.knowgauge.core.port.repository.UsageRepository;
 import com.knowgauge.core.service.settings.TenantSettingsService;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 
 @Slf4j
 @Service
@@ -79,7 +79,7 @@ public class UsageServiceImpl implements UsageService {
 		Long tenantId = executionContext.tenantId();
 		TokenPricing.Cost cost = TokenPricing.cost(usageRepository.tokensByModel(tenantId, from, to),
 				tokenPriceRepository.findAll());
-		WorkspaceLimits limits = tenantSettings.limits(tenantId);
+		TenantLimits limits = tenantSettings.limits(tenantId);
 		return usageRepository.summarize(tenantId, from, to).toBuilder().llmCostUsd(cost.costUsd())
 				.unpricedModels(cost.unpricedModels()).llmTokenLimit(limits.monthlyTokens())
 				.storageLimitBytes(limits.storageBytes())

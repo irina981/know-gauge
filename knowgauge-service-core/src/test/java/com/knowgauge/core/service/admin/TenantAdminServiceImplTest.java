@@ -25,7 +25,7 @@ import org.springframework.data.domain.Sort;
 
 import com.knowgauge.core.model.TenantSearch;
 import com.knowgauge.core.model.TenantSummary;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.service.settings.TenantSettingsService;
@@ -64,13 +64,13 @@ class TenantAdminServiceImplTest {
 	}
 
 	@Test
-	void tokensAreCountedForTheCurrentMonthAndEachWorkspacesLimitsAreAttached() {
+	void tokensAreCountedForTheCurrentMonthAndEachTenantsLimitsAreAttached() {
 		PageRequest page = PageRequest.of(0, 20);
 		TenantSummary row = new TenantSummary(3L, "Ana", TenantType.INDIVIDUAL, 2L, "Ana", "ana@x.test", NOV_1, 1, 2,
 				3_000L, 1_200L);
 		when(tenants.findTenantSummaries(any(), eq(page), eq(NOV_1), eq(DEC_1)))
 				.thenReturn(new PageImpl<>(List.of(row), page, 1));
-		when(settings.limits(List.of(3L))).thenReturn(Map.of(3L, new WorkspaceLimits(1_000L, 2_000L, 2)));
+		when(settings.limits(List.of(3L))).thenReturn(Map.of(3L, new TenantLimits(1_000L, 2_000L, 2)));
 		when(settings.withOwnValues(List.of(3L))).thenReturn(Set.of(3L));
 
 		Page<TenantSummary> result = service.listTenants(new TenantSearch(null, null), page);

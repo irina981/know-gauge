@@ -117,8 +117,8 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   (`ChunkingProperties`, `TestGenerationDefaultsProperties`, `StorageProperties`).
 - Settings an admin changes at runtime are `SettingDefinition`s (`CoreSystemSettings`, other modules via
   `SettingsContributor`), stored in `settings` ([ADR014](docs/adr/ADR014-settings-per-workspace.md)): a `SYSTEM` row
-  overrides the properties files, a `TENANT` row (only `perWorkspace()` settings) overrides that for one workspace.
-  Read workspace limits only through `TenantSettingsService.limits` (`WorkspaceLimits`; 0 means no limit), never
+  overrides the properties files, a `TENANT` row (only `perTenant()` settings) overrides that for one workspace.
+  Read workspace limits only through `TenantSettingsService.limits` (`TenantLimits`; 0 means no limit), never
   with checks on tenant type or role: the library and admins' workspaces simply have their own value 0.
 
 ## Test generation essentials

@@ -131,7 +131,7 @@ class AccountServiceImplTest {
 		User user = service.signIn(SUBJECT, "admin@example.com", true, "Admin");
 
 		assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.ADMIN, Role.TENANT_ADMIN);
-		// An admin's own workspace has no limits (ADR014).
+		// An admin's own tenant has no limits (ADR014).
 		verify(tenantSettings).setUnlimited(user.getTenantId());
 	}
 
@@ -148,7 +148,7 @@ class AccountServiceImplTest {
 	}
 
 	@Test
-	void anExistingAdminKeepsTheLimitsTheirWorkspaceHasNow() {
+	void anExistingAdminKeepsTheLimitsTheirTenantHasNow() {
 		User existing = User.builder().id(5L).externalId(SUBJECT).tenantId(7L)
 				.roles(EnumSet.of(Role.TENANT_ADMIN, Role.ADMIN)).email("admin@example.com").build();
 		when(userRepository.findByExternalId(SUBJECT)).thenReturn(Optional.of(existing));

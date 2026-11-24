@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Setting;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.port.repository.SettingRepository;
 import com.knowgauge.core.port.repository.TenantRepository;
 
@@ -65,22 +65,22 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 	public void setUnlimited(Long tenantId) {
 		requireTenant(tenantId);
 		Map<String, String> noLimits = new LinkedHashMap<>();
-		WorkspaceLimits.KEYS.forEach(key -> noLimits.put(key, WorkspaceLimits.NO_LIMIT));
+		TenantLimits.KEYS.forEach(key -> noLimits.put(key, TenantLimits.NO_LIMIT));
 		save(tenantId, noLimits);
 	}
 
 	private List<TenantSettingValue> valuesOf(Long tenantId) {
 		Map<String, String> own = ownValues(repository.findByTenantId(tenantId));
-		return workspaceDefinitions().values().stream().map(d -> {
+		return tenantDefinitions().values().stream().map(d -> {
 			String system = d.reader().get();
 			String mine = own.get(d.key());
 			return new TenantSettingValue(d, system, mine, mine != null ? mine : system);
 		}).toList();
 	}
 
-	/** Checks all values, then saves the workspace's own values and removes those set empty. */
+	/** Checks all values, then saves the tenant's own values and removes those set empty. */
 	private void save(Long tenantId, Map<String, String> values) {
-		Map<String, SettingDefinition> definitions = workspaceDefinitions();
+		Map<String, SettingDefinition> definitions = tenantDefinitions();
 		// Check every value first, so a dialog with one wrong value saves nothing.
 		Map<String, String> valid = new LinkedHashMap<>();
 		List<String> problems = new ArrayList<>();
@@ -131,16 +131,16 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public WorkspaceLimits limits(Long tenantId) {
+	public TenantLimits limits(Long tenantId) {
 		return limitsOf(ownValues(repository.findByTenantId(tenantId)));
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public Map<Long, WorkspaceLimits> limits(Collection<Long> tenantIds) {
+	public Map<Long, TenantLimits> limits(Collection<Long> tenantIds) {
 		Map<Long, List<Setting>> byTenant = repository.findByTenantIdIn(tenantIds).stream()
 				.collect(Collectors.groupingBy(Setting::getTenantId));
-		Map<Long, WorkspaceLimits> limits = new HashMap<>();
+		Map<Long, TenantLimits> limits = new HashMap<>();
 		for (Long tenantId : tenantIds) {
 			limits.put(tenantId, limitsOf(ownValues(byTenant.getOrDefault(tenantId, List.of()))));
 		}
@@ -150,15 +150,15 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 	@Override
 	@Transactional(readOnly = true)
 	public Set<Long> withOwnValues(Collection<Long> tenantIds) {
-		Set<String> keys = workspaceDefinitions().keySet();
+		Set<String> keys = tenantDefinitions().keySet();
 		return repository.findByTenantIdIn(tenantIds).stream().filter(s -> keys.contains(s.getKey()))
 				.map(Setting::getTenantId).collect(Collectors.toSet());
 	}
 
-	/** The workspace's own value of each limit, else the system value. */
-	private WorkspaceLimits limitsOf(Map<String, String> own) {
-		Map<String, SettingDefinition> definitions = workspaceDefinitions();
-		return WorkspaceLimits.of(key -> {
+	/** The tenant's own value of each limit, else the system value. */
+	private TenantLimits limitsOf(Map<String, String> own) {
+		Map<String, SettingDefinition> definitions = tenantDefinitions();
+		return TenantLimits.of(key -> {
 			String mine = own.get(key);
 			if (mine != null) {
 				return mine;
@@ -168,14 +168,14 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 		});
 	}
 
-	/** The rows' values by key, leaving out keys that are not (or no longer) workspace-level. */
+	/** The rows' values by key, leaving out keys that are not (or no longer) tenant-level. */
 	private Map<String, String> ownValues(List<Setting> rows) {
-		Map<String, SettingDefinition> definitions = workspaceDefinitions();
+		Map<String, SettingDefinition> definitions = tenantDefinitions();
 		Map<String, String> values = new HashMap<>();
 		for (Setting row : rows) {
 			SettingDefinition definition = definitions.get(row.getKey());
 			if (definition == null) {
-				log.warn("Setting {} of tenant {} is not a workspace setting; ignored", row.getKey(), row.getTenantId());
+				log.warn("Setting {} of tenant {} is not a tenant setting; ignored", row.getKey(), row.getTenantId());
 				continue;
 			}
 			try {
@@ -188,9 +188,9 @@ public class TenantSettingsServiceImpl implements TenantSettingsService {
 		return values;
 	}
 
-	private Map<String, SettingDefinition> workspaceDefinitions() {
+	private Map<String, SettingDefinition> tenantDefinitions() {
 		Map<String, SettingDefinition> definitions = new LinkedHashMap<>();
-		systemSettings.definitions().stream().filter(SettingDefinition::workspaceLevel)
+		systemSettings.definitions().stream().filter(SettingDefinition::tenantLevel)
 				.forEach(d -> definitions.put(d.key(), d));
 		return definitions;
 	}

@@ -8,10 +8,10 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 
 import com.knowgauge.core.exception.GenerationLimitReachedException;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.service.settings.TenantSettingsService;
 
-/** Each user may generate as many tests at once as their workspace's limit allows. */
+/** Each user may generate as many tests at once as their tenant's limit allows. */
 class GenerationSlotsTest {
 
 	private static final long WORKSPACE = 3L;
@@ -21,7 +21,7 @@ class GenerationSlotsTest {
 
 	@Test
 	void aSecondGenerationOfTheSameUserIsRefusedUntilTheFirstEnds() {
-		when(settings.limits(WORKSPACE)).thenReturn(new WorkspaceLimits(null, null, 1));
+		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 1));
 
 		GenerationSlots.Slot first = slots.acquire(7L, WORKSPACE);
 		assertThatThrownBy(() -> slots.acquire(7L, WORKSPACE)).isInstanceOf(GenerationLimitReachedException.class)
@@ -36,7 +36,7 @@ class GenerationSlotsTest {
 
 	@Test
 	void otherUsersHaveSlotsOfTheirOwn() {
-		when(settings.limits(WORKSPACE)).thenReturn(new WorkspaceLimits(null, null, 1));
+		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 1));
 
 		try (GenerationSlots.Slot ana = slots.acquire(7L, WORKSPACE);
 				GenerationSlots.Slot bob = slots.acquire(8L, WORKSPACE)) {
@@ -47,7 +47,7 @@ class GenerationSlotsTest {
 
 	@Test
 	void aHigherLimitAllowsThatManyAtOnce() {
-		when(settings.limits(WORKSPACE)).thenReturn(new WorkspaceLimits(null, null, 2));
+		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 2));
 
 		try (GenerationSlots.Slot one = slots.acquire(7L, WORKSPACE);
 				GenerationSlots.Slot two = slots.acquire(7L, WORKSPACE)) {
@@ -58,7 +58,7 @@ class GenerationSlotsTest {
 
 	@Test
 	void withoutALimitNothingIsCounted() {
-		when(settings.limits(WORKSPACE)).thenReturn(WorkspaceLimits.NONE);
+		when(settings.limits(WORKSPACE)).thenReturn(TenantLimits.NONE);
 
 		try (GenerationSlots.Slot one = slots.acquire(7L, WORKSPACE);
 				GenerationSlots.Slot two = slots.acquire(7L, WORKSPACE)) {

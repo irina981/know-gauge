@@ -6,7 +6,7 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "What the user's workspace holds, and what it used in the current calendar month (UTC). The shared library is not counted.")
+@Schema(description = "What the user's tenant holds, and what it used in the current calendar month (UTC). The shared library is not counted.")
 public record UsageSummaryDto(
 		@Schema(description = "Start of the month, inclusive") Instant periodStart,
 		@Schema(description = "Start of the next month, exclusive") Instant periodEnd,
@@ -21,6 +21,6 @@ public record UsageSummaryDto(
 		@Schema(description = "LLM output tokens of question writing and checking this month") long llmOutputTokens,
 		@Schema(description = "What this month's LLM tokens cost in US dollars, with the token prices an admin set; models in unpricedModels not included") BigDecimal llmCostUsd,
 		@Schema(description = "Models used this month that have no token price yet") List<String> unpricedModels,
-		@Schema(description = "LLM tokens (input + output) the workspace may use per month; null for no limit") Long llmTokenLimit,
-		@Schema(description = "Bytes of documents the workspace may keep; null for no limit. An upload over it is refused") Long storageLimitBytes) {
+		@Schema(description = "LLM tokens (input + output) the tenant may use per month; null for no limit") Long llmTokenLimit,
+		@Schema(description = "Bytes of documents the tenant may keep; null for no limit. An upload over it is refused") Long storageLimitBytes) {
 }

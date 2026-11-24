@@ -2,8 +2,8 @@ package com.knowgauge.contract.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "A workspace-level setting of one workspace (ADR014): the system value, the workspace's own value, and the value in effect for it")
-public record WorkspaceSettingDto(
+@Schema(description = "A tenant-level setting of one tenant (ADR014): the system value, the tenant's own value, and the value in effect for it")
+public record TenantSettingDto(
 		@Schema(description = "The property name, e.g. kg.settings.tenant.monthly-token-limit") String key,
 		String label,
 		String description,
@@ -11,6 +11,6 @@ public record WorkspaceSettingDto(
 		@Schema(description = "Smallest allowed INTEGER") Long min,
 		@Schema(description = "Largest allowed INTEGER") Long max,
 		@Schema(description = "The system value in effect; null when empty") String systemValue,
-		@Schema(description = "The workspace's own value; null when it uses the system value") String ownValue,
-		@Schema(description = "The value in effect for the workspace") String value) {
+		@Schema(description = "The tenant's own value; null when it uses the system value") String ownValue,
+		@Schema(description = "The value in effect for the tenant") String value) {
 }

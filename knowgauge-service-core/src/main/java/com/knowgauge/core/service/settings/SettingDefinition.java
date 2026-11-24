@@ -7,8 +7,8 @@ import java.util.function.Supplier;
 /**
  * One setting an {@code ADMIN} may change. Its default comes from the properties files (bound into a
  * {@code @ConfigurationProperties} bean); a {@code SYSTEM} row in {@code settings} under the same {@code key}
- * overrides it (System settings page), and for a {@link #workspaceLevel() workspace-level} setting a {@code TENANT}
- * row overrides that for one workspace (ADR014). Only settings read on each use belong here, so a change applies
+ * overrides it (System settings page), and for a {@link #tenantLevel() tenant-level} setting a {@code TENANT}
+ * row overrides that for one tenant (ADR014). Only settings read on each use belong here, so a change applies
  * without a restart.
  *
  * @param key            the property name, also the {@code settings} key, e.g.
@@ -21,11 +21,11 @@ import java.util.function.Supplier;
  * @param writer         puts a valid system value (or {@code null} for empty) into the properties bean
  * @param suggestions    values to offer for a {@link Type#TEXT} (e.g. model names from the price catalog); any other
  *                       text is allowed too
- * @param workspaceLevel whether a workspace may have a value of its own (a {@code TENANT} row)
+ * @param tenantLevel whether a tenant may have a value of its own (a {@code TENANT} row)
  */
 public record SettingDefinition(String key, String group, String label, String description, Type type,
 		List<String> options, Long min, Long max, boolean optional, Supplier<String> reader, Consumer<String> writer,
-		Supplier<List<String>> suggestions, boolean workspaceLevel) {
+		Supplier<List<String>> suggestions, boolean tenantLevel) {
 
 	/** A system-only setting. */
 	public SettingDefinition(String key, String group, String label, String description, Type type,
@@ -41,8 +41,8 @@ public record SettingDefinition(String key, String group, String label, String d
 		this(key, group, label, description, type, options, min, max, optional, reader, writer, List::of);
 	}
 
-	/** This setting, which a workspace may also have a value of its own for. */
-	public SettingDefinition perWorkspace() {
+	/** This setting, which a tenant may also have a value of its own for. */
+	public SettingDefinition perTenant() {
 		return new SettingDefinition(key, group, label, description, type, options, min, max, optional, reader, writer,
 				suggestions, true);
 	}

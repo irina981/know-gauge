@@ -22,7 +22,7 @@ import org.mockito.ArgumentCaptor;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Setting;
 import com.knowgauge.core.model.Tenant;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.model.enums.SettingType;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.pricing.TokenPriceCatalog;
@@ -33,14 +33,14 @@ import com.knowgauge.core.service.invitation.InvitationProperties;
 import com.knowgauge.core.service.settings.TenantSettingsService.TenantSettingValue;
 import com.knowgauge.core.service.testgeneration.TestGenerationDefaultsProperties;
 
-/** A workspace's own values override the system values (ADR014); 0 means no limit. */
+/** A tenant's own values override the system values (ADR014); 0 means no limit. */
 class TenantSettingsServiceImplTest {
 
 	private static final long TENANT = 5L;
 	private static final long OTHER = 6L;
-	private static final String TOKENS = WorkspaceLimits.MONTHLY_TOKENS;
-	private static final String STORAGE = WorkspaceLimits.STORAGE_MB;
-	private static final String CONCURRENT = WorkspaceLimits.CONCURRENT_GENERATIONS;
+	private static final String TOKENS = TenantLimits.MONTHLY_TOKENS;
+	private static final String STORAGE = TenantLimits.STORAGE_MB;
+	private static final String CONCURRENT = TenantLimits.CONCURRENT_GENERATIONS;
 
 	private final SettingRepository repository = mock(SettingRepository.class);
 	private final TenantRepository tenants = mock(TenantRepository.class);
@@ -69,8 +69,8 @@ class TenantSettingsServiceImplTest {
 	}
 
 	@Test
-	void withoutValuesOfItsOwnAWorkspaceHasTheSystemLimits() {
-		assertThat(service.limits(TENANT)).isEqualTo(new WorkspaceLimits(1_000L, 10L * 1024 * 1024, 1));
+	void withoutValuesOfItsOwnATenantHasTheSystemLimits() {
+		assertThat(service.limits(TENANT)).isEqualTo(new TenantLimits(1_000L, 10L * 1024 * 1024, 1));
 		assertThat(service.list(TENANT)).extracting(TenantSettingValue::definition)
 				.extracting(SettingDefinition::key).containsExactly(TOKENS, STORAGE, CONCURRENT);
 		assertThat(service.list(TENANT)).noneMatch(TenantSettingValue::overridden);
@@ -80,17 +80,17 @@ class TenantSettingsServiceImplTest {
 	void aValueOfItsOwnWinsAndZeroMeansNoLimit() {
 		when(repository.findByTenantId(TENANT)).thenReturn(List.of(own(TENANT, TOKENS, "5000"), own(TENANT, STORAGE, "0")));
 
-		assertThat(service.limits(TENANT)).isEqualTo(new WorkspaceLimits(5_000L, null, 1));
+		assertThat(service.limits(TENANT)).isEqualTo(new TenantLimits(5_000L, null, 1));
 		assertThat(service.list(TENANT)).extracting(TenantSettingValue::systemValue, TenantSettingValue::ownValue,
 				TenantSettingValue::value).containsExactly(tuple("1000", "5000", "5000"), tuple("10", "0", "0"),
 						tuple("1", null, "1"));
 	}
 
 	@Test
-	void limitsOfSeveralWorkspacesAreReadAtOnce() {
+	void limitsOfSeveralTenantsAreReadAtOnce() {
 		when(repository.findByTenantIdIn(List.of(TENANT, OTHER))).thenReturn(List.of(own(OTHER, CONCURRENT, "3")));
 
-		Map<Long, WorkspaceLimits> limits = service.limits(List.of(TENANT, OTHER));
+		Map<Long, TenantLimits> limits = service.limits(List.of(TENANT, OTHER));
 
 		assertThat(limits.get(TENANT).concurrentGenerations()).isEqualTo(1);
 		assertThat(limits.get(OTHER).concurrentGenerations()).isEqualTo(3);
@@ -144,7 +144,7 @@ class TenantSettingsServiceImplTest {
 	}
 
 	@Test
-	void resetRemovesTheWorkspacesOwnValues() {
+	void resetRemovesTheTenantsOwnValues() {
 		service.resetAll(TENANT);
 
 		verify(repository).deleteByTenantId(TENANT);

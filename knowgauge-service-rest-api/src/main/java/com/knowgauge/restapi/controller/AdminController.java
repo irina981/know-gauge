@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.knowgauge.contract.dto.TenantSummaryDto;
-import com.knowgauge.contract.dto.WorkspaceSettingDto;
-import com.knowgauge.contract.dto.WorkspaceSettingsInput;
+import com.knowgauge.contract.dto.TenantSettingDto;
+import com.knowgauge.contract.dto.TenantSettingsInput;
 import com.knowgauge.core.model.TenantSearch;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.service.admin.TenantAdminService;
@@ -57,7 +57,7 @@ public class AdminController {
 	}
 
 	@GetMapping("/api/admin/tenants")
-	@Operation(summary = "List tenants (filtered, sorted, paged)", description = "Tenants (user workspaces and libraries) with their type, owner and content counts. search matches the name and the owner's name or email; type keeps one tenant type. Sort by name (default), type, owner, topics, documents, storage (bytes of documents), usage (this month's tokens) or createdAt. Each tenant comes with its storage and its LLM tokens this calendar month (UTC), each with its limit. An ADMIN reads any of them through the normal content API: send the tenant id in the X-KG-Tenant header on GET requests to the workspace APIs, which then return that tenant's data, read-only (ADR013).")
+	@Operation(summary = "List tenants (filtered, sorted, paged)", description = "Tenants (user workspaces and libraries) with their type, owner and content counts. search matches the name and the owner's name or email; type keeps one tenant type. Sort by name (default), type, owner, topics, documents, storage (bytes of documents), usage (this month's tokens) or createdAt. Each tenant comes with its storage and its LLM tokens this calendar month (UTC), each with its limit. An ADMIN reads any of them through the normal content API: send the tenant id in the X-KG-Tenant header on GET requests to the tenant APIs, which then return that tenant's data, read-only (ADR013).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Tenants returned"),
 			@ApiResponse(responseCode = "400", description = "Unknown type or sort property"),
 			@ApiResponse(responseCode = "401", description = "Not signed in"),
@@ -69,38 +69,38 @@ public class AdminController {
 	}
 
 	@GetMapping("/api/admin/tenants/{id}/settings")
-	@Operation(summary = "List a workspace's settings", description = "The workspace-level settings (for now the workspace limits) of one workspace: the system value, the workspace's own value if it has one, and the value in effect (ADR014).")
+	@Operation(summary = "List a tenant's settings", description = "The tenant-level settings (for now the tenant limits) of one tenant: the system value, the tenant's own value if it has one, and the value in effect (ADR014).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Settings returned"),
 			@ApiResponse(responseCode = "403", description = "Not an ADMIN"),
 			@ApiResponse(responseCode = "404", description = "No such tenant") })
-	public ResponseEntity<List<WorkspaceSettingDto>> tenantSettings(@PathVariable Long id) {
+	public ResponseEntity<List<TenantSettingDto>> tenantSettings(@PathVariable Long id) {
 		return ResponseEntity.ok(tenantSettingsService.list(id).stream().map(AdminController::toDto).toList());
 	}
 
 	@PutMapping("/api/admin/tenants/{id}/settings")
-	@Operation(summary = "Save a workspace's settings", description = "Saves the workspace's own values, which override the system values for it and apply at once. An empty value removes the workspace's own value. For a limit, 0 means no limit. All values are checked first: if one does not fit, nothing is saved.")
-	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Settings saved; the workspace's settings returned"),
+	@Operation(summary = "Save a tenant's settings", description = "Saves the tenant's own values, which override the system values for it and apply at once. An empty value removes the tenant's own value. For a limit, 0 means no limit. All values are checked first: if one does not fit, nothing is saved.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Settings saved; the tenant's settings returned"),
 			@ApiResponse(responseCode = "400", description = "A value does not fit, or the setting applies to the whole system only"),
 			@ApiResponse(responseCode = "403", description = "Not an ADMIN"),
 			@ApiResponse(responseCode = "404", description = "No such tenant or setting") })
-	public ResponseEntity<List<WorkspaceSettingDto>> saveTenantSettings(@PathVariable Long id,
-			@Valid @RequestBody WorkspaceSettingsInput input) {
+	public ResponseEntity<List<TenantSettingDto>> saveTenantSettings(@PathVariable Long id,
+			@Valid @RequestBody TenantSettingsInput input) {
 		return ResponseEntity
 				.ok(tenantSettingsService.setAll(id, input.values()).stream().map(AdminController::toDto).toList());
 	}
 
 	@DeleteMapping("/api/admin/tenants/{id}/settings")
-	@Operation(summary = "Reset a workspace's settings", description = "Removes all of the workspace's own values, so the system values apply to it again.")
-	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Settings reset; the workspace's settings returned"),
+	@Operation(summary = "Reset a tenant's settings", description = "Removes all of the tenant's own values, so the system values apply to it again.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Settings reset; the tenant's settings returned"),
 			@ApiResponse(responseCode = "403", description = "Not an ADMIN"),
 			@ApiResponse(responseCode = "404", description = "No such tenant") })
-	public ResponseEntity<List<WorkspaceSettingDto>> resetTenantSettings(@PathVariable Long id) {
+	public ResponseEntity<List<TenantSettingDto>> resetTenantSettings(@PathVariable Long id) {
 		return ResponseEntity.ok(tenantSettingsService.resetAll(id).stream().map(AdminController::toDto).toList());
 	}
 
-	private static WorkspaceSettingDto toDto(TenantSettingsService.TenantSettingValue setting) {
+	private static TenantSettingDto toDto(TenantSettingsService.TenantSettingValue setting) {
 		SettingDefinition d = setting.definition();
-		return new WorkspaceSettingDto(d.key(), d.label(), d.description(), d.type().name(), d.min(), d.max(),
+		return new TenantSettingDto(d.key(), d.label(), d.description(), d.type().name(), d.min(), d.max(),
 				setting.systemValue(), setting.ownValue(), setting.value());
 	}
 }

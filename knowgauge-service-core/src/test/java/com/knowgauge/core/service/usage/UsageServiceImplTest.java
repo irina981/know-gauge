@@ -22,7 +22,7 @@ import com.knowgauge.core.exception.TokenLimitReachedException;
 import com.knowgauge.core.model.ModelTokenUsage;
 import com.knowgauge.core.port.repository.TokenPriceRepository;
 import com.knowgauge.core.port.repository.UsageRepository;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.service.settings.TenantSettingsService;
 
 class UsageServiceImplTest {
@@ -45,7 +45,7 @@ class UsageServiceImplTest {
 
 	@Test
 	void withoutALimitNothingIsCounted() {
-		when(settings.limits(TENANT)).thenReturn(WorkspaceLimits.NONE);
+		when(settings.limits(TENANT)).thenReturn(TenantLimits.NONE);
 
 		assertThatCode(service::requireTokensLeft).doesNotThrowAnyException();
 		verify(usageRepository, never()).tokensByModel(any(), any(), any());
@@ -53,7 +53,7 @@ class UsageServiceImplTest {
 
 	@Test
 	void belowTheLimitWorkMayStart() {
-		when(settings.limits(TENANT)).thenReturn(new WorkspaceLimits(1_000L, null, null));
+		when(settings.limits(TENANT)).thenReturn(new TenantLimits(1_000L, null, null));
 		when(usageRepository.tokensByModel(eq(TENANT), eq(NOV_1), eq(DEC_1)))
 				.thenReturn(List.of(new ModelTokenUsage("gpt-4.1", 600, 399)));
 
@@ -62,7 +62,7 @@ class UsageServiceImplTest {
 
 	@Test
 	void atTheLimitNewWorkIsRefused() {
-		when(settings.limits(TENANT)).thenReturn(new WorkspaceLimits(1_000L, null, null));
+		when(settings.limits(TENANT)).thenReturn(new TenantLimits(1_000L, null, null));
 		when(usageRepository.tokensByModel(eq(TENANT), eq(NOV_1), eq(DEC_1)))
 				.thenReturn(List.of(new ModelTokenUsage("gpt-4.1", 600, 300), new ModelTokenUsage("gpt-5", 50, 50)));
 

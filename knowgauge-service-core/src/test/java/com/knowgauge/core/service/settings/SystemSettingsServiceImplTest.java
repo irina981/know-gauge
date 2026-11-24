@@ -19,7 +19,7 @@ import org.mockito.ArgumentCaptor;
 
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.model.Setting;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.model.enums.SettingType;
 import com.knowgauge.core.model.enums.TestDifficulty;
 import com.knowgauge.core.port.pricing.TokenPriceCatalog;
@@ -32,7 +32,7 @@ import com.knowgauge.core.service.testgeneration.TestGenerationDefaultsPropertie
 /** System values: SYSTEM rows override the properties files and are applied to the properties beans. */
 class SystemSettingsServiceImplTest {
 
-	private static final String LIMIT = WorkspaceLimits.MONTHLY_TOKENS;
+	private static final String LIMIT = TenantLimits.MONTHLY_TOKENS;
 	private static final String MODEL = "kg.testgen.defaults.generation-model";
 	private static final String BATCH = "kg.testgen.defaults.question-generation-batch-size";
 
@@ -150,8 +150,8 @@ class SystemSettingsServiceImplTest {
 	}
 
 	@Test
-	void onlyTheWorkspaceLimitsAreWorkspaceLevel() {
-		assertThat(service.definitions()).filteredOn(SettingDefinition::workspaceLevel)
-				.extracting(SettingDefinition::key).containsExactlyElementsOf(WorkspaceLimits.KEYS);
+	void onlyTheTenantLimitsAreTenantLevel() {
+		assertThat(service.definitions()).filteredOn(SettingDefinition::tenantLevel)
+				.extracting(SettingDefinition::key).containsExactlyElementsOf(TenantLimits.KEYS);
 	}
 }

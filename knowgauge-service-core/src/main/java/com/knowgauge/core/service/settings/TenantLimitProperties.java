@@ -7,8 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * The system values of the workspace limits ({@link WorkspaceLimits}). An {@code ADMIN} may override them on the System
- * settings page, and per workspace on the Workspaces page (ADR014). {@code null} or 0 means no limit.
+ * The system values of the tenant limits ({@link TenantLimits}). An {@code ADMIN} may override them on the System
+ * settings page, and per tenant on the Workspaces page (ADR014). {@code null} or 0 means no limit.
  */
 @Getter
 @Setter

@@ -22,7 +22,7 @@ public record TenantSummary(Long tenantId, String name, TenantType type, Long ow
 	}
 
 	/** This tenant with its limits in effect (ADR014). */
-	public TenantSummary withLimits(WorkspaceLimits limits, boolean ownLimits) {
+	public TenantSummary withLimits(TenantLimits limits, boolean ownLimits) {
 		return new TenantSummary(tenantId, name, type, ownerUserId, ownerName, ownerEmail, createdAt, topics, documents,
 				storageBytes, limits.storageBytes(), tokensThisMonth, limits.monthlyTokens(),
 				limits.concurrentGenerations(), ownLimits);

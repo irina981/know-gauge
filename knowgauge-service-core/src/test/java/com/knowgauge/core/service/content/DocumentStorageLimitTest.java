@@ -23,12 +23,12 @@ import com.knowgauge.core.port.repository.DocumentRepository;
 import com.knowgauge.core.port.repository.TopicRepository;
 import com.knowgauge.core.port.storage.StorageService;
 import com.knowgauge.core.port.storage.StorageService.StoredObject;
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.service.settings.TenantSettingsService;
 import com.knowgauge.core.storage.StorageKeyBuilder;
 import com.knowgauge.core.support.ContentScopes;
 
-/** An upload that would take a workspace over its storage limit is refused. */
+/** An upload that would take a tenant over its storage limit is refused. */
 class DocumentStorageLimitTest {
 
 	private static final long OWN = 5L;
@@ -56,9 +56,9 @@ class DocumentStorageLimitTest {
 		});
 		when(storageService.put(any(), any(), anyLong(), any()))
 				.thenReturn(new StoredObject("key", "etag", null, 0, "application/pdf"));
-		when(settings.limits(OWN)).thenReturn(new WorkspaceLimits(null, 1_000L, null));
+		when(settings.limits(OWN)).thenReturn(new TenantLimits(null, 1_000L, null));
 		// The library's own value 0: no limit (ADR014).
-		when(settings.limits(LIBRARY)).thenReturn(WorkspaceLimits.NONE);
+		when(settings.limits(LIBRARY)).thenReturn(TenantLimits.NONE);
 		when(documentRepository.sumFileSizeBytesByTenantId(OWN)).thenReturn(900L);
 		when(documentRepository.sumFileSizeBytesByTenantId(LIBRARY)).thenReturn(5_000L);
 	}
@@ -85,7 +85,7 @@ class DocumentStorageLimitTest {
 
 	@Test
 	void withoutALimitEveryUploadIsStored() {
-		when(settings.limits(OWN)).thenReturn(WorkspaceLimits.NONE);
+		when(settings.limits(OWN)).thenReturn(TenantLimits.NONE);
 		service(false).uploadDocument(document(OWN_TOPIC, 1_000_000L), empty());
 		verify(storageService).put(any(), any(), anyLong(), any());
 	}

@@ -13,7 +13,7 @@ import com.knowgauge.core.service.settings.TenantSettingsService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * How many tests each user is generating right now, against the limit of their workspace (ADR014). Kept in memory, not in the
+ * How many tests each user is generating right now, against the limit of their tenant (ADR014). Kept in memory, not in the
  * database: a generation that dies with the server cannot leave its user blocked. The count is per server, which is
  * enough while KnowGauge runs as a single instance.
  */
@@ -38,10 +38,10 @@ public class GenerationSlots {
 	}
 
 	/**
-	 * Takes one of the user's generation slots, as many as the limit of the workspace they generate in allows.
+	 * Takes one of the user's generation slots, as many as the limit of the tenant they generate in allows.
 	 *
 	 * @param userId   the user starting a generation; {@code null} (no user) is not counted
-	 * @param tenantId the workspace the test is generated in
+	 * @param tenantId the tenant the test is generated in
 	 * @throws GenerationLimitReachedException when the user already runs as many generations as allowed
 	 */
 	public Slot acquire(Long userId, Long tenantId) {

@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.model.TenantLimits;
 import com.knowgauge.core.model.enums.TestDifficulty;
 import com.knowgauge.core.port.pricing.TokenPriceCatalog;
 import com.knowgauge.core.service.ingestion.IngestionJobProperties;
@@ -39,27 +39,27 @@ public class CoreSystemSettings implements SettingsContributor {
 	@Override
 	public List<SettingDefinition> definitions() {
 		return List.of(
-				// The workspace limits: a workspace may have values of its own (ADR014). 0 means no limit.
-				new SettingDefinition(WorkspaceLimits.MONTHLY_TOKENS, WORKSPACE_LIMITS, "AI tokens per workspace and month",
+				// The tenant limits: a tenant may have values of its own (ADR014). 0 means no limit.
+				new SettingDefinition(TenantLimits.MONTHLY_TOKENS, WORKSPACE_LIMITS, "AI tokens per workspace and month",
 						"Input and output tokens of question writing and checking, per calendar month (UTC). At the limit"
 								+ " new tests and regenerations are refused until next month. 0: no limit.",
 						SettingDefinition.Type.INTEGER, List.of(), 0L, null, false,
 						() -> text(limits.getMonthlyTokenLimit()),
-						value -> limits.setMonthlyTokenLimit(value == null ? null : Long.valueOf(value))).perWorkspace(),
-				new SettingDefinition(WorkspaceLimits.STORAGE_MB, WORKSPACE_LIMITS, "Storage per workspace (MB)",
+						value -> limits.setMonthlyTokenLimit(value == null ? null : Long.valueOf(value))).perTenant(),
+				new SettingDefinition(TenantLimits.STORAGE_MB, WORKSPACE_LIMITS, "Storage per workspace (MB)",
 						"Total size of the PDFs a workspace may keep, in megabytes. An upload that would go over it is"
 								+ " refused; deleting documents frees space. The shared library has no limit. 0: no limit.",
 						SettingDefinition.Type.INTEGER, List.of(), 0L, null, false,
 						() -> text(limits.getStorageLimitMb()),
-						value -> limits.setStorageLimitMb(value == null ? null : Long.valueOf(value))).perWorkspace(),
-				new SettingDefinition(WorkspaceLimits.CONCURRENT_GENERATIONS, WORKSPACE_LIMITS,
+						value -> limits.setStorageLimitMb(value == null ? null : Long.valueOf(value))).perTenant(),
+				new SettingDefinition(TenantLimits.CONCURRENT_GENERATIONS, WORKSPACE_LIMITS,
 						"Tests generating at once per user",
 						"How many tests one user may generate at the same time. Another request is refused until one of"
 								+ " them is ready. 0: no limit.",
 						SettingDefinition.Type.INTEGER, List.of(), 0L, 20L, false,
 						() -> text(limits.getConcurrentGenerationsPerUser()),
 						value -> limits.setConcurrentGenerationsPerUser(value == null ? null : Integer.valueOf(value)))
-						.perWorkspace(),
+						.perTenant(),
 				new SettingDefinition("kg.testgen.defaults.generation-model", "AI models",
 						"Question writing model",
 						"The OpenAI model that writes new questions. The list shows the OpenAI chat models of the price"

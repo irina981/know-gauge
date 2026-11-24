@@ -12,12 +12,12 @@ Settings have **levels**. A value is resolved the same way for every workspace (
   (`SYSTEM` or `TENANT`), `tenant_id` (NULL for `SYSTEM`, the workspace for `TENANT`), `setting_key`,
   `setting_value`. Constraints keep it consistent: a `SYSTEM` row has no tenant and a `TENANT` row has one, one row
   per (type, tenant, key) (`UNIQUE NULLS NOT DISTINCT`), and a deleted tenant takes its rows with it.
-- **Only workspace-level settings have `TENANT` rows.** A `SettingDefinition` says so (`workspaceLevel`, set with
-  `perWorkspace()`). For now these are the workspace limits: AI tokens per month, storage, tests generating at once
+- **Only workspace-level settings have `TENANT` rows.** A `SettingDefinition` says so (`tenantLevel`, set with
+  `perTenant()`). For now these are the workspace limits: AI tokens per month, storage, tests generating at once
   per user. The models, batch sizes and similar stay system-only; saving one for a workspace is refused.
 - **0 means no limit, at every level.** An empty value of a workspace means "use the system value", so "no limit"
   needs a value of its own. The system level uses 0 too, so there is one rule.
-- **No special cases in code.** `TenantSettingsService.limits(tenantId)` gives the `WorkspaceLimits` in effect, and
+- **No special cases in code.** `TenantSettingsService.limits(tenantId)` gives the `TenantLimits` in effect, and
   every check and view uses it: the token check (`UsageServiceImpl`), uploads (`DocumentServiceImpl`), tests
   generating at once (`GenerationSlots`), the usage page, the limit banner and the admin's Workspaces list.
 - **Workspaces without limits are data, not code.** The shared library (no users of its own: generating from its
@@ -41,7 +41,7 @@ e.g. by plan.
 
 #### Consequences
 * Adopted because: one place and one rule for every setting value; a new workspace-level setting needs no schema
-  change, only `perWorkspace()` on its definition.
+  change, only `perTenant()` on its definition.
 * Adopted because: workspaces without limits (library, admins) are ordinary rows an admin can see and change, with
   no type or role checks in the limit code.
 * Adopted because: room for more levels later (e.g. `USER`) without another table.
@@ -65,5 +65,5 @@ Check the caller's role and the tenant type in each limit check.
 
 ## Supporting Material
 * `knowgauge-service-rest-api/src/main/resources/db/migration/V3__settings_per_tenant.sql`
-* `TenantSettingsService`, `SystemSettingsService`, `SettingDefinition`, `WorkspaceLimits`
+* `TenantSettingsService`, `SystemSettingsService`, `SettingDefinition`, `TenantLimits`
 * ADR010 (tenants), ADR012 (roles), ADR013 (admins view every workspace)

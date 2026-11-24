@@ -20,5 +20,5 @@ public record SystemSettingDto(
 		@Schema(description = "Value saved on the page; null when not overridden or saved empty") String overrideValue,
 		@Schema(description = "Value in effect; null when empty") String value,
 		@Schema(description = "Values to offer for a TEXT setting, e.g. model names from the price catalog; other text is allowed") List<String> suggestions,
-		@Schema(description = "Whether a workspace may have a value of its own, overriding this one (ADR014)") boolean workspaceLevel) {
+		@Schema(description = "Whether a tenant may have a value of its own, overriding this one (ADR014)") boolean tenantLevel) {
 }
