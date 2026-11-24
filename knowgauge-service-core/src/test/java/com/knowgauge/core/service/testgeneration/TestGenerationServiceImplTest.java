@@ -108,7 +108,7 @@ class TestGenerationServiceImplTest {
 		service = new TestGenerationServiceImpl(retrievingService, batchGenerator, draftValidator, tx,
 				mock(TestRepository.class), mock(TestQuestionRepository.class), chunkRepository, ctx, defaults,
 				new TestQuestionValidator(), ContentScopes.ownTenantOnly(ctx), mock(UsageService.class),
-				new GenerationSlots(TenantSettings.noLimits()), tenantSettings);
+				new GenerationSlots(TenantSettings.noLimits()), tenantSettings, com.knowgauge.core.support.Permissions.unrestricted());
 	}
 
 	private static com.knowgauge.core.model.Test draft(int questionCount) {

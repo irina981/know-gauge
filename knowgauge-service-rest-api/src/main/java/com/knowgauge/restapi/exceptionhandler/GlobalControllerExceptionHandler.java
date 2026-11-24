@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,7 @@ import com.knowgauge.core.exception.TokenLimitReachedException;
 import com.knowgauge.core.exception.InsufficientContextException;
 import com.knowgauge.core.exception.QuestionValidationException;
 import com.knowgauge.core.exception.RegenerationFailedException;
+import com.knowgauge.core.exception.PermissionDeniedException;
 import com.knowgauge.core.exception.ReadOnlyContentException;
 import com.knowgauge.core.exception.ResourceNotFoundException;
 import com.knowgauge.core.exception.AttemptConflictException;
@@ -287,6 +289,25 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.NOT_FOUND, request, ex);
 		log.warn("Resource not found: {}", ex.getMessage());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
+	}
+
+	/**
+	 * A role that @RolesAllowed does not list (MethodSecurityConfig, ADR017). Without this the catch-all handler would
+	 * answer 500.
+	 */
+	@ExceptionHandler(AccessDeniedException.class)
+	public ResponseEntity<Object> handleAccessDeniedException(WebRequest request, AccessDeniedException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.FORBIDDEN, request,
+				"Your role in this workspace does not allow this.");
+		log.warn("Role not allowed: {} {}", request.getDescription(false), ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
+	}
+
+	@ExceptionHandler(PermissionDeniedException.class)
+	public ResponseEntity<Object> handlePermissionDeniedException(WebRequest request, PermissionDeniedException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.FORBIDDEN, request, ex);
+		log.warn("Role does not allow it: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
 	}
 
 	// Library content is read-only except for application admins (ADR010)

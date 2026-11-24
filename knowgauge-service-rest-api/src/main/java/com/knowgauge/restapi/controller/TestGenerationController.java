@@ -22,6 +22,7 @@ import com.knowgauge.core.model.enums.TestStatus;
 import com.knowgauge.core.service.testgeneration.TestGenerationService;
 import com.knowgauge.restapi.mapper.TestMapper;
 import com.knowgauge.restapi.mapper.TestQuestionMapper;
+import com.knowgauge.restapi.security.Roles;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,6 +34,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
 
 @RestController
@@ -52,6 +54,7 @@ public class TestGenerationController {
 		
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("")
 	@Operation(summary = "Generate a new test", description = "Creates a new test draft, runs generation, validates questions and returns the generated test metadata.")
 	@ApiResponses(value = {
@@ -144,6 +147,7 @@ public class TestGenerationController {
 		return ResponseEntity.ok(tests.stream().map(testMapper::toDto).toList());
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@DeleteMapping("/{id}")
 	@Operation(summary = "Delete test", description = "Deletes a test and associated generated questions for the current tenant.")
 	@ApiResponses(value = {

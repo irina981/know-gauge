@@ -4,7 +4,7 @@ package com.knowgauge.core.model.enums;
  * Roles, kept by KnowGauge itself (ADR012): table {@code roles} lists them, {@code user_roles} assigns them, and a
  * user can have several. The identity provider (Keycloak) only authenticates and knows nothing about them.
  * Every role can be assigned; tenant admins of an organization invite people as {@link #TENANT_ADMIN},
- * {@link #TENANT_USER} or {@link #TENANT_VIEWER} (ADR016). Only {@code /api/tenant/**} checks them so far.
+ * {@link #TENANT_USER} or {@link #TENANT_VIEWER} (ADR016). What each may do: ADR017.
  */
 public enum Role {
     /**

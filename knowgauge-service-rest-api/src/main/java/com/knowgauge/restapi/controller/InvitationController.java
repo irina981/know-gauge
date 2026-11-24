@@ -14,12 +14,14 @@ import com.knowgauge.contract.dto.InviteInput;
 import com.knowgauge.contract.dto.TestInvitationDto;
 import com.knowgauge.core.service.invitation.InvitationService;
 import com.knowgauge.restapi.mapper.PublicMapper;
+import com.knowgauge.restapi.security.Roles;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * Personal invitations (ADR009): one link per email, sent by the server,
@@ -38,6 +40,7 @@ public class InvitationController {
 		this.publicMapper = publicMapper;
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping
 	@Operation(summary = "Invite by email", description = "Sends each address its own link. Already invited addresses get their link again unless it was used. A failed send does not fail the request: it is reported in sendError and can be resent.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Invitations of the given addresses"),
@@ -56,6 +59,7 @@ public class InvitationController {
 		return ResponseEntity.ok(invitationService.list(testId).stream().map(publicMapper::toInvitation).toList());
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/{invitationId}/resend")
 	@Operation(summary = "Resend an invitation", description = "Sends the same personal link again.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Sent, or the send error is reported in sendError"),

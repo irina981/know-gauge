@@ -4,6 +4,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.model.enums.TenantType;
@@ -25,6 +26,6 @@ public final class ContentScopes {
 	public static ContentScope withLibraries(ExecutionContext context, boolean applicationAdmin, Long... libraryIds) {
 		TenantRepository tenants = mock(TenantRepository.class);
 		when(tenants.findIdsByType(TenantType.LIBRARY)).thenReturn(List.of(libraryIds));
-		return new ContentScope(tenants, context, () -> applicationAdmin, () -> false);
+		return new ContentScope(tenants, context, () -> applicationAdmin, () -> false, Optional::empty);
 	}
 }

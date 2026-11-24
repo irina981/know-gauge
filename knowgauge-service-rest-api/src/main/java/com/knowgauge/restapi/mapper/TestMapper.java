@@ -9,7 +9,7 @@ import com.knowgauge.contract.dto.TestInput;
 import com.knowgauge.core.model.Test;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR, uses = { DocumentChunkMapper.class,
-		EnumMappingHelper.class })
+		EnumMappingHelper.class, TestAccessMapping.class })
 public interface TestMapper {
 
 	/**
@@ -36,5 +36,6 @@ public interface TestMapper {
 	 * Domain -> Response DTO If Topic has children, MapStruct will map List<Topic>
 	 * -> List<TopicDto> automatically.
 	 */
+	@Mapping(target = "readOnly", source = ".", qualifiedByName = "testReadOnly")
 	TestDto toDto(Test test);
 }

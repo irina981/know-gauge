@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,8 +26,8 @@ class ContentScopeTenantViewTest {
 		TenantRepository tenants = mock(TenantRepository.class);
 		when(tenants.findIdsByType(TenantType.LIBRARY)).thenReturn(List.of(1L));
 
-		ContentScope viewing = new ContentScope(tenants, context, () -> true, () -> true);
-		ContentScope own = new ContentScope(tenants, context, () -> true, () -> false);
+		ContentScope viewing = new ContentScope(tenants, context, () -> true, () -> true, Optional::empty);
+		ContentScope own = new ContentScope(tenants, context, () -> true, () -> false, Optional::empty);
 
 		assertThat(viewing.readableTenantIds()).containsExactly(VIEWED_TENANT, 1L);
 		assertThat(viewing.canWrite(VIEWED_TENANT)).isFalse();

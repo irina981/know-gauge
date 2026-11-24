@@ -8,11 +8,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.knowgauge.contract.dto.TestDto;
 import com.knowgauge.core.service.invitation.SharedLinkService;
 import com.knowgauge.restapi.mapper.TestMapper;
+import com.knowgauge.restapi.security.Roles;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * The shared link of a published test (ADR009): created on request, and
@@ -30,6 +32,7 @@ public class SharedLinkController {
 		this.testMapper = testMapper;
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/api/tests/{testId}/shared-link")
 	@Operation(summary = "Create or regenerate the shared link", description = "Creates the test's shared link, or replaces it with a new one: the old link stops working. Attempts already started can still be finished.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "The test with its new publicToken"),

@@ -69,7 +69,8 @@ public class TestReviewServiceImpl implements TestReviewService {
 			TestEventRepository eventRepository, GenerationRunRepository generationRunRepository,
 			DocumentChunkRepository chunkRepository, QuestionBatchGenerator batchGenerator,
 			TestQuestionValidator validator, TestReviewTransactionalServiceImpl tx,
-			ExecutionContext executionContext, ContentScope contentScope, UsageService usageService, RolePermissions permissions) {
+			ExecutionContext executionContext, ContentScope contentScope, UsageService usageService,
+			RolePermissions permissions) {
 		this.permissions = permissions;
 		this.usageService = usageService;
 		this.testRepository = testRepository;

@@ -77,7 +77,7 @@ class TestReviewServiceImplTest {
 
 		service = new TestReviewServiceImpl(testRepository, questionRepository, mock(TestEventRepository.class),
 				mock(GenerationRunRepository.class), chunkRepository, batchGenerator, new TestQuestionValidator(), tx,
-				ctx, ContentScopes.ownTenantOnly(ctx), mock(UsageService.class));
+				ctx, ContentScopes.ownTenantOnly(ctx), mock(UsageService.class), com.knowgauge.core.support.Permissions.unrestricted());
 
 		TestQuestionVersion v = QuestionFixtures.defaultVersion();
 		v.getOption(OptionLetter.B).flag("ArrayDeque", "HashMap may keep order for small maps");

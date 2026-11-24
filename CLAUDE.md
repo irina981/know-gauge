@@ -48,7 +48,10 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   - A `TENANT_ADMIN` of an organization manages it on the sidebar pages Users and Workspace settings
     (`/api/tenant/**`, [ADR016](docs/adr/ADR016-tenant-admins-manage-their-organization.md)): invites people as
     `TENANT_ADMIN`, `TENANT_USER` or `TENANT_VIEWER`, and changes the workspace's configuration, never its limits (only an
-    `ADMIN` sets those). Nothing else checks `TENANT_USER` / `TENANT_VIEWER` yet.
+    `ADMIN` sets those).
+  - What each role may do is in [ADR017](docs/adr/ADR017-permissions-per-role.md): a `TENANT_USER` creates tests
+    and changes only their own, a `TENANT_VIEWER` only reads. Enforced twice: `@RolesAllowed` on each controller
+    method that changes something (`restapi.security.Roles`, on in `oidc` mode only) and `RolePermissions` in core.
   - An `ADMIN` reads any user's workspace (library, tests, attempts), read-only, by sending its tenant id in
     `X-KG-Tenant` on `GET /api/**` reads; `GET /api/admin/tenants` lists them
     ([ADR013](docs/adr/ADR013-admins-view-every-workspace.md)). A UI "workspace" is a backend tenant (see
@@ -115,6 +118,8 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - Embedding dimension (1536) is set in three places that must agree: `kg.embedding.dimension`, `vector(1536)` in
   the pgvector migration, and `@Array(length = 1536)` on `ChunkEmbeddingEntity`.
 - Always filter vector queries by `tenant_id` **and** `embedding_model`.
+- **Every endpoint that changes something** gets `@RolesAllowed` with its roles (ADR017), and its service calls
+  `RolePermissions` (or `ContentScope.requireWritable` for library content). Reads stay open to every role.
 - Translate provider errors to typed core exceptions (`Storage*`, `Embedding*`, `LlmResponseParsingException`) in
   the adapter. Resilience4j retry configs whitelist the transient types. Add HTTP mappings in
   `GlobalControllerExceptionHandler`.

@@ -13,9 +13,13 @@ Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
   - Needs the `ADMIN` role (from `user_roles`, ADR012): `/api/admin/**` and the other actuator endpoints. The token's
     own roles are ignored.
   - Needs the `TENANT_ADMIN` role: `/api/tenant/**` (ADR016).
+  - Every endpoint that changes something names its roles with `@RolesAllowed` (ADR017): library changes
+    (`/api/content/**`) `TENANT_ADMIN`; generating, reviewing, publishing, sharing, deleting and taking tests
+    `TENANT_ADMIN` or `TENANT_USER` (who may change only the tests they created, checked in core). A
+    `TENANT_VIEWER` only reads. Reads are open to every role.
   - Everything else needs a signed-in user and works in that user's tenant (plus the read-only `LIBRARY` tenant for
     content).
-  - Responses: `401` without a valid token, `403` without the role.
+  - Responses: `401` without a valid token, `403` without the role or when the role does not allow the change.
 
 ## Admin – `AdminController` (`/api/admin`, `ADMIN` role)
 
@@ -85,7 +89,7 @@ not an organization; changes also `403` while an `ADMIN` views another workspace
 | Method | Path | Body / params | Result |
 |---|---|---|---|
 | POST | `` | `TestInput` | `201 TestDto` + `Location` (synchronous generation, can take tens of seconds) |
-| GET | `/{id}` | – | `200 TestDto` or `404` |
+| GET | `/{id}` | – | `200 TestDto` or `404`. `TestDto` has `createdBy` and `readOnly` (the caller may not change it: a viewer, a `TENANT_USER` for someone else's test, or an admin viewing another workspace, ADR017) |
 | GET | `/{id}/questions` | – | `200 List<TestQuestionDto>` (current version of each question) sorted by `questionIndex`, or `404` |
 | GET | `` | `status` (optional, case-insensitive `TestStatus`) | `200 List<TestDto>` for the tenant |
 | DELETE | `/{id}` | – | `200` (cascades to questions, versions, events and generation runs) |

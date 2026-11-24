@@ -24,8 +24,8 @@ libraries have neither page. An invitation never grants `ADMIN`, and a personal 
 
 Every user also sees **their own roles** in Settings → Profile (from `/api/me`), each with what it allows.
 
-**Not done yet:** nothing outside `/api/tenant/**` checks `TENANT_USER` or `TENANT_VIEWER`. Until it does, a user
-or viewer may do everything a tenant admin does except open Users and Workspace settings.
+**What each role may do** in the workspace is decided and enforced in ADR017 (a user changes only their own
+tests and never the library; a viewer only reads).
 
 ## Context
 ADR015 let only an `ADMIN` create workspaces and invite people, and gave every invitee `TENANT_ADMIN`, because the
@@ -39,7 +39,7 @@ come from a billing plan, so the organization must not raise them itself.
 * Adopted because: organizations invite their own people and set their own defaults without an application admin.
 * Adopted because: limits stay with the application admin (later the billing plan), so cost stays capped.
 * Adopted because: it reuses the invitation flow (ADR015) and the per-workspace settings (ADR014) unchanged.
-* Adopted despite: `TENANT_USER` and `TENANT_VIEWER` can be given before they are enforced (see "Not done yet").
+* Adopted despite: `TENANT_USER` and `TENANT_VIEWER` can be given before they are enforced (ADR017 enforces them).
 
 ### Option 2: Let tenant admins also change their workspace's limits
 #### Consequences

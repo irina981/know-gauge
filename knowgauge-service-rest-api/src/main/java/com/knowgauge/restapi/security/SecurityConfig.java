@@ -35,7 +35,9 @@ import lombok.extern.slf4j.Slf4j;
  * user are fixed by {@code kg.context.*}.</li>
  * <li>{@code oidc}: Keycloak bearer tokens. {@code /api/public/**} (participants), health and the landing page
  * stay open; {@code /api/admin/**} and the other actuator endpoints need the {@code ADMIN} role from
- * {@code user_roles} (ADR012); everything else needs a signed-in user, who works in their own tenant.</li>
+ * {@code user_roles} (ADR012); everything else needs a signed-in user, who works in their own tenant. Which roles
+ * may call a workspace endpoint is on the controller method itself ({@code @RolesAllowed},
+ * {@link MethodSecurityConfig}, ADR017).</li>
  * </ul>
  * Stateless in both modes: no session, no CSRF (the API takes bearer tokens, not cookies).
  */
@@ -68,8 +70,7 @@ public class SecurityConfig {
 				// Off in prod (springdoc.*.enabled); locally Swagger UI takes a token through "Authorize".
 				.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 				.requestMatchers("/api/admin/**", "/actuator/**").hasRole(Role.ADMIN.name())
-				// The own organization workspace's users and settings (ADR016); the service checks the workspace type.
-				.requestMatchers("/api/tenant/**").hasRole(Role.TENANT_ADMIN.name())
+				// Each workspace endpoint names its roles with @RolesAllowed (MethodSecurityConfig, ADR017).
 				.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
 				.addFilterAfter(accountFilter, BearerTokenAuthenticationFilter.class).build();

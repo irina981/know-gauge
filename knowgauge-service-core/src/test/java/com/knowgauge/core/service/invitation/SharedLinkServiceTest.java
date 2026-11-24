@@ -40,7 +40,7 @@ class SharedLinkServiceTest {
 		ExecutionContext context = mock(ExecutionContext.class);
 		when(context.tenantId()).thenReturn(TENANT);
 		when(context.userId()).thenReturn(OptionalLong.of(7L));
-		service = new SharedLinkService(testRepository, history, context);
+		service = new SharedLinkService(testRepository, history, context, com.knowgauge.core.support.Permissions.unrestricted());
 	}
 
 	@Test

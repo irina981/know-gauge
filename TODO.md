@@ -31,7 +31,7 @@
 - [ ] Implement User Mangement (core)
 - [x] Roles: ADMIN, TENANT_ADMIN (assigned), TENANT_USER, TENANT_VIEWER in `roles` / `user_roles` (ADR012)
 - [x] Tenant admins of an organization invite people as TENANT_ADMIN, TENANT_USER or TENANT_VIEWER; Users and Workspace settings pages (ADR016)
-- [ ] Enforce TENANT_USER and TENANT_VIEWER outside `/api/tenant/**` (today they can do what a TENANT_ADMIN does)
+- [x] Enforce TENANT_USER and TENANT_VIEWER: `@RolesAllowed` on controllers and checks in core (ADR017)
 - [ ] Screen or API to grant and revoke roles (today: `kg.account.admin-emails` and SQL)
 
 ### Multi-tenant support

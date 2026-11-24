@@ -50,7 +50,7 @@ class InvitationServiceImplTest {
 		InvitationProperties properties = new InvitationProperties();
 		properties.setLinkBaseUrl("https://tests.example.com/");
 		properties.setMaxPerRequest(3);
-		service = new InvitationServiceImpl(transactional, mailer, properties, context);
+		service = new InvitationServiceImpl(transactional, mailer, properties, context, com.knowgauge.core.support.Permissions.unrestricted());
 		when(transactional.recordSend(eq(TENANT), anyLong(), any())).thenAnswer(inv -> {
 			TestInvitation updated = TestInvitation.builder().id(inv.getArgument(1)).sendCount(1)
 					.sendError(inv.getArgument(2)).build();

@@ -69,7 +69,8 @@ class AttemptServiceImplTest {
 		when(context.userId()).thenReturn(OptionalLong.of(USER));
 		service = new AttemptServiceImpl(attemptRepository, answerRepository, testRepository, questionRepository,
 				invitationRepository = mock(TestInvitationRepository.class), context,
-				events = mock(ApplicationEventPublisher.class), participants = mock(TestParticipants.class));
+				events = mock(ApplicationEventPublisher.class), participants = mock(TestParticipants.class),
+				com.knowgauge.core.support.Permissions.unrestricted());
 
 		singleCorrectQuestions = List.of(
 				QuestionFixtures.persisted(1L, 0, 11L, QuestionFixtures.defaultVersion()),

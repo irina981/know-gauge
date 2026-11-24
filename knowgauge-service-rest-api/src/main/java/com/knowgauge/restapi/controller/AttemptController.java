@@ -19,6 +19,7 @@ import com.knowgauge.contract.dto.SubmitAttemptInput;
 import com.knowgauge.core.service.attempt.AttemptService;
 import com.knowgauge.core.service.attempt.AttemptService.AttemptView;
 import com.knowgauge.restapi.mapper.AttemptMapper;
+import com.knowgauge.restapi.security.Roles;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +27,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * Taking published tests: start, submit (scored at once) and list attempts.
@@ -43,6 +45,7 @@ public class AttemptController {
 		this.attemptMapper = attemptMapper;
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/tests/{testId}/attempts")
 	@Operation(summary = "Start an attempt", description = "Starts an attempt on a published test for the current user. Returns the questions without the answer key.")
 	@ApiResponses({ @ApiResponse(responseCode = "201", description = "Attempt started"),
@@ -63,6 +66,7 @@ public class AttemptController {
 		return ResponseEntity.ok(attemptMapper.toDetailDto(attemptService.get(attemptId)));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/attempts/{attemptId}/submit")
 	@Operation(summary = "Submit and score an attempt", description = "Saves the answers and scores the attempt. A question is correct only if the chosen options exactly match the answer key; questions left out count as wrong.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Attempt scored; returns the full review"),

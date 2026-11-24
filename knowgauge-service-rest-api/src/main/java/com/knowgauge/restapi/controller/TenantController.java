@@ -21,17 +21,20 @@ import com.knowgauge.core.model.enums.Role;
 import com.knowgauge.core.service.tenant.OrganizationTenantService;
 import com.knowgauge.restapi.mapper.TenantInvitationMapper;
 import com.knowgauge.restapi.util.EnumParser;
+import com.knowgauge.restapi.security.Roles;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * The signed-in user's own organization workspace, for its tenant admins (ADR016). Everything under /api/tenant
  * needs the TENANT_ADMIN role (SecurityConfig); the service refuses workspaces that are not organizations.
  */
+@RolesAllowed(Roles.TENANT_ADMIN)
 @RestController
 @Tag(name = "Workspace", description = "Users, invitations and configuration of the current organization workspace (TENANT_ADMIN role)")
 public class TenantController {

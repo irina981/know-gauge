@@ -62,8 +62,10 @@ first sign-in, or one an `ADMIN` created and invited them to: a `PERSONAL` tenan
   `TenantRepository` / `UserRepository` (account resolution).
 - Root topic names are unique per tenant (checked in `TopicServiceImpl`). The other unique constraints are per
   parent topic or per topic, so they are per tenant as well; `UNIQUE(path)` is global but paths are built from ids.
-- Planned (TODO.md): members of several tenants with a switcher (Keycloak Organizations), enforced `TENANT_USER` /
-  `TENANT_VIEWER` roles, and per-tenant storage prefix or bucket policies.
+- Roles in the workspace (ADR017): `@RolesAllowed` on each controller method that changes something, and
+  `RolePermissions` in core (a `TENANT_USER` changes only their own tests; a `TENANT_VIEWER` only reads).
+- Planned (TODO.md): members of several tenants with a switcher (Keycloak Organizations), and per-tenant storage
+  prefix or bucket policies.
 
 ## Auditing
 

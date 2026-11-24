@@ -43,6 +43,7 @@ import com.knowgauge.core.util.HashingHelper;
 import com.knowgauge.restapi.mapper.DocumentMapper;
 import com.knowgauge.restapi.mapper.TopicMapper;
 import com.knowgauge.restapi.util.TempFilesHelper;
+import com.knowgauge.restapi.security.Roles;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -54,6 +55,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.annotation.security.RolesAllowed;
 
 @RestController
 @RequestMapping("/api/content")
@@ -118,6 +120,7 @@ public class ContentController {
 		return ResponseEntity.status(200).body(topics);
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
 	@DeleteMapping("/topics/{id}")
 	@Operation(summary = "Delete topic")
 	public ResponseEntity<Void> deleteTopic(@PathVariable Long id) {
@@ -125,6 +128,7 @@ public class ContentController {
 		return ResponseEntity.status(200).body(null);
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
 	@PostMapping("/topics")
 	@Operation(summary = "Create topic")
 	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Topic created") })
@@ -138,6 +142,7 @@ public class ContentController {
 				: ResponseEntity.status(201).body(topicMapper.toDto(created));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
 	@PutMapping("/topics/{id}")
 	@Operation(summary = "Update topic name and description", description = "Null fields are left unchanged. The id in the body, if any, is ignored.")
 	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Topic updated"),
@@ -150,6 +155,7 @@ public class ContentController {
 		return ResponseEntity.ok(topicMapper.toDto(updated));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
 	@PostMapping("/topics/tree")
 	@Operation(summary = "Create topic tree")
 	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Topic tree created") })
@@ -187,6 +193,7 @@ public class ContentController {
 	 * Expects multipart/form-data with: - part "meta": JSON for DocumentInput -
 	 * part "file": the actual PDF (or any file)
 	 */
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
 	@PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "Upload document", description = "Multipart upload with meta JSON and file binary parts")
 	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Document uploaded"),
@@ -242,6 +249,7 @@ public class ContentController {
 
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
 	@DeleteMapping("/documents/{id}")
 	@Operation(summary = "Delete document")
 	public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
@@ -249,6 +257,7 @@ public class ContentController {
 		return ResponseEntity.status(200).body(null);
 	}
 	
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
 	@PostMapping("/documents/ingestion/{id}")
 	@Operation(summary = "Start ingestion for document")
 	public ResponseEntity<Void> startIngestion(@PathVariable Long id) {

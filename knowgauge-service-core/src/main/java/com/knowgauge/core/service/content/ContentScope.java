@@ -6,18 +6,21 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import com.knowgauge.core.context.ApplicationAdminProvider;
+import com.knowgauge.core.context.CurrentRolesProvider;
 import com.knowgauge.core.context.ExecutionContext;
 import com.knowgauge.core.context.TenantViewProvider;
+import com.knowgauge.core.exception.PermissionDeniedException;
 import com.knowgauge.core.exception.ReadOnlyContentException;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
+import com.knowgauge.core.service.access.RolePermissions;
 
 /**
  * Which tenants' content (topics, documents, chunks, embeddings) the current work may read and change (ADR010).
  * <ul>
  * <li>Read: the own tenant and every {@link TenantType#LIBRARY} tenant.</li>
- * <li>Change: the own tenant; library content only for an {@code ADMIN}. Jobs and startup seeding
- * run in the library tenant itself, so it is their own tenant.</li>
+ * <li>Change: the own tenant, by its tenant admins only (ADR017); library content only for an {@code ADMIN}. Jobs
+ * and startup seeding run in the library tenant itself, so it is their own tenant, and have no role to check.</li>
  * <li>An {@code ADMIN} viewing another user's library (tenant) reads that tenant (it is the current tenant then) and
  * changes nothing (ADR013).</li>
  * </ul>
@@ -31,14 +34,16 @@ public class ContentScope {
 	private final ExecutionContext executionContext;
 	private final ApplicationAdminProvider adminProvider;
 	private final TenantViewProvider tenantView;
+	private final CurrentRolesProvider rolesProvider;
 	private volatile List<Long> libraryTenantIds;
 
 	public ContentScope(TenantRepository tenantRepository, ExecutionContext executionContext,
-			ApplicationAdminProvider adminProvider, TenantViewProvider tenantView) {
+			ApplicationAdminProvider adminProvider, TenantViewProvider tenantView, CurrentRolesProvider rolesProvider) {
 		this.tenantRepository = tenantRepository;
 		this.executionContext = executionContext;
 		this.adminProvider = adminProvider;
 		this.tenantView = tenantView;
+		this.rolesProvider = rolesProvider;
 	}
 
 	/** The current tenant first, then the library tenants. */
@@ -68,16 +73,23 @@ public class ContentScope {
 			return false;
 		}
 		if (tenantId == executionContext.tenantId()) {
-			return true;
+			// In their own workspace only its admins change the library (ADR017).
+			return RolePermissions.mayChangeLibrary(rolesProvider.currentRoles());
 		}
 		return isLibrary(tenantId) && adminProvider.isApplicationAdmin();
 	}
 
 	/**
-	 * @throws ReadOnlyContentException when the current work may read but not change content of {@code tenantId}
+	 * @throws PermissionDeniedException when the content is the user's own but their role does not allow changing it
+	 *                                   (ADR017)
+	 * @throws ReadOnlyContentException  when the current work may read but not change content of {@code tenantId}
 	 */
 	public void requireWritable(Long tenantId, String what) {
 		if (!canWrite(tenantId)) {
+			if (tenantId != null && tenantId == executionContext.tenantId() && !tenantView.isViewingOtherTenant()) {
+				throw new PermissionDeniedException(
+						what + " can be changed only by an admin of this workspace; your role reads it.");
+			}
 			throw new ReadOnlyContentException(what + " belongs to the shared library and cannot be changed.");
 		}
 	}

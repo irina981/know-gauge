@@ -28,5 +28,7 @@ public record TestDto(
 		@Schema(description = "Generation finish time (UTC)", example = "2026-02-18T10:15:45Z") Instant generationFinishedAt,
 		@Schema(description = "Generation failure time (UTC)", example = "2026-02-18T10:15:45Z") Instant generationFailedAt,
 		@Schema(description = "Failure reason when status is FAILED", example = "Model request timed out") String generationErrorMessage,
-		@Schema(description = "Token of the shared link (/t/{token}); the link works while the test is PUBLISHED", example = "dGhpcy1pcy1hLXRva2Vu") String publicToken) {
+		@Schema(description = "Token of the shared link (/t/{token}); the link works while the test is PUBLISHED", example = "dGhpcy1pcy1hLXRva2Vu") String publicToken,
+		@Schema(description = "User who created the test", example = "7") Long createdBy,
+		@Schema(description = "True when the caller may not change the test: a viewer, a TENANT_USER for a test someone else created, or an ADMIN viewing another workspace (ADR013, ADR017)", example = "false") boolean readOnly) {
 }

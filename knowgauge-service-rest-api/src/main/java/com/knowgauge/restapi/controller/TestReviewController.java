@@ -26,6 +26,7 @@ import com.knowgauge.core.service.review.TestReviewService;
 import com.knowgauge.restapi.mapper.TestMapper;
 import com.knowgauge.restapi.mapper.TestQuestionMapper;
 import com.knowgauge.restapi.mapper.TestReviewMapper;
+import com.knowgauge.restapi.security.Roles;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,6 +34,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.annotation.security.RolesAllowed;
 
 /**
  * Review of generated questions and the test history trail (ADR001).
@@ -57,6 +59,7 @@ public class TestReviewController {
 
 	// ---------------- actions ----------------
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/questions/{questionId}/accept-fix")
 	@Operation(summary = "Accept the suggested fix", description = "Creates a new version in which every flagged option's text is replaced by the verifier's suggestion. The answer key is unchanged.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Fix applied; returns the question with its new current version"),
@@ -68,6 +71,7 @@ public class TestReviewController {
 				reviewService.acceptFix(testId, questionId, input.expectedCurrentVersionId(), input.comment())));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/questions/{questionId}/dismiss-flags")
 	@Operation(summary = "Keep the question as it is", description = "Creates a new version with the same content and no flagged options, so a reviewer can overrule the verifier. The comment is required and kept in the history (ADR008).")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Flags dismissed; returns the question with its new current version"),
@@ -80,6 +84,7 @@ public class TestReviewController {
 				reviewService.dismissFlags(testId, questionId, input.expectedCurrentVersionId(), input.comment())));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/questions/{questionId}/regenerate")
 	@Operation(summary = "Regenerate the question", description = "Replaces the question with a newly generated one from the test's original context. The new version is verified again and may itself need review.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Question regenerated; returns the question with its new current version"),
@@ -92,6 +97,7 @@ public class TestReviewController {
 				reviewService.regenerate(testId, questionId, input.expectedCurrentVersionId(), input.comment())));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/questions/{questionId}/manual-replace")
 	@Operation(summary = "Replace the question manually", description = "Replaces the question with one written by the reviewer (question, options A-D with answer key, optional explanation). Validated with the non-LLM rules; not LLM-verified.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Question replaced; returns the question with its new current version"),
@@ -104,6 +110,7 @@ public class TestReviewController {
 				.ok(questionMapper.toDto(reviewService.manualReplace(testId, questionId, reviewMapper.toDraft(input))));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PutMapping("/details")
 	@Operation(summary = "Edit the test's name and description", description = "Allowed in every status except PUBLISHED. Recorded as a TEST_DETAILS_UPDATED event.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Details updated; returns the test"),
@@ -115,6 +122,7 @@ public class TestReviewController {
 				.ok(testMapper.toDto(reviewService.updateDetails(testId, input.name(), input.description())));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/publish")
 	@Operation(summary = "Publish the test", description = "Freezes the test: no review action can change its questions any more, and attempts can be started. Allowed only for GENERATED or REVIEWED tests with no question needing review.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Test published; returns the test with status PUBLISHED"),
@@ -126,6 +134,7 @@ public class TestReviewController {
 				.ok(testMapper.toDto(reviewService.publish(testId, input != null ? input.comment() : null)));
 	}
 
+	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
 	@PostMapping("/unpublish")
 	@Operation(summary = "Unpublish the test", description = "Returns a published test to the status it had before publishing (GENERATED or REVIEWED), so its questions can be reviewed again. Allowed only while no attempt exists for the test.")
 	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Test unpublished; returns the test with its restored status"),

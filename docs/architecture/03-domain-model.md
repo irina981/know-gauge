@@ -90,7 +90,7 @@ erDiagram
 | `GenerationRunPurpose` | `TEST_GENERATION`, `REGENERATION`, `VERIFICATION` | Why an LLM call was made |
 | `AttemptStatus` | `STARTED`, `SUBMITTED`, `SCORED` | Attempts. Submit goes straight from `STARTED` to `SCORED`; `SUBMITTED` is unused for now |
 | `GenerationRunStatus` | `SUCCESS`, `FAILED` | Outcome of an LLM call |
-| `Role` | `ADMIN`, `TENANT_ADMIN`, `TENANT_USER`, `TENANT_VIEWER` | Tables `roles` and `user_roles`; a user has several. Everyone is `TENANT_ADMIN` of their own tenant; an invitation may give `TENANT_USER` or `TENANT_VIEWER` instead (ADR016), which only `/api/tenant/**` checks so far. `ADMIN` comes from `kg.account.admin-emails` (ADR012) |
+| `Role` | `ADMIN`, `TENANT_ADMIN`, `TENANT_USER`, `TENANT_VIEWER` | Tables `roles` and `user_roles`; a user has several. Everyone is `TENANT_ADMIN` of their own tenant; an invitation may give `TENANT_USER` or `TENANT_VIEWER` instead (ADR016). What each may do: ADR017. `ADMIN` comes from `kg.account.admin-emails` (ADR012) |
 | `TenantType` | `PERSONAL`, `ORGANIZATION`, `LIBRARY` | Tenants (ADR010) |
 
 ## Lifecycles
