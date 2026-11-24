@@ -88,7 +88,7 @@ services:
   # KG_SECURITY_MODE=oidc. Admin console: http://localhost:8180 (KC_BOOTSTRAP_ADMIN_*, master realm).
   # Registration and password-reset emails go to Mailpit. Delete the keycloak_data volume to import the realm again.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.4.5
+    image: quay.io/keycloak/keycloak:26.8.2
     container_name: knowgauge-keycloak
     command: ["start-dev", "--import-realm"]
     environment:
