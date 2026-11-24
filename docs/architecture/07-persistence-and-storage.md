@@ -52,14 +52,15 @@ All Flyway scripts live in `knowgauge-service-rest-api/src/main/resources/db/`:
 
 | Location | DB | Content | Active in |
 |---|---|---|---|
-| `db/migration/V1__create_initial_schema.sql` | main | Full relational schema | all profiles |
+| `db/migration/V1__create_initial_schema.sql` | main | Content schema: topics, documents, chunks, tests, questions, attempts, system settings | all profiles |
+| `db/migration/V2__users_and_tenants.sql` | main | `tenants`, `users` (with the system user 0), `roles`, `user_roles`. Kept apart so user management can become its own service: no content table has a foreign key to them | all profiles |
 | `db/dev-migration/R__dev_seed_topics.sql` | main | Repeatable seed of a fixed-ID topic tree (tenant 1) | `local` only (added to `spring.flyway.locations`) |
 | `db/dev-migration/R__dev_library_tenant.sql` | main | Makes tenant 1 the `LIBRARY` tenant "KnowGauge Samples" (ADR010) | `local` only |
 | `db/pgvector-migration/V1__pgvector_and_embeddings.sql` | vector | `CREATE EXTENSION vector`, `chunk_embeddings`, indexes | all profiles |
 
-> The schema is still a single `V1` that is edited in place. This works only while databases are recreated (an
+> The schema is still `V1` (content) and `V2` (users and tenants), edited in place. This works only while databases are recreated (an
 > existing database fails Flyway's checksum validation after every change). Once a shared or persistent environment
-> exists, add new `V{n}__*.sql` files instead of editing `V1`.
+> exists, add new `V{n}__*.sql` files instead of editing `V1` and `V2`.
 
 ## Relational schema (main DB)
 

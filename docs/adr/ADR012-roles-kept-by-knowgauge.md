@@ -10,7 +10,7 @@
 - Table **`roles`** lists every role the app knows (the `Role` enum): `ADMIN`, `TENANT_ADMIN`, `TENANT_USER`,
   `TENANT_VIEWER`.
 - Table **`user_roles`** (`user_id`, `role_code`, `granted_at`) holds each user's roles, so a user can have several.
-  The single `users.role` column is gone (migration `V3__roles_and_user_roles.sql` moved its values).
+  The single `users.role` column is gone. Both tables are in `V2__users_and_tenants.sql`.
 - The application admin role is now **`ADMIN`** (was the Keycloak realm role `APPLICATION_ADMIN`). It guards
   `/api/admin/**`, the actuator endpoints other than health/info, and changes to the shared library.
 - On the first sign-in a user gets `TENANT_ADMIN` of their new personal tenant.

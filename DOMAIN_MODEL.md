@@ -518,9 +518,10 @@ Maps DocumentChunks to their vectorized embeddings for semantic search.
 
 ## Database Schema
 
-The complete database schema is defined in:
+The database schema is defined in two scripts:
 ```
-src/main/resources/db/migration/V1__create_initial_schema.sql
+src/main/resources/db/migration/V1__create_initial_schema.sql   (content)
+src/main/resources/db/migration/V2__users_and_tenants.sql       (tenants, users, roles)
 ```
 
 ### Design Principles

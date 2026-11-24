@@ -80,4 +80,4 @@ fits company tenants later. The UI does not sign in yet, so the old behaviour ha
 ## Supporting Material
 * Local realm: `local-development/keycloak/knowgauge-realm.json`
 * Code: `restapi.security` (`SecurityConfig`, `AccountResolutionFilter`), `core.service.account`
-* Schema: `tenants` and `users` in `V1__create_initial_schema.sql`; library tenant in `dev-migration/R__dev_library_tenant.sql`
+* Schema: `tenants` and `users` in `V2__users_and_tenants.sql`; library tenant in `dev-migration/R__dev_library_tenant.sql`
