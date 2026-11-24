@@ -70,7 +70,7 @@ class TenantAdminServiceImplTest {
 				3_000L, 1_200L);
 		when(tenants.findTenantSummaries(any(), eq(page), eq(NOV_1), eq(DEC_1)))
 				.thenReturn(new PageImpl<>(List.of(row), page, 1));
-		when(settings.limits(List.of(3L))).thenReturn(Map.of(3L, new TenantLimits(1_000L, 2_000L, 2)));
+		when(settings.limits(List.of(3L))).thenReturn(Map.of(3L, new TenantLimits(1_000L, 2_000L, 2, null)));
 		when(settings.withOwnValues(List.of(3L))).thenReturn(Set.of(3L));
 
 		Page<TenantSummary> result = service.listTenants(new TenantSearch(null, null), page);

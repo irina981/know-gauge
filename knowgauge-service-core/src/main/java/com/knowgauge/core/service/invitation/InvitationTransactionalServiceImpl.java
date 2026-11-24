@@ -8,6 +8,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+
+import com.knowgauge.core.service.attempt.TestParticipants;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.knowgauge.core.exception.AttemptConflictException;
@@ -40,20 +42,27 @@ public class InvitationTransactionalServiceImpl {
 	private final TestRepository testRepository;
 	private final TestQuestionRepository questionRepository;
 	private final AttemptRepository attemptRepository;
+	private final TestParticipants participants;
 
 	public InvitationTransactionalServiceImpl(TestInvitationRepository invitationRepository,
 			TestRepository testRepository, TestQuestionRepository questionRepository,
-			AttemptRepository attemptRepository) {
+			AttemptRepository attemptRepository, TestParticipants participants) {
+		this.participants = participants;
 		this.invitationRepository = invitationRepository;
 		this.testRepository = testRepository;
 		this.questionRepository = questionRepository;
 		this.attemptRepository = attemptRepository;
 	}
 
-	/** Creates the missing invitations; existing ones keep their token. */
+	/**
+	 * Creates the missing invitations; existing ones keep their token. New addresses count against the test's
+	 * participant limit (the test row is locked first, so concurrent requests cannot both fill the last places).
+	 */
 	@Transactional
 	public Prepared prepare(long tenantId, Long testId, List<String> emails) {
 		Test test = publishedTest(tenantId, testId);
+		testRepository.findByTenantIdAndIdForUpdate(tenantId, testId);
+		participants.requireRoomForInvitations(tenantId, testId, emails);
 		List<TestInvitation> invitations = new ArrayList<>(emails.size());
 		for (String email : emails) {
 			invitations.add(invitationRepository.findByTenantIdAndTestIdAndEmail(tenantId, testId, email)

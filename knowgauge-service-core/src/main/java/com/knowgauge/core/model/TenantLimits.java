@@ -10,20 +10,24 @@ import java.util.function.Function;
  * @param monthlyTokens         LLM tokens (input + output) per calendar month (UTC)
  * @param storageBytes          bytes of uploaded documents
  * @param concurrentGenerations tests one user may generate at the same time
+ * @param participantsPerTest   different people one test may have: invited or started an attempt
  */
-public record TenantLimits(Long monthlyTokens, Long storageBytes, Integer concurrentGenerations) {
+public record TenantLimits(Long monthlyTokens, Long storageBytes, Integer concurrentGenerations,
+		Integer participantsPerTest) {
 
 	public static final String MONTHLY_TOKENS = "kg.settings.tenant.monthly-token-limit";
 	public static final String STORAGE_MB = "kg.settings.tenant.storage-limit-mb";
 	public static final String CONCURRENT_GENERATIONS = "kg.settings.tenant.concurrent-generations-per-user";
+	public static final String PARTICIPANTS_PER_TEST = "kg.settings.tenant.participants-per-test";
 
 	/** The setting keys of the limits. */
-	public static final List<String> KEYS = List.of(MONTHLY_TOKENS, STORAGE_MB, CONCURRENT_GENERATIONS);
+	public static final List<String> KEYS = List.of(MONTHLY_TOKENS, STORAGE_MB, CONCURRENT_GENERATIONS,
+			PARTICIPANTS_PER_TEST);
 
 	/** The value that stands for "no limit". */
 	public static final String NO_LIMIT = "0";
 
-	public static final TenantLimits NONE = new TenantLimits(null, null, null);
+	public static final TenantLimits NONE = new TenantLimits(null, null, null, null);
 
 	/**
 	 * @param valueOf the value in effect of a limit key, as text ({@code null} or "0" for no limit)
@@ -31,9 +35,11 @@ public record TenantLimits(Long monthlyTokens, Long storageBytes, Integer concur
 	public static TenantLimits of(Function<String, String> valueOf) {
 		Long storageMb = limit(valueOf.apply(STORAGE_MB));
 		Long concurrent = limit(valueOf.apply(CONCURRENT_GENERATIONS));
+		Long participants = limit(valueOf.apply(PARTICIPANTS_PER_TEST));
 		return new TenantLimits(limit(valueOf.apply(MONTHLY_TOKENS)),
 				storageMb == null ? null : storageMb * 1024 * 1024,
-				concurrent == null ? null : concurrent.intValue());
+				concurrent == null ? null : concurrent.intValue(),
+				participants == null ? null : participants.intValue());
 	}
 
 	private static Long limit(String text) {

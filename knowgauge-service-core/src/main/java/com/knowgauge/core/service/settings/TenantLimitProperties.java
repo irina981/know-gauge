@@ -24,4 +24,7 @@ public class TenantLimitProperties {
 
 	/** Tests one user may generate at the same time. */
 	private Integer concurrentGenerationsPerUser;
+
+	/** Different people one test may have: every address invited to it or that started an attempt. */
+	private Integer participantsPerTest;
 }

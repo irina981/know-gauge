@@ -129,7 +129,7 @@ marked right or wrong. The score and a results link (`/r/{attemptToken}`) are al
 | Method | Path | Body | Result |
 |---|---|---|---|
 | GET | `/tests/{testToken}` | – | `200 PublicTestDto {name, description, questionCount, answerCardinality}` |
-| POST | `/tests/{testToken}/attempts` | `StartPublicAttemptInput {participantName, participantEmail}` | `201 PublicAttemptDto` with the attempt token and the questions (no key). No attempt limit. `400` missing name or invalid email |
+| POST | `/tests/{testToken}/attempts` | `StartPublicAttemptInput {participantName, participantEmail}` | `201 PublicAttemptDto` with the attempt token and the questions (no key). No attempt limit for one person. `400` missing name or invalid email; `409` the test is full (workspace limit "Participants per test": invited addresses and attempts' addresses, each once) and the email is not among its participants yet |
 | GET | `/invitations/{invitationToken}` | – | `200 PublicInvitationDto {email, test, attemptStatus?, attemptToken?}`; `attemptToken` only while the attempt runs |
 | POST | `/invitations/{invitationToken}/attempt` | `StartInvitationAttemptInput {participantName}` | `200 PublicAttemptDto`. The email is the invited address. Returns the running attempt if already started; `409` once it was submitted |
 | GET | `/attempts/{attemptToken}` | – | `200 PublicAttemptDto`: the questions while `STARTED`; once `SCORED`, `correctCount`, `scorePercent` and each question with `chosenOptions` and `correct` (`correctOptions` and `explanation` stay empty) |
@@ -149,7 +149,7 @@ Personal links by email (ADR009): one per address, usable for one attempt, sent 
 
 | Method | Path | Body | Result |
 |---|---|---|---|
-| POST | `` | `InviteInput {emails, message?}` | `200 List<TestInvitationDto>` for the given addresses. Duplicates are merged; already invited addresses get the same link again unless it was used. A failed send is returned in `sendError`, not as an error. `400` invalid or no addresses, or more than `kg.invitations.max-per-request`; `409` test not published |
+| POST | `` | `InviteInput {emails, message?}` | `200 List<TestInvitationDto>` for the given addresses. Duplicates are merged; already invited addresses get the same link again unless it was used. A failed send is returned in `sendError`, not as an error. `400` invalid or no addresses, or more than `kg.invitations.max-per-request`; `409` test not published, or the new addresses would take the test over its participant limit (the message says how many more fit) |
 | GET | `` | – | `200 List<TestInvitationDto>`, oldest first, with `attemptStatus`, `participantName` and `scorePercent` of used links |
 | POST | `/{invitationId}/resend` | – | `200 TestInvitationDto`. `409` link already used or test not published |
 

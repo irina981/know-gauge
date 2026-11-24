@@ -55,10 +55,13 @@ public class AttemptServiceImpl implements AttemptService {
 	private final ExecutionContext executionContext;
 	private final ApplicationEventPublisher events;
 
+	private final TestParticipants participants;
+
 	public AttemptServiceImpl(AttemptRepository attemptRepository, AttemptAnswerRepository answerRepository,
 			TestRepository testRepository, TestQuestionRepository questionRepository,
 			TestInvitationRepository invitationRepository, ExecutionContext executionContext,
-			ApplicationEventPublisher events) {
+			ApplicationEventPublisher events, TestParticipants participants) {
+		this.participants = participants;
 		this.attemptRepository = attemptRepository;
 		this.answerRepository = answerRepository;
 		this.testRepository = testRepository;
@@ -84,6 +87,10 @@ public class AttemptServiceImpl implements AttemptService {
 		String name = normalizeName(participantName);
 		String email = Emails.normalize(participantEmail);
 		Test test = publishedTestByToken(testToken);
+		// Someone new counts against the test's participant limit; lock the test first so two people cannot both
+		// take the last place (startAttempt locks the same row again, a no-op in this transaction).
+		testRepository.findByTenantIdAndIdForUpdate(test.getTenantId(), test.getId());
+		participants.requireRoomForParticipant(test.getTenantId(), test.getId(), email);
 		return startAttempt(test.getTenantId(), test.getId(),
 				Attempt.builder().participantName(name).participantEmail(email));
 	}

@@ -42,18 +42,20 @@ class TenantSettingsServiceImplTest {
 	private static final String TOKENS = TenantLimits.MONTHLY_TOKENS;
 	private static final String STORAGE = TenantLimits.STORAGE_MB;
 	private static final String CONCURRENT = TenantLimits.CONCURRENT_GENERATIONS;
+	private static final String PARTICIPANTS = TenantLimits.PARTICIPANTS_PER_TEST;
 
 	private final SettingRepository repository = mock(SettingRepository.class);
 	private final TenantRepository tenants = mock(TenantRepository.class);
 	private TenantSettingsServiceImpl service;
 
-	/** The system values: 1,000 tokens, 10 MB, 1 generation at once. */
+	/** The system values: 1,000 tokens, 10 MB, 1 generation at once, 100 participants per test. */
 	@BeforeEach
 	void setUp() {
 		TenantLimitProperties limits = new TenantLimitProperties();
 		limits.setMonthlyTokenLimit(1_000L);
 		limits.setStorageLimitMb(10L);
 		limits.setConcurrentGenerationsPerUser(1);
+		limits.setParticipantsPerTest(100);
 		CoreSystemSettings core = new CoreSystemSettings(limits, new TestGenerationDefaultsProperties(),
 				new InvitationProperties(), new IngestionJobProperties(), mock(TokenPriceCatalog.class));
 		service = new TenantSettingsServiceImpl(repository, tenants,
@@ -72,9 +74,9 @@ class TenantSettingsServiceImplTest {
 
 	@Test
 	void withoutValuesOfItsOwnATenantHasTheSystemLimits() {
-		assertThat(service.limits(TENANT)).isEqualTo(new TenantLimits(1_000L, 10L * 1024 * 1024, 1));
+		assertThat(service.limits(TENANT)).isEqualTo(new TenantLimits(1_000L, 10L * 1024 * 1024, 1, 100));
 		assertThat(service.list(TENANT)).extracting(TenantSettingValue::definition)
-				.extracting(SettingDefinition::key).containsExactly(TOKENS, STORAGE, CONCURRENT);
+				.extracting(SettingDefinition::key).containsExactly(TOKENS, STORAGE, CONCURRENT, PARTICIPANTS);
 		assertThat(service.list(TENANT)).noneMatch(TenantSettingValue::overridden);
 	}
 
@@ -82,10 +84,10 @@ class TenantSettingsServiceImplTest {
 	void aValueOfItsOwnWinsAndZeroMeansNoLimit() {
 		when(repository.findByTenantId(TENANT)).thenReturn(List.of(own(TENANT, TOKENS, "5000"), own(TENANT, STORAGE, "0")));
 
-		assertThat(service.limits(TENANT)).isEqualTo(new TenantLimits(5_000L, null, 1));
+		assertThat(service.limits(TENANT)).isEqualTo(new TenantLimits(5_000L, null, 1, 100));
 		assertThat(service.list(TENANT)).extracting(TenantSettingValue::systemValue, TenantSettingValue::ownValue,
 				TenantSettingValue::value).containsExactly(tuple("1000", "5000", "5000"), tuple("10", "0", "0"),
-						tuple("1", null, "1"));
+						tuple("1", null, "1"), tuple("100", null, "100"));
 	}
 
 	@Test
@@ -128,7 +130,8 @@ class TenantSettingsServiceImplTest {
 		ArgumentCaptor<List<Setting>> saved = ArgumentCaptor.forClass(List.class);
 		verify(repository).saveAll(saved.capture());
 		assertThat(saved.getValue()).extracting(Setting::getKey, Setting::getValue)
-				.containsExactly(tuple(TOKENS, "0"), tuple(STORAGE, "0"), tuple(CONCURRENT, "0"));
+				.containsExactly(tuple(TOKENS, "0"), tuple(STORAGE, "0"), tuple(CONCURRENT, "0"),
+						tuple(PARTICIPANTS, "0"));
 	}
 
 	@Test

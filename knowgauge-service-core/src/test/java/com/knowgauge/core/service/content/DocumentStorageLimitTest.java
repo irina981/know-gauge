@@ -56,7 +56,7 @@ class DocumentStorageLimitTest {
 		});
 		when(storageService.put(any(), any(), anyLong(), any()))
 				.thenReturn(new StoredObject("key", "etag", null, 0, "application/pdf"));
-		when(settings.limits(OWN)).thenReturn(new TenantLimits(null, 1_000L, null));
+		when(settings.limits(OWN)).thenReturn(new TenantLimits(null, 1_000L, null, null));
 		// The library's own value 0: no limit (ADR014).
 		when(settings.limits(LIBRARY)).thenReturn(TenantLimits.NONE);
 		when(documentRepository.sumFileSizeBytesByTenantId(OWN)).thenReturn(900L);

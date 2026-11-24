@@ -22,12 +22,12 @@ Settings have **levels**. A value is resolved the same way for every workspace (
   The System settings page shows each type on a vertical tab of its own.
 - **Only workspace-level settings have `TENANT` rows.** A `SettingDefinition` says so (`tenantLevel`, set with
   `perTenant()`). For now these are the workspace limits: AI tokens per month, storage, tests generating at once
-  per user. The models, batch sizes and similar stay system-only; saving one for a workspace is refused.
+  per user, and participants per test (`V8__participants_per_test_limit.sql`). The models, batch sizes and similar stay system-only; saving one for a workspace is refused.
 - **0 means no limit, at every level.** An empty value of a workspace means "use the system value", so "no limit"
   needs a value of its own. The system level uses 0 too, so there is one rule.
 - **No special cases in code.** `TenantSettingsService.limits(tenantId)` gives the `TenantLimits` in effect, and
   every check and view uses it: the token check (`UsageServiceImpl`), uploads (`DocumentServiceImpl`), tests
-  generating at once (`GenerationSlots`), the usage page, the limit banner and the admin's Workspaces list.
+  generating at once (`GenerationSlots`), participants per test (`TestParticipants`), the usage page, the limit banner and the admin's Workspaces list.
 - **Workspaces without limits are data, not code.** The shared library (no users of its own: generating from its
   documents counts in the user's workspace) and an application admin's own workspace get their own value 0 for
   every limit: the migration for the existing ones, sign-in when it grants `ADMIN`

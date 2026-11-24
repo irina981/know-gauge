@@ -30,6 +30,7 @@ import com.knowgauge.core.exception.EmbeddingUnexpectedException;
 import com.knowgauge.core.exception.LlmResponseParsingException;
 import com.knowgauge.core.exception.PriceCatalogUnavailableException;
 import com.knowgauge.core.exception.GenerationLimitReachedException;
+import com.knowgauge.core.exception.ParticipantLimitReachedException;
 import com.knowgauge.core.exception.StorageLimitReachedException;
 import com.knowgauge.core.exception.TokenLimitReachedException;
 import com.knowgauge.core.exception.InsufficientContextException;
@@ -348,6 +349,15 @@ public class GlobalControllerExceptionHandler extends ResponseEntityExceptionHan
 		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.TOO_MANY_REQUESTS, request, ex);
 		log.info("Token limit reached: {}", ex.getMessage());
 		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.TOO_MANY_REQUESTS, request);
+	}
+
+	// A test is full (workspace limit "Participants per test"): 409, the test's state refuses the request.
+	@ExceptionHandler(ParticipantLimitReachedException.class)
+	public ResponseEntity<Object> handleParticipantLimitReachedException(WebRequest request,
+			ParticipantLimitReachedException ex) {
+		HttpErrorInfo responseBody = createHttpErrorInfo(HttpStatus.CONFLICT, request, ex);
+		log.info("Participant limit reached: {}", ex.getMessage());
+		return handleExceptionInternal(ex, responseBody, new HttpHeaders(), HttpStatus.CONFLICT, request);
 	}
 
 	@ExceptionHandler(GenerationLimitReachedException.class)

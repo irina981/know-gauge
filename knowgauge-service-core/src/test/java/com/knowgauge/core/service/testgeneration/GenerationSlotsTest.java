@@ -21,7 +21,7 @@ class GenerationSlotsTest {
 
 	@Test
 	void aSecondGenerationOfTheSameUserIsRefusedUntilTheFirstEnds() {
-		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 1));
+		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 1, null));
 
 		GenerationSlots.Slot first = slots.acquire(7L, WORKSPACE);
 		assertThatThrownBy(() -> slots.acquire(7L, WORKSPACE)).isInstanceOf(GenerationLimitReachedException.class)
@@ -36,7 +36,7 @@ class GenerationSlotsTest {
 
 	@Test
 	void otherUsersHaveSlotsOfTheirOwn() {
-		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 1));
+		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 1, null));
 
 		try (GenerationSlots.Slot ana = slots.acquire(7L, WORKSPACE);
 				GenerationSlots.Slot bob = slots.acquire(8L, WORKSPACE)) {
@@ -47,7 +47,7 @@ class GenerationSlotsTest {
 
 	@Test
 	void aHigherLimitAllowsThatManyAtOnce() {
-		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 2));
+		when(settings.limits(WORKSPACE)).thenReturn(new TenantLimits(null, null, 2, null));
 
 		try (GenerationSlots.Slot one = slots.acquire(7L, WORKSPACE);
 				GenerationSlots.Slot two = slots.acquire(7L, WORKSPACE)) {

@@ -10,7 +10,8 @@ INSERT INTO settings (setting_owner, owner_id, setting_key, setting_value)
 SELECT 'TENANT', 1, k.setting_key, '0'
 FROM (VALUES ('kg.settings.tenant.monthly-token-limit'),
              ('kg.settings.tenant.storage-limit-mb'),
-             ('kg.settings.tenant.concurrent-generations-per-user')) AS k(setting_key)
+             ('kg.settings.tenant.concurrent-generations-per-user'),
+             ('kg.settings.tenant.participants-per-test')) AS k(setting_key)
 ON CONFLICT ON CONSTRAINT uq_settings_key DO NOTHING;
 
 -- Personal tenants created on sign-in get ids after the library.

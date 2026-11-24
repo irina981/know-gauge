@@ -53,7 +53,7 @@ class UsageServiceImplTest {
 
 	@Test
 	void belowTheLimitWorkMayStart() {
-		when(settings.limits(TENANT)).thenReturn(new TenantLimits(1_000L, null, null));
+		when(settings.limits(TENANT)).thenReturn(new TenantLimits(1_000L, null, null, null));
 		when(usageRepository.tokensByModel(eq(TENANT), eq(NOV_1), eq(DEC_1)))
 				.thenReturn(List.of(new ModelTokenUsage("gpt-4.1", 600, 399)));
 
@@ -62,7 +62,7 @@ class UsageServiceImplTest {
 
 	@Test
 	void atTheLimitNewWorkIsRefused() {
-		when(settings.limits(TENANT)).thenReturn(new TenantLimits(1_000L, null, null));
+		when(settings.limits(TENANT)).thenReturn(new TenantLimits(1_000L, null, null, null));
 		when(usageRepository.tokensByModel(eq(TENANT), eq(NOV_1), eq(DEC_1)))
 				.thenReturn(List.of(new ModelTokenUsage("gpt-4.1", 600, 300), new ModelTokenUsage("gpt-5", 50, 50)));
 

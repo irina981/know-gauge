@@ -52,6 +52,7 @@ class AttemptServiceImplTest {
 	private TestQuestionRepository questionRepository;
 	private TestInvitationRepository invitationRepository;
 	private ApplicationEventPublisher events;
+	private TestParticipants participants;
 	private AttemptServiceImpl service;
 
 	/** Q1: answer A. Q2: answer B. */
@@ -68,7 +69,7 @@ class AttemptServiceImplTest {
 		when(context.userId()).thenReturn(OptionalLong.of(USER));
 		service = new AttemptServiceImpl(attemptRepository, answerRepository, testRepository, questionRepository,
 				invitationRepository = mock(TestInvitationRepository.class), context,
-				events = mock(ApplicationEventPublisher.class));
+				events = mock(ApplicationEventPublisher.class), participants = mock(TestParticipants.class));
 
 		singleCorrectQuestions = List.of(
 				QuestionFixtures.persisted(1L, 0, 11L, QuestionFixtures.defaultVersion()),
@@ -144,6 +145,17 @@ class AttemptServiceImplTest {
 		service.startForParticipant(LINK, "Ana", "ana@example.com");
 
 		verify(attemptRepository, org.mockito.Mockito.times(2)).save(any());
+	}
+
+	@Test
+	void sharedLinkRefusesANewPersonOnceTheTestIsFull() {
+		givenPublishedTestBehindLink();
+		org.mockito.Mockito.doThrow(new com.knowgauge.core.exception.ParticipantLimitReachedException("full"))
+				.when(participants).requireRoomForParticipant(TENANT, TEST_ID, "ana@example.com");
+
+		assertThatThrownBy(() -> service.startForParticipant(LINK, "Ana", "Ana@Example.com"))
+				.isInstanceOf(com.knowgauge.core.exception.ParticipantLimitReachedException.class);
+		verify(attemptRepository, never()).save(any());
 	}
 
 	@Test

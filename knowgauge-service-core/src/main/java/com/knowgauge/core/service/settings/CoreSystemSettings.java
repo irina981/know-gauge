@@ -60,6 +60,14 @@ public class CoreSystemSettings implements SettingsContributor {
 						() -> text(limits.getConcurrentGenerationsPerUser()),
 						value -> limits.setConcurrentGenerationsPerUser(value == null ? null : Integer.valueOf(value)))
 						.perTenant().limit(),
+				new SettingDefinition(TenantLimits.PARTICIPANTS_PER_TEST, WORKSPACE_LIMITS, "Participants per test",
+						"How many different people one test may have: everyone invited to it and everyone who started it"
+								+ " from the shared link, each counted once. Once a test is full, more invitations and new"
+								+ " people on the shared link are refused. 0: no limit.",
+						SettingDefinition.Type.INTEGER, List.of(), 0L, null, false,
+						() -> text(limits.getParticipantsPerTest()),
+						value -> limits.setParticipantsPerTest(value == null ? null : Integer.valueOf(value)))
+						.perTenant().limit(),
 				new SettingDefinition("kg.testgen.defaults.generation-model", "AI models",
 						"Question writing model",
 						"The OpenAI model that writes new questions. The list shows the OpenAI chat models of the price"
