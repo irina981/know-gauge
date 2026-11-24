@@ -43,8 +43,9 @@ services:
       retries: 5
 
   # Sign-in (ADR010), in production mode. Tables in the keycloak schema of the shared Postgres. The knowgauge realm
-  # (keycloak/knowgauge-realm.json: UI client and the first admin's sign-in; no roles) is imported on the first start
-  # only. It listens on 127.0.0.1: put a reverse proxy with HTTPS in front of it at KG_AUTH_URL.
+  # (../keycloak/knowgauge-realm.json, the template shared with local-development/: UI client and the first admin's
+  # sign-in; no roles) is imported on the first start only, with its ${VAR:default} placeholders filled from the
+  # environment below. It listens on 127.0.0.1: put a reverse proxy with HTTPS in front of it at KG_AUTH_URL.
   keycloak:
     image: quay.io/keycloak/keycloak:26.8.2
     container_name: knowgauge-keycloak
@@ -73,11 +74,14 @@ services:
       KG_MAIL_PORT: ${KG_MAIL_PORT:-587}
       KG_MAIL_USERNAME: ${KG_MAIL_USERNAME:-}
       KG_MAIL_PASSWORD: ${KG_MAIL_PASSWORD:-}
+      KG_MAIL_SMTP_AUTH: ${KG_MAIL_SMTP_AUTH:-true}
+      KG_MAIL_STARTTLS: ${KG_MAIL_STARTTLS:-true}
       KG_MAIL_FROM_ADDRESS: ${KG_MAIL_FROM_ADDRESS:-no-reply@knowgauge.local}
     ports:
       - "127.0.0.1:${KG_KEYCLOAK_PORT:-8180}:8080"
     volumes:
-      - ./keycloak:/opt/keycloak/data/import:ro
+      - ../keycloak/knowgauge-realm.json:/opt/keycloak/data/import/knowgauge-realm.json:ro
+      - ./keycloak/knowgauge-users-0.json:/opt/keycloak/data/import/knowgauge-users-0.json:ro
       # The KnowGauge login theme, built in the know-gauge-ui clone with `npm run build-keycloak-theme`
       - ${KG_UI_SOURCE:-../../know-gauge-ui}/dist_keycloak:/opt/keycloak/providers:ro
     depends_on:

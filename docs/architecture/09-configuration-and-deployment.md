@@ -126,8 +126,8 @@ For local development in the IDE, run only the backing services
 
 [`deploy/docker-compose.yml`](../../deploy/README.md) runs the same stack on one server with the `prod` profile:
 the app (all settings from `deploy/.env`, `KG_STORAGE_CREATE_BUCKET=true`, security mode `oidc`), the same single
-Postgres with the three schemas, Keycloak in production mode (`start`, realm from `deploy/keycloak/knowgauge-realm.json`
-without the demo users, on `127.0.0.1:8180` for a reverse proxy with HTTPS at `KG_AUTH_URL`), MinIO, the UI built
+Postgres with the three schemas, Keycloak in production mode (`start`, realm from the shared template `keycloak/knowgauge-realm.json` plus
+`deploy/keycloak/knowgauge-users-0.json` with only the first admin, on `127.0.0.1:8180` for a reverse proxy with HTTPS at `KG_AUTH_URL`), MinIO, the UI built
 from a `know-gauge-ui` clone (the only published port, `KG_HTTP_PORT`, default 80) and Dozzle on `127.0.0.1:8888`
 with a login from `deploy/dozzle/users.yml`. Every container restarts `unless-stopped` and rotates its Docker log
 (3 × 20 MB). The compose project is named `knowgauge`. See [ADR007](../adr/ADR007-json-logs-and-dozzle.md).

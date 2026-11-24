@@ -14,13 +14,13 @@
   "accessTokenLifespan": 300,
   "loginTheme": "knowgauge",
   "smtpServer": {
-    "host": "${KG_MAIL_HOST}",
+    "host": "${KG_MAIL_HOST:}",
     "port": "${KG_MAIL_PORT:587}",
-    "auth": "true",
-    "starttls": "true",
-    "user": "${KG_MAIL_USERNAME}",
-    "password": "${KG_MAIL_PASSWORD}",
-    "from": "${KG_MAIL_FROM_ADDRESS}",
+    "auth": "${KG_MAIL_SMTP_AUTH:true}",
+    "starttls": "${KG_MAIL_STARTTLS:true}",
+    "user": "${KG_MAIL_USERNAME:}",
+    "password": "${KG_MAIL_PASSWORD:}",
+    "from": "${KG_MAIL_FROM_ADDRESS:no-reply@knowgauge.local}",
     "fromDisplayName": "KnowGauge"
   },
   "clients": [
@@ -32,7 +32,7 @@
       "rootUrl": "${KG_PUBLIC_UI_URL}",
       "baseUrl": "/",
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": "${KG_KEYCLOAK_PASSWORD_GRANT:false}",
       "redirectUris": ["${KG_PUBLIC_UI_URL}/*"],
       "webOrigins": ["${KG_PUBLIC_UI_URL}"],
       "attributes": {
@@ -52,18 +52,6 @@
           }
         }
       ]
-    }
-  ],
-  "users": [
-    {
-      "username": "${KG_ADMIN_EMAIL}",
-      "email": "${KG_ADMIN_EMAIL}",
-      "emailVerified": true,
-      "enabled": true,
-      "firstName": "KnowGauge",
-      "lastName": "Admin",
-      "credentials": [{ "type": "password", "value": "${KG_ADMIN_PASSWORD}", "temporary": true }],
-      "realmRoles": ["default-roles-knowgauge"]
     }
   ]
 }

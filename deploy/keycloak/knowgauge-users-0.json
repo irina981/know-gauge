@@ -1,0 +1,16 @@
+{
+  "realm": "knowgauge",
+  "users": [
+    {
+      "username": "${KG_ADMIN_EMAIL}",
+      "email": "${KG_ADMIN_EMAIL}",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "KnowGauge",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "${KG_ADMIN_PASSWORD}" }],
+      "requiredActions": ["UPDATE_PASSWORD"],
+      "realmRoles": ["default-roles-knowgauge"]
+    }
+  ]
+}

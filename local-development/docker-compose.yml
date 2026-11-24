@@ -70,8 +70,9 @@ services:
       - "127.0.0.1:8025:8025"
     networks: [knowgauge-network]
 
-  # Sign-in (ADR010): Keycloak with the knowgauge realm imported from keycloak/knowgauge-realm.json on the first
-  # start (realm, UI client, roles and the users admin / alice / bob). Used when the app runs with
+  # Sign-in (ADR010): Keycloak with the knowgauge realm imported on the first start from ../keycloak/knowgauge-realm.json,
+  # the template shared with deploy/ (its ${VAR:default} placeholders are filled from the environment below), plus the
+  # local demo users alice / bob from keycloak/knowgauge-users-0.json. Used when the app runs with
   # KG_SECURITY_MODE=oidc. Admin console: http://localhost:8180 (KC_BOOTSTRAP_ADMIN_*, master realm).
   # Registration and password-reset emails go to Mailpit. Its tables are in the keycloak schema of the shared Postgres;
   # the realm is imported only while it does not exist there (delete the db_data volume to import it again).
@@ -87,15 +88,24 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}
-      # A KnowGauge user created by the realm import; the app makes it ADMIN at sign-in (ADR012)
+      # Placeholders of the realm import. The admin is a KnowGauge user the app makes ADMIN at sign-in (ADR012).
       KG_ADMIN_EMAIL: ${KG_ADMIN_EMAIL:-admin@knowgauge.local}
       KG_ADMIN_PASSWORD: ${KG_ADMIN_PASSWORD:-admin-pass}
       # Where the UI runs (redirect URIs of the knowgauge-ui client)
-      KG_UI_URL: ${KG_UI_URL:-http://localhost:5173}
+      KG_PUBLIC_UI_URL: ${KG_PUBLIC_UI_URL:-http://localhost:5173}
+      # Tokens with a password (curl, Swagger), for local users only
+      KG_KEYCLOAK_PASSWORD_GRANT: "true"
+      # Registration and password-reset emails to Mailpit
+      KG_MAIL_HOST: mailpit
+      KG_MAIL_PORT: "1025"
+      KG_MAIL_SMTP_AUTH: "false"
+      KG_MAIL_STARTTLS: "false"
+      KG_MAIL_FROM_ADDRESS: no-reply@knowgauge.local
     ports:
       - "127.0.0.1:8180:8080"
     volumes:
-      - ./keycloak:/opt/keycloak/data/import:ro
+      - ../keycloak/knowgauge-realm.json:/opt/keycloak/data/import/knowgauge-realm.json:ro
+      - ./keycloak/knowgauge-users-0.json:/opt/keycloak/data/import/knowgauge-users-0.json:ro
       # The KnowGauge login theme (loginTheme in the realm), built in know-gauge-ui with `npm run build-keycloak-theme`.
       # Without it Keycloak shows its own pages. Stop keycloak while rebuilding the theme (Windows locks the mounted jar).
       - ${KG_KEYCLOAK_THEME_DIR:-../../know-gauge-ui/dist_keycloak}:/opt/keycloak/providers:ro
@@ -162,7 +172,7 @@ services:
 
       # Mailpit (spring.mail.host) and the UI address used in invitation links
       SPRING_MAIL_HOST: mailpit
-      KG_INVITATIONS_LINKBASEURL: ${KG_UI_URL:-http://localhost:5173}
+      KG_INVITATIONS_LINKBASEURL: ${KG_PUBLIC_UI_URL:-http://localhost:5173}
 
       # Sign-in (ADR010): fixed (no sign-in) or oidc (Keycloak above). Tokens carry the browser's issuer
       # (localhost:8180); the app fetches the signing keys inside the network.

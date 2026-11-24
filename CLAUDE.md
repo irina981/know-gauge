@@ -46,7 +46,8 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
     ([ADR013](docs/adr/ADR013-admins-view-every-workspace.md)). In the UI a tenant is a "library"; a "workspace" is
     everything a user works with: their library, tests and attempts, plus the shared libraries.
   - Local Keycloak: compose service `keycloak` on http://localhost:8180, realm `knowgauge` from
-    `local-development/keycloak/knowgauge-realm.json`. Its users and their passwords are in the
+    `keycloak/knowgauge-realm.json`, the template shared with `deploy/` (`${VAR:default}` placeholders
+    filled from the compose environment; users in `<env>/keycloak/knowgauge-users-0.json`). Its users and their passwords are in the
     [local-development README](local-development/README.md#sign-in-keycloak).
 - Distractor verification runs on OpenAI `gpt-4.1` in every profile (`kg.testgen.verification.provider=openai`).
   A local Ollama adapter exists (`provider=ollama`, `qwen2.5:7b-instruct` on port 11434, compose

@@ -41,7 +41,7 @@ and the dev seed fills it again. Remove the old ones with
 |---|---|---|---|---|---|
 | `postgres` | `knowgauge-postgres` | `pgvector/pgvector:pg15` | 5432 | `db_data` | The one database (`knowgauge`, ADR011), with three schemas: `knowgauge` (topics, documents, chunks, tests, attempts, users; Flyway on app startup), `vectors` (chunk embeddings, `vector(1536)`) and `keycloak` (Keycloak, its own login). [`../postgres/initdb`](../postgres/initdb/01-schemas.sh) creates the schemas and Keycloak's login when the volume is first created |
 | `minio` | `knowgauge-minio` | `cgr.dev/chainguard/minio:latest` | 9000 (S3 API), 9001 (web console) | `minio_data` | Object storage for the uploaded PDF files |
-| `keycloak` | `knowgauge-keycloak` | `quay.io/keycloak/keycloak:26.8.2` | 8180 → 8080 (localhost only) | – (schema `keycloak`) | Sign-in (ADR010), used when the app runs with `KG_SECURITY_MODE=oidc`. Starts after `postgres` is healthy. Imports the `knowgauge` realm from `keycloak/knowgauge-realm.json` on first start and loads the login theme from `../../know-gauge-ui/dist_keycloak` (see [Sign-in](#sign-in-keycloak)) |
+| `keycloak` | `knowgauge-keycloak` | `quay.io/keycloak/keycloak:26.8.2` | 8180 → 8080 (localhost only) | – (schema `keycloak`) | Sign-in (ADR010), used when the app runs with `KG_SECURITY_MODE=oidc`. Starts after `postgres` is healthy. Imports the `knowgauge` realm on first start from `../keycloak/knowgauge-realm.json` (the template shared with `deploy/`, placeholders filled from the compose environment) and the users from `keycloak/knowgauge-users-0.json`, and loads the login theme from `../../know-gauge-ui/dist_keycloak` (see [Sign-in](#sign-in-keycloak)) |
 | `dozzle` | `knowgauge-dozzle` | `amir20/dozzle:latest` | 8888 → 8080 (localhost only) | – | Web log viewer for all containers on this Docker host (see [Logs](#logs)) |
 | `ollama` | `knowgauge-ollama` | `ollama/ollama:latest` | 11434 | `ollama_data` | Opt-in (`--profile ollama`). Local LLM server for the optional local distractor verifier |
 | `ollama-pull` | `knowgauge-ollama-pull` | `ollama/ollama:latest` | – | – | Opt-in (`--profile ollama`). One-shot: pulls `KG_OLLAMA_MODEL` into `ollama_data`, then exits. The first pull downloads about 4.7 GB |
@@ -107,7 +107,12 @@ By default the app runs in security mode `fixed`: no sign-in, every request runs
 
 The realm import creates these users (change the admin with `KG_ADMIN_EMAIL` / `KG_ADMIN_PASSWORD` before the first
 start). Passwords need at least 8 characters and may not equal the email (realm password policy). Every user gets a
-personal tenant on their first sign-in. Registration emails go to Mailpit.
+personal tenant on their first sign-in.
+
+New users can also register: **Create account** in the UI → email, first and last name → Keycloak sends a
+verification email (open it in Mailpit, http://localhost:8025) → the link asks the user to choose their password →
+signed in. Keycloak 26.8 asks for the password only after the email is verified, so the registration form has no
+password field.
 
 | User | Password | Roles |
 |---|---|---|
@@ -117,7 +122,7 @@ personal tenant on their first sign-in. Registration emails go to Mailpit.
 
 The Keycloak admin console (http://localhost:8180, master realm) has its own login: `KC_BOOTSTRAP_ADMIN_USERNAME` /
 `KC_BOOTSTRAP_ADMIN_PASSWORD`, `admin` / `admin` by default. The realm is imported only when it doesn't exist yet:
-after changing `knowgauge-realm.json`, change the setting in the console, or delete the `db_data` volume (this resets
+after changing `knowgauge-realm.json` or `knowgauge-users-0.json`, change the setting in the console, or delete the `db_data` volume (this resets
 the app's data too).
 
 To call the API without the UI, get a token for a local user and send it as `Authorization: Bearer …` (or paste it
