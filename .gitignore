@@ -53,3 +53,6 @@ buildNumber.properties
 # Deployment: Dozzle users and settings (deploy/dozzle/users.yml holds password hashes)
 deploy/dozzle/*
 !deploy/dozzle/.gitkeep
+
+# Wrangler cache from running the landing worker locally (.claude/launch.json)
+.wrangler/
