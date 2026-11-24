@@ -2,11 +2,10 @@ package com.knowgauge.core.service.settings;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * System-wide settings an {@code ADMIN} keeps on the System settings page. Each starts from its properties-file value;
- * a value saved in the database overrides it. At startup every saved value is applied; a change applies at once.
+ * a {@code SYSTEM} row in the database overrides it. At startup every saved value is applied; a change applies at once.
  */
 public interface SystemSettingsService {
 
@@ -14,7 +13,7 @@ public interface SystemSettingsService {
 	 * A setting with its properties-file default, whether an override is saved (its value may be empty, e.g. no
 	 * limit), and the value in effect.
 	 */
-	record SystemSettingValue(SystemSettingDefinition definition, String defaultValue, boolean overridden,
+	record SystemSettingValue(SettingDefinition definition, String defaultValue, boolean overridden,
 			String overrideValue, String value, List<String> suggestions) {
 	}
 
@@ -39,12 +38,6 @@ public interface SystemSettingsService {
 	 */
 	List<SystemSettingValue> resetAll();
 
-	/** @return the LLM tokens each tenant may use per calendar month; empty when there is no limit */
-	Optional<Long> monthlyTokenLimit();
-
-	/** @return the bytes of documents each tenant may keep; empty when there is no limit */
-	Optional<Long> storageLimitBytes();
-
-	/** @return the tests one user may generate at the same time; empty when there is no limit */
-	Optional<Integer> concurrentGenerationsPerUser();
+	/** @return every setting's definition, in page order */
+	List<SettingDefinition> definitions();
 }

@@ -25,7 +25,7 @@ import com.knowgauge.core.port.repository.DocumentRepository;
 import com.knowgauge.core.port.repository.TopicRepository;
 import com.knowgauge.core.port.storage.StorageService;
 import com.knowgauge.core.port.storage.StorageService.StoredObject;
-import com.knowgauge.core.service.settings.SystemSettingsService;
+import com.knowgauge.core.service.settings.TenantSettingsService;
 import com.knowgauge.core.storage.StorageKeyBuilder;
 
 /**
@@ -42,18 +42,18 @@ public class DocumentServiceImpl implements DocumentService {
 	private final StorageKeyBuilder storageKeyBuilder;
 	private final ExecutionContext executionContext;
 	private final ContentScope contentScope;
-	private final SystemSettingsService systemSettings;
+	private final TenantSettingsService tenantSettings;
 
 	public DocumentServiceImpl(DocumentRepository documentRepository, TopicRepository topicRepository,
 			StorageService storageService, StorageKeyBuilder storageKeyBuilder, ExecutionContext executionContext,
-			ContentScope contentScope, SystemSettingsService systemSettings) {
+			ContentScope contentScope, TenantSettingsService tenantSettings) {
 		this.documentRepository = documentRepository;
 		this.topicRepository = topicRepository;
 		this.storageService = storageService;
 		this.storageKeyBuilder = storageKeyBuilder;
 		this.executionContext = executionContext;
 		this.contentScope = contentScope;
-		this.systemSettings = systemSettings;
+		this.tenantSettings = tenantSettings;
 	}
 
 	@Override
@@ -137,10 +137,10 @@ public class DocumentServiceImpl implements DocumentService {
 		}
 	}
 
-	/** The library has no limit; every other tenant keeps at most the storage limit (system setting). */
+	/** The tenant keeps at most its storage limit (ADR014). */
 	private void validateStorageLimit(Long tenantId, Long fileSizeBytes) {
-		Optional<Long> limit = systemSettings.storageLimitBytes();
-		if (limit.isEmpty() || contentScope.isLibrary(tenantId)) {
+		Optional<Long> limit = Optional.ofNullable(tenantSettings.limits(tenantId).storageBytes());
+		if (limit.isEmpty()) {
 			return;
 		}
 		long used = documentRepository.sumFileSizeBytesByTenantId(tenantId);

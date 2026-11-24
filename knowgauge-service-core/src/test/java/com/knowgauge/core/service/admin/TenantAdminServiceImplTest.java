@@ -13,7 +13,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,9 +25,10 @@ import org.springframework.data.domain.Sort;
 
 import com.knowgauge.core.model.TenantSearch;
 import com.knowgauge.core.model.TenantSummary;
+import com.knowgauge.core.model.WorkspaceLimits;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
-import com.knowgauge.core.service.settings.SystemSettingsService;
+import com.knowgauge.core.service.settings.TenantSettingsService;
 
 class TenantAdminServiceImplTest {
 
@@ -34,7 +36,7 @@ class TenantAdminServiceImplTest {
 	private static final Instant DEC_1 = Instant.parse("2026-12-01T00:00:00Z");
 
 	private final TenantRepository tenants = mock(TenantRepository.class);
-	private final SystemSettingsService settings = mock(SystemSettingsService.class);
+	private final TenantSettingsService settings = mock(TenantSettingsService.class);
 	private final TenantAdminServiceImpl service = new TenantAdminServiceImpl(tenants, settings,
 			Clock.fixed(Instant.parse("2026-11-24T10:00:00Z"), ZoneOffset.UTC));
 
@@ -62,14 +64,14 @@ class TenantAdminServiceImplTest {
 	}
 
 	@Test
-	void tokensAreCountedForTheCurrentMonthAndTheLimitsAreAttached() {
+	void tokensAreCountedForTheCurrentMonthAndEachWorkspacesLimitsAreAttached() {
 		PageRequest page = PageRequest.of(0, 20);
 		TenantSummary row = new TenantSummary(3L, "Ana", TenantType.INDIVIDUAL, 2L, "Ana", "ana@x.test", NOV_1, 1, 2,
 				3_000L, 1_200L);
 		when(tenants.findTenantSummaries(any(), eq(page), eq(NOV_1), eq(DEC_1)))
 				.thenReturn(new PageImpl<>(List.of(row), page, 1));
-		when(settings.monthlyTokenLimit()).thenReturn(Optional.of(1_000L));
-		when(settings.storageLimitBytes()).thenReturn(Optional.of(2_000L));
+		when(settings.limits(List.of(3L))).thenReturn(Map.of(3L, new WorkspaceLimits(1_000L, 2_000L, 2)));
+		when(settings.withOwnValues(List.of(3L))).thenReturn(Set.of(3L));
 
 		Page<TenantSummary> result = service.listTenants(new TenantSearch(null, null), page);
 
@@ -78,6 +80,8 @@ class TenantAdminServiceImplTest {
 			assertThat(s.tokenLimit()).isEqualTo(1_000L);
 			assertThat(s.storageBytes()).isEqualTo(3_000L);
 			assertThat(s.storageLimitBytes()).isEqualTo(2_000L);
+			assertThat(s.concurrentGenerationsLimit()).isEqualTo(2);
+			assertThat(s.ownLimits()).isTrue();
 		});
 	}
 }

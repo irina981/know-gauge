@@ -5,29 +5,30 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.Test;
 
 import com.knowgauge.core.exception.GenerationLimitReachedException;
-import com.knowgauge.core.service.settings.SystemSettingsService;
+import com.knowgauge.core.model.WorkspaceLimits;
+import com.knowgauge.core.service.settings.TenantSettingsService;
 
-/** Each user may generate as many tests at once as the system setting allows. */
+/** Each user may generate as many tests at once as their workspace's limit allows. */
 class GenerationSlotsTest {
 
-	private final SystemSettingsService settings = mock(SystemSettingsService.class);
+	private static final long WORKSPACE = 3L;
+
+	private final TenantSettingsService settings = mock(TenantSettingsService.class);
 	private final GenerationSlots slots = new GenerationSlots(settings);
 
 	@Test
 	void aSecondGenerationOfTheSameUserIsRefusedUntilTheFirstEnds() {
-		when(settings.concurrentGenerationsPerUser()).thenReturn(Optional.of(1));
+		when(settings.limits(WORKSPACE)).thenReturn(new WorkspaceLimits(null, null, 1));
 
-		GenerationSlots.Slot first = slots.acquire(7L);
-		assertThatThrownBy(() -> slots.acquire(7L)).isInstanceOf(GenerationLimitReachedException.class)
+		GenerationSlots.Slot first = slots.acquire(7L, WORKSPACE);
+		assertThatThrownBy(() -> slots.acquire(7L, WORKSPACE)).isInstanceOf(GenerationLimitReachedException.class)
 				.hasMessageContaining("still being generated");
 
 		first.close();
-		try (GenerationSlots.Slot again = slots.acquire(7L)) {
+		try (GenerationSlots.Slot again = slots.acquire(7L, WORKSPACE)) {
 			assertThat(slots.running(7L)).isEqualTo(1);
 		}
 		assertThat(slots.running(7L)).isZero();
@@ -35,9 +36,10 @@ class GenerationSlotsTest {
 
 	@Test
 	void otherUsersHaveSlotsOfTheirOwn() {
-		when(settings.concurrentGenerationsPerUser()).thenReturn(Optional.of(1));
+		when(settings.limits(WORKSPACE)).thenReturn(new WorkspaceLimits(null, null, 1));
 
-		try (GenerationSlots.Slot ana = slots.acquire(7L); GenerationSlots.Slot bob = slots.acquire(8L)) {
+		try (GenerationSlots.Slot ana = slots.acquire(7L, WORKSPACE);
+				GenerationSlots.Slot bob = slots.acquire(8L, WORKSPACE)) {
 			assertThat(slots.running(7L)).isEqualTo(1);
 			assertThat(slots.running(8L)).isEqualTo(1);
 		}
@@ -45,19 +47,21 @@ class GenerationSlotsTest {
 
 	@Test
 	void aHigherLimitAllowsThatManyAtOnce() {
-		when(settings.concurrentGenerationsPerUser()).thenReturn(Optional.of(2));
+		when(settings.limits(WORKSPACE)).thenReturn(new WorkspaceLimits(null, null, 2));
 
-		try (GenerationSlots.Slot one = slots.acquire(7L); GenerationSlots.Slot two = slots.acquire(7L)) {
-			assertThatThrownBy(() -> slots.acquire(7L)).isInstanceOf(GenerationLimitReachedException.class)
+		try (GenerationSlots.Slot one = slots.acquire(7L, WORKSPACE);
+				GenerationSlots.Slot two = slots.acquire(7L, WORKSPACE)) {
+			assertThatThrownBy(() -> slots.acquire(7L, WORKSPACE)).isInstanceOf(GenerationLimitReachedException.class)
 					.hasMessageContaining("already generating 2 tests");
 		}
 	}
 
 	@Test
 	void withoutALimitNothingIsCounted() {
-		when(settings.concurrentGenerationsPerUser()).thenReturn(Optional.empty());
+		when(settings.limits(WORKSPACE)).thenReturn(WorkspaceLimits.NONE);
 
-		try (GenerationSlots.Slot one = slots.acquire(7L); GenerationSlots.Slot two = slots.acquire(7L)) {
+		try (GenerationSlots.Slot one = slots.acquire(7L, WORKSPACE);
+				GenerationSlots.Slot two = slots.acquire(7L, WORKSPACE)) {
 			assertThat(slots.running(7L)).isZero();
 		}
 	}

@@ -66,7 +66,7 @@ the storage endpoint, so the application **does not start without a profile**. T
 | `kg.dev.seed.enabled` | `DevDocumentSeeder` | Uploads the sample PDFs listed in `SEED_DOCUMENTS` from `resources/devdocs/` under the fixed seed topics (`local` profile only) |
 | `kg.context.*` | `DefaultTenantProvider`, `DefaultUserProvider` | `tenant-id`, `user-id` (security mode `fixed` only) |
 | `kg.security.*` | `SecurityConfig`, `OidcProperties` | `mode` (`fixed`/`oidc`), `oidc.issuer-uri`, `oidc.jwk-set-uri`, `oidc.audience` (`knowgauge-api`), `oidc.account-cache-minutes` (10: how long a token's user is cached) |
-| `kg.settings.tenant.*` | `TenantLimitProperties`, `UsageServiceImpl`, `DocumentServiceImpl` | `monthly-token-limit`: AI tokens (input + output) per workspace and calendar month (UTC), default 1000000 (`KG_TENANT_MONTHLY_TOKEN_LIMIT`), empty for no limit. At the limit new tests and regenerations get 429. `storage-limit-mb`: megabytes of PDFs per workspace, default 500 (`KG_TENANT_STORAGE_LIMIT_MB`), empty for no limit; the shared library has none. An upload that would go over it gets 413. `concurrent-generations-per-user`: tests one user may generate at once, default 1 (`KG_CONCURRENT_GENERATIONS_PER_USER`), empty for no limit; counted in memory (`GenerationSlots`), another request gets 429 |
+| `kg.settings.tenant.*` | `TenantLimitProperties`, `TenantSettingsService` (`WorkspaceLimits`) | The system values of the workspace limits; a workspace may have its own (ADR014). 0 means no limit. `monthly-token-limit`: AI tokens (input + output) per workspace and calendar month (UTC), default 1000000 (`KG_TENANT_MONTHLY_TOKEN_LIMIT`); at the limit new tests and regenerations get 429. `storage-limit-mb`: megabytes of PDFs per workspace, default 500 (`KG_TENANT_STORAGE_LIMIT_MB`); an upload that would go over it gets 413. `concurrent-generations-per-user`: tests one user may generate at once, default 1 (`KG_CONCURRENT_GENERATIONS_PER_USER`); counted in memory (`GenerationSlots`), another request gets 429 |
 | `kg.settings.token-price-catalog.*` | `LiteLlmTokenPriceCatalog` | `url` (LiteLLM's `model_prices_and_context_window.json`), `cache-hours` (6) |
 | `kg.invitations.*` | `InvitationProperties` | `link-base-url` (public UI address; links are `<base>/i/<token>`), `max-per-request` (200) |
 | `kg.retrieval.focused.*` | `FocusedRetrievalProperties` | `max-distance` (0.65), `max-gap-to-best` (0.20): which chunks count as about the focus text in FOCUSED retrieval ([05](05-retrieval.md#focused-similarity-search)) |
@@ -83,15 +83,19 @@ Some `kg.*` values can be changed at runtime on **Administration → System sett
 - **Settings with defaults from the properties files.** `CoreSystemSettings` lists them: the monthly token limit, the storage limit, tests generating at once per user,
   the generation model (and, from `VerificationSystemSettings`, the answer-checking model), questions per LLM call, the default question count and difficulty, invitations per request
   and the ingestion batch size. Only values read on each use are listed, so a change applies at once. The
-  properties files give the default. A value saved on the page is stored in `system_settings` (key = property
+  properties files give the default. A value saved on the page is stored as a `SYSTEM` row of `settings` (key = property
   name) and overrides it; `SystemSettingsServiceImpl` applies the saved values to the `@ConfigurationProperties`
   beans at startup, before the web server takes requests. The page has one **Save changes** for all changed values
   (`PUT /api/admin/settings/values`; every value is checked first, and nothing is saved if one does not fit) and
-  **Reset to defaults** (`DELETE /api/admin/settings/values`), which deletes every override row, so the properties
+  **Reset to defaults** (`DELETE /api/admin/settings/values`), which deletes every `SYSTEM` row, so the properties
   values apply again; token prices are not touched. An unknown key or an invalid saved value is logged and ignored
-  at startup. Other modules can add settings with a `SystemSettingsContributor` (the verification model comes from
+  at startup. Other modules can add settings with a `SettingsContributor` (the verification model comes from
   the testgeneration module this way).
   Infrastructure (datasources, schedules, upload sizes, API keys) stays in the properties files only.
+- **Per workspace (ADR014).** The workspace limits are marked "Per workspace": a workspace may have its own value,
+  a `TENANT` row of `settings`, which wins over the system value (0: no limit). They are set in the **Limits** dialog
+  on Administration → Workspaces (`GET`/`PUT`/`DELETE /api/admin/tenants/{id}/settings`; empty goes back to the
+  system value). The shared library and admins' own workspaces have their own value 0 for every limit.
 - **AI token prices** (`token_prices`): USD per million input and output tokens per model name or prefix (longest
   match wins). The usage page prices each workspace's recorded LLM tokens with them (`TokenPricing`) and lists
   models without a price. "Look up" fills in a price from LiteLLM's public price catalog

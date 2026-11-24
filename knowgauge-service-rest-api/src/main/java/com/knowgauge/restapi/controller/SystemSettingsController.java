@@ -20,7 +20,7 @@ import com.knowgauge.contract.dto.TokenPriceInput;
 import com.knowgauge.contract.dto.TokenPriceSuggestionDto;
 import com.knowgauge.contract.dto.TokenPricesDto;
 import com.knowgauge.core.service.settings.EmbeddingSettingsService;
-import com.knowgauge.core.service.settings.SystemSettingDefinition;
+import com.knowgauge.core.service.settings.SettingDefinition;
 import com.knowgauge.core.service.settings.SystemSettingsService;
 import com.knowgauge.core.service.settings.TokenPriceService;
 import com.knowgauge.restapi.mapper.AdminMapper;
@@ -89,10 +89,10 @@ public class SystemSettingsController {
 	}
 
 	private static SystemSettingDto toDto(SystemSettingsService.SystemSettingValue setting) {
-		SystemSettingDefinition d = setting.definition();
+		SettingDefinition d = setting.definition();
 		return new SystemSettingDto(d.key(), d.group(), d.label(), d.description(), d.type().name(), d.options(),
 				d.min(), d.max(), d.optional(), setting.defaultValue(), setting.overridden(), setting.overrideValue(),
-				setting.value(), setting.suggestions());
+				setting.value(), setting.suggestions(), d.workspaceLevel());
 	}
 
 	@GetMapping("/api/admin/settings/token-prices")

@@ -16,7 +16,8 @@ import com.knowgauge.core.exception.TokenLimitReachedException;
 import com.knowgauge.core.model.UsageSummary;
 import com.knowgauge.core.port.repository.TokenPriceRepository;
 import com.knowgauge.core.port.repository.UsageRepository;
-import com.knowgauge.core.service.settings.SystemSettingsService;
+import com.knowgauge.core.service.settings.TenantSettingsService;
+import com.knowgauge.core.model.WorkspaceLimits;
 
 @Slf4j
 @Service
@@ -24,21 +25,21 @@ public class UsageServiceImpl implements UsageService {
 
 	private final UsageRepository usageRepository;
 	private final TokenPriceRepository tokenPriceRepository;
-	private final SystemSettingsService systemSettings;
+	private final TenantSettingsService tenantSettings;
 	private final ExecutionContext executionContext;
 	private final Clock clock;
 
 	@Autowired
 	public UsageServiceImpl(UsageRepository usageRepository, TokenPriceRepository tokenPriceRepository,
-			SystemSettingsService systemSettings, ExecutionContext executionContext) {
-		this(usageRepository, tokenPriceRepository, systemSettings, executionContext, Clock.systemUTC());
+			TenantSettingsService tenantSettings, ExecutionContext executionContext) {
+		this(usageRepository, tokenPriceRepository, tenantSettings, executionContext, Clock.systemUTC());
 	}
 
 	UsageServiceImpl(UsageRepository usageRepository, TokenPriceRepository tokenPriceRepository,
-			SystemSettingsService systemSettings, ExecutionContext executionContext, Clock clock) {
+			TenantSettingsService tenantSettings, ExecutionContext executionContext, Clock clock) {
 		this.usageRepository = usageRepository;
 		this.tokenPriceRepository = tokenPriceRepository;
-		this.systemSettings = systemSettings;
+		this.tenantSettings = tenantSettings;
 		this.executionContext = executionContext;
 		this.clock = clock;
 	}
@@ -46,12 +47,12 @@ public class UsageServiceImpl implements UsageService {
 	@Override
 	@Transactional(readOnly = true)
 	public void requireTokensLeft() {
-		Optional<Long> limit = systemSettings.monthlyTokenLimit();
+		Long tenantId = executionContext.tenantId();
+		Optional<Long> limit = Optional.ofNullable(tenantSettings.limits(tenantId).monthlyTokens());
 		if (limit.isEmpty()) {
 			return;
 		}
 		Instant[] month = currentMonthRange();
-		Long tenantId = executionContext.tenantId();
 		long used = usageRepository.tokensByModel(tenantId, month[0], month[1]).stream()
 				.mapToLong(u -> u.inputTokens() + u.outputTokens()).sum();
 		if (used >= limit.get()) {
@@ -78,9 +79,10 @@ public class UsageServiceImpl implements UsageService {
 		Long tenantId = executionContext.tenantId();
 		TokenPricing.Cost cost = TokenPricing.cost(usageRepository.tokensByModel(tenantId, from, to),
 				tokenPriceRepository.findAll());
+		WorkspaceLimits limits = tenantSettings.limits(tenantId);
 		return usageRepository.summarize(tenantId, from, to).toBuilder().llmCostUsd(cost.costUsd())
-				.unpricedModels(cost.unpricedModels()).llmTokenLimit(systemSettings.monthlyTokenLimit().orElse(null))
-				.storageLimitBytes(systemSettings.storageLimitBytes().orElse(null))
+				.unpricedModels(cost.unpricedModels()).llmTokenLimit(limits.monthlyTokens())
+				.storageLimitBytes(limits.storageBytes())
 				.build();
 	}
 }

@@ -5,19 +5,18 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.stereotype.Service;
 
 import com.knowgauge.core.exception.ResourceNotFoundException;
-import com.knowgauge.core.model.SystemSetting;
-import com.knowgauge.core.port.repository.SystemSettingRepository;
+import com.knowgauge.core.model.Setting;
+import com.knowgauge.core.port.repository.SettingRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Keeps the {@code @ConfigurationProperties} beans in line with the overrides in {@code system_settings}. Once all
+ * Keeps the {@code @ConfigurationProperties} beans in line with the {@code SYSTEM} rows of {@code settings}. Once all
  * beans exist (after Flyway, before the web server takes requests) it remembers each setting's properties-file value
  * and applies the saved overrides. Not transactional: each repository call runs in its own short transaction, and a
  * bean changes only after its row was saved.
@@ -26,19 +25,16 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class SystemSettingsServiceImpl implements SystemSettingsService, SmartInitializingSingleton {
 
-	private final SystemSettingRepository repository;
-	private final TenantLimitProperties tenantLimits;
-	private final Map<String, SystemSettingDefinition> definitions = new LinkedHashMap<>();
+	private final SettingRepository repository;
+	private final Map<String, SettingDefinition> definitions = new LinkedHashMap<>();
 	/** The properties-file value of each setting, as read before any override. */
 	private final Map<String, String> defaults = new HashMap<>();
 	private final Map<String, String> overrides = new HashMap<>();
 
-	public SystemSettingsServiceImpl(SystemSettingRepository repository, List<SystemSettingsContributor> contributors,
-			TenantLimitProperties tenantLimits) {
+	public SystemSettingsServiceImpl(SettingRepository repository, List<SettingsContributor> contributors) {
 		this.repository = repository;
-		this.tenantLimits = tenantLimits;
-		for (SystemSettingsContributor contributor : contributors) {
-			for (SystemSettingDefinition definition : contributor.definitions()) {
+		for (SettingsContributor contributor : contributors) {
+			for (SettingDefinition definition : contributor.definitions()) {
 				if (definitions.putIfAbsent(definition.key(), definition) != null) {
 					throw new IllegalStateException("System setting " + definition.key() + " is defined twice.");
 				}
@@ -50,8 +46,8 @@ public class SystemSettingsServiceImpl implements SystemSettingsService, SmartIn
 	public void afterSingletonsInstantiated() {
 		definitions.values().forEach(d -> defaults.put(d.key(), d.reader().get()));
 		List<String> applied = new ArrayList<>();
-		for (SystemSetting row : repository.findAll()) {
-			SystemSettingDefinition definition = definitions.get(row.getKey());
+		for (Setting row : repository.findSystem()) {
+			SettingDefinition definition = definitions.get(row.getKey());
 			if (definition == null) {
 				log.warn("System setting {} in the database is unknown; ignored", row.getKey());
 				continue;
@@ -81,7 +77,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService, SmartIn
 		Map<String, String> valid = new LinkedHashMap<>();
 		List<String> problems = new ArrayList<>();
 		for (Map.Entry<String, String> entry : values.entrySet()) {
-			SystemSettingDefinition definition = definitions.get(entry.getKey());
+			SettingDefinition definition = definitions.get(entry.getKey());
 			if (definition == null) {
 				throw new ResourceNotFoundException("Unknown system setting " + entry.getKey() + ".");
 			}
@@ -96,9 +92,9 @@ public class SystemSettingsServiceImpl implements SystemSettingsService, SmartIn
 		}
 
 		// One transaction for all rows (the repository's saveAll), then the beans.
-		List<SystemSetting> rows = new ArrayList<>();
+		List<Setting> rows = new ArrayList<>();
 		valid.forEach((key, value) -> {
-			SystemSetting row = repository.findByKey(key).orElseGet(() -> SystemSetting.builder().key(key).build());
+			Setting row = repository.findSystem(key).orElseGet(() -> Setting.system(key, null));
 			// An optional setting saved empty is stored as "" (e.g. no limit over a configured limit).
 			row.setValue(value == null ? "" : value);
 			rows.add(row);
@@ -114,8 +110,8 @@ public class SystemSettingsServiceImpl implements SystemSettingsService, SmartIn
 
 	@Override
 	public List<SystemSettingValue> resetAll() {
-		repository.deleteAll();
-		for (SystemSettingDefinition definition : definitions.values()) {
+		repository.deleteSystem();
+		for (SettingDefinition definition : definitions.values()) {
 			String value = defaults.get(definition.key());
 			if (value != null || definition.optional()) {
 				definition.writer().accept(value);
@@ -127,28 +123,18 @@ public class SystemSettingsServiceImpl implements SystemSettingsService, SmartIn
 	}
 
 	@Override
-	public Optional<Long> monthlyTokenLimit() {
-		return Optional.ofNullable(tenantLimits.getMonthlyTokenLimit());
+	public List<SettingDefinition> definitions() {
+		return List.copyOf(definitions.values());
 	}
 
-	@Override
-	public Optional<Long> storageLimitBytes() {
-		return Optional.ofNullable(tenantLimits.getStorageLimitMb()).map(mb -> mb * 1024 * 1024);
-	}
-
-	@Override
-	public Optional<Integer> concurrentGenerationsPerUser() {
-		return Optional.ofNullable(tenantLimits.getConcurrentGenerationsPerUser());
-	}
-
-	private SystemSettingValue valueOf(SystemSettingDefinition definition) {
+	private SystemSettingValue valueOf(SettingDefinition definition) {
 		return new SystemSettingValue(definition, defaults.get(definition.key()),
 				overrides.containsKey(definition.key()), overrides.get(definition.key()), definition.reader().get(),
 				suggestions(definition));
 	}
 
 	/** The suggestions of a setting; none when they cannot be had (e.g. the price catalog is unreachable). */
-	private static List<String> suggestions(SystemSettingDefinition definition) {
+	private static List<String> suggestions(SettingDefinition definition) {
 		try {
 			return definition.suggestions().get();
 		} catch (RuntimeException e) {

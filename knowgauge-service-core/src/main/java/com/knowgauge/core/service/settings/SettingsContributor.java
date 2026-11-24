@@ -7,7 +7,7 @@ import java.util.List;
  * {@link SystemSettingsServiceImpl}, so an infra module can add settings of its own properties without core knowing
  * them.
  */
-public interface SystemSettingsContributor {
+public interface SettingsContributor {
 
-	List<SystemSettingDefinition> definitions();
+	List<SettingDefinition> definitions();
 }

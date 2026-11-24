@@ -26,6 +26,7 @@ import com.knowgauge.core.model.enums.Role;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.port.repository.UserRepository;
+import com.knowgauge.core.service.settings.TenantSettingsService;
 
 class AccountServiceImplTest {
 
@@ -34,6 +35,7 @@ class AccountServiceImplTest {
 	private UserRepository userRepository;
 	private TenantRepository tenantRepository;
 	private AccountProperties properties;
+	private TenantSettingsService tenantSettings;
 	private ExecutionContext executionContext;
 	private AccountServiceImpl service;
 	private final AtomicLong ids = new AtomicLong(10);
@@ -42,6 +44,7 @@ class AccountServiceImplTest {
 	void setUp() {
 		userRepository = mock(UserRepository.class);
 		tenantRepository = mock(TenantRepository.class);
+		tenantSettings = mock(TenantSettingsService.class);
 		when(userRepository.findByExternalId(any())).thenReturn(Optional.empty());
 		when(userRepository.save(any())).thenAnswer(inv -> withId(inv.getArgument(0, User.class)));
 		when(tenantRepository.save(any())).thenAnswer(inv -> withId(inv.getArgument(0, Tenant.class)));
@@ -52,7 +55,8 @@ class AccountServiceImplTest {
 		when(executionContext.callAsSystemWithoutTenant(any()))
 				.thenAnswer(inv -> inv.getArgument(0, Supplier.class).get());
 		service = new AccountServiceImpl(
-				new AccountTransactionalServiceImpl(userRepository, tenantRepository, properties), executionContext);
+				new AccountTransactionalServiceImpl(userRepository, tenantRepository, properties, tenantSettings),
+				executionContext);
 	}
 
 	@Test
@@ -127,6 +131,8 @@ class AccountServiceImplTest {
 		User user = service.signIn(SUBJECT, "admin@example.com", true, "Admin");
 
 		assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.ADMIN, Role.TENANT_ADMIN);
+		// An admin's own workspace has no limits (ADR014).
+		verify(tenantSettings).setUnlimited(user.getTenantId());
 	}
 
 	@Test
@@ -138,6 +144,18 @@ class AccountServiceImplTest {
 		User user = service.signIn(SUBJECT, "admin@example.com", true, null);
 
 		assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.ADMIN, Role.TENANT_ADMIN);
+		verify(tenantSettings).setUnlimited(7L);
+	}
+
+	@Test
+	void anExistingAdminKeepsTheLimitsTheirWorkspaceHasNow() {
+		User existing = User.builder().id(5L).externalId(SUBJECT).tenantId(7L)
+				.roles(EnumSet.of(Role.TENANT_ADMIN, Role.ADMIN)).email("admin@example.com").build();
+		when(userRepository.findByExternalId(SUBJECT)).thenReturn(Optional.of(existing));
+
+		service.signIn(SUBJECT, "admin@example.com", true, null);
+
+		verify(tenantSettings, never()).setUnlimited(any());
 	}
 
 	@Test
@@ -146,6 +164,7 @@ class AccountServiceImplTest {
 				.containsExactly(Role.TENANT_ADMIN);
 		assertThat(service.signIn("other-subject", "ana@example.com", true, null).getRoles())
 				.containsExactly(Role.TENANT_ADMIN);
+		verify(tenantSettings, never()).setUnlimited(any());
 	}
 
 	private Tenant lastSavedTenant() {

@@ -85,8 +85,8 @@ public class TestGenerationServiceImpl implements TestGenerationService {
 	@Override
 	public Test generate(Test testDraft) {
 		// testId is added to the log context (MDC) once the test is persisted, so structured logs can be filtered by it.
-		// One of the user's generation slots (system setting) is held until the test is ready or failed.
-		try (GenerationSlots.Slot slot = generationSlots.acquire(currentUserId())) {
+		// One of the user's generation slots (workspace limit) is held until the test is ready or failed.
+		try (GenerationSlots.Slot slot = generationSlots.acquire(currentUserId(), executionContext.tenantId())) {
 			return doGenerate(testDraft);
 		} finally {
 			MDC.remove(MDC_TEST_ID);

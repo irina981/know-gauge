@@ -115,6 +115,11 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
   `LIBRARY`) and changed only after `ContentScope.requireWritable` (library: `ADMIN` only, ADR010, ADR012).
 - Config: custom properties live under `kg.*`. Typed groups use `@ConfigurationProperties` classes in core
   (`ChunkingProperties`, `TestGenerationDefaultsProperties`, `StorageProperties`).
+- Settings an admin changes at runtime are `SettingDefinition`s (`CoreSystemSettings`, other modules via
+  `SettingsContributor`), stored in `settings` ([ADR014](docs/adr/ADR014-settings-per-workspace.md)): a `SYSTEM` row
+  overrides the properties files, a `TENANT` row (only `perWorkspace()` settings) overrides that for one workspace.
+  Read workspace limits only through `TenantSettingsService.limits` (`WorkspaceLimits`; 0 means no limit), never
+  with checks on tenant type or role: the library and admins' workspaces simply have their own value 0.
 
 ## Test generation essentials
 

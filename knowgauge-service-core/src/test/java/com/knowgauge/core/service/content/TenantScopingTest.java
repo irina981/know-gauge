@@ -25,9 +25,9 @@ import com.knowgauge.core.model.Topic;
 import com.knowgauge.core.port.repository.DocumentRepository;
 import com.knowgauge.core.port.repository.TopicRepository;
 import com.knowgauge.core.port.storage.StorageService;
-import com.knowgauge.core.service.settings.SystemSettingsService;
 import com.knowgauge.core.storage.StorageKeyBuilder;
 import com.knowgauge.core.support.ContentScopes;
+import com.knowgauge.core.support.TenantSettings;
 
 /**
  * Topics and documents (ADR010): a tenant reads its own content and the library's, and changes only its own.
@@ -75,7 +75,7 @@ class TenantScopingTest {
 	private DocumentServiceImpl documents(boolean admin) {
 		return new DocumentServiceImpl(documentRepository, topicRepository, storageService,
 				mock(StorageKeyBuilder.class), context, ContentScopes.withLibraries(context, admin, LIBRARY),
-				mock(SystemSettingsService.class));
+				TenantSettings.noLimits());
 	}
 
 	@Test

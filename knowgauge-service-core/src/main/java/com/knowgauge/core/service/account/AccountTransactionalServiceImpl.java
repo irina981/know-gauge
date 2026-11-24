@@ -17,6 +17,7 @@ import com.knowgauge.core.model.enums.Role;
 import com.knowgauge.core.model.enums.TenantType;
 import com.knowgauge.core.port.repository.TenantRepository;
 import com.knowgauge.core.port.repository.UserRepository;
+import com.knowgauge.core.service.settings.TenantSettingsService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,12 +31,14 @@ public class AccountTransactionalServiceImpl {
 	private final UserRepository userRepository;
 	private final TenantRepository tenantRepository;
 	private final AccountProperties properties;
+	private final TenantSettingsService tenantSettings;
 
 	public AccountTransactionalServiceImpl(UserRepository userRepository, TenantRepository tenantRepository,
-			AccountProperties properties) {
+			AccountProperties properties, TenantSettingsService tenantSettings) {
 		this.userRepository = userRepository;
 		this.tenantRepository = tenantRepository;
 		this.properties = properties;
+		this.tenantSettings = tenantSettings;
 	}
 
 	@Transactional
@@ -52,8 +55,12 @@ public class AccountTransactionalServiceImpl {
 				user.setDisplayName(displayName);
 			}
 			user.setLastSeenAt(now);
-			grantAdminIfListed(user, emailVerified);
-			return userRepository.save(user);
+			boolean madeAdmin = grantAdminIfListed(user, emailVerified);
+			User saved = userRepository.save(user);
+			if (madeAdmin) {
+				giveAdminWorkspaceNoLimits(saved);
+			}
+			return saved;
 		}
 		return createWithPersonalTenant(externalId, email, emailVerified, displayName, now);
 	}
@@ -87,10 +94,13 @@ public class AccountTransactionalServiceImpl {
 		// Every user administers their own tenant for now; more roles come with organization tenants.
 		User newUser = User.builder().externalId(externalId).tenantId(tenant.getId())
 				.roles(EnumSet.of(Role.TENANT_ADMIN)).email(email).displayName(displayName).lastSeenAt(now).build();
-		grantAdminIfListed(newUser, emailVerified);
+		boolean madeAdmin = grantAdminIfListed(newUser, emailVerified);
 		User user = userRepository.save(newUser);
 		tenant.setOwnerUserId(user.getId());
 		tenantRepository.save(tenant);
+		if (madeAdmin) {
+			giveAdminWorkspaceNoLimits(user);
+		}
 		log.info("First sign-in: user {} created with personal tenant {}", user.getId(), tenant.getId());
 		return user;
 	}
@@ -98,8 +108,10 @@ public class AccountTransactionalServiceImpl {
 	/**
 	 * Makes the first application admins: a verified email listed in {@code kg.account.admin-emails} gets ADMIN.
 	 * Only adds; an admin keeps the role when their email leaves the list.
+	 *
+	 * @return whether the user got the role now
 	 */
-	private void grantAdminIfListed(User user, boolean emailVerified) {
+	private boolean grantAdminIfListed(User user, boolean emailVerified) {
 		if (emailVerified && !user.hasRole(Role.ADMIN) && properties.isAdminEmail(user.getEmail())) {
 			Set<Role> roles = EnumSet.noneOf(Role.class);
 			if (user.getRoles() != null) {
@@ -108,6 +120,17 @@ public class AccountTransactionalServiceImpl {
 			roles.add(Role.ADMIN);
 			user.setRoles(roles);
 			log.info("Subject {} granted ADMIN: their verified email is in kg.account.admin-emails", user.getExternalId());
+			return true;
 		}
+		return false;
+	}
+
+	/**
+	 * An application admin's own workspace has no limits (ADR014): its own value 0 for each, which an admin may change
+	 * later on the Workspaces page.
+	 */
+	private void giveAdminWorkspaceNoLimits(User admin) {
+		tenantSettings.setUnlimited(admin.getTenantId());
+		log.info("Workspace {} of admin user {} set to no limits", admin.getTenantId(), admin.getId());
 	}
 }
