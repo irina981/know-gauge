@@ -1,0 +1,119 @@
+package com.knowgauge.contract.api;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.knowgauge.contract.dto.DismissFlagsInput;
+import com.knowgauge.contract.dto.GenerationRunDto;
+import com.knowgauge.contract.dto.ManualQuestionInput;
+import com.knowgauge.contract.dto.PublishTestInput;
+import com.knowgauge.contract.dto.ReviewActionInput;
+import com.knowgauge.contract.dto.TestDetailsInput;
+import com.knowgauge.contract.dto.TestDto;
+import com.knowgauge.contract.dto.TestEventDto;
+import com.knowgauge.contract.dto.TestQuestionDto;
+import com.knowgauge.contract.dto.TestQuestionVersionDto;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+
+/**
+ * Review of generated questions and the test history trail (ADR001).
+ */
+@RequestMapping("/api/tests/{testId}")
+@Tag(name = "Test Review", description = "Review flagged questions and read the history of a test")
+public interface TestReviewApi {
+
+	// ---------------- actions ----------------
+
+	@PostMapping("/questions/{questionId}/accept-fix")
+	@Operation(summary = "Accept the suggested fix", description = "Creates a new version in which every flagged option's text is replaced by the verifier's suggestion. The answer key is unchanged.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Fix applied; returns the question with its new current version"),
+			@ApiResponse(responseCode = "404", description = "Test or question not found"),
+			@ApiResponse(responseCode = "409", description = "Question changed since expectedCurrentVersionId, test not reviewable, or no fix to apply") })
+	ResponseEntity<TestQuestionDto> acceptFix(@PathVariable Long testId, @PathVariable Long questionId,
+			@RequestBody @Valid ReviewActionInput input);
+
+	@PostMapping("/questions/{questionId}/dismiss-flags")
+	@Operation(summary = "Keep the question as it is", description = "Creates a new version with the same content and no flagged options, so a reviewer can overrule the verifier. The comment is required and kept in the history (ADR008).")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Flags dismissed; returns the question with its new current version"),
+			@ApiResponse(responseCode = "400", description = "Comment missing or blank"),
+			@ApiResponse(responseCode = "404", description = "Test or question not found"),
+			@ApiResponse(responseCode = "409", description = "Question changed since expectedCurrentVersionId, test not reviewable, or no flagged options") })
+	ResponseEntity<TestQuestionDto> dismissFlags(@PathVariable Long testId, @PathVariable Long questionId,
+			@RequestBody @Valid DismissFlagsInput input);
+
+	@PostMapping("/questions/{questionId}/regenerate")
+	@Operation(summary = "Regenerate the question", description = "Replaces the question with a newly generated one from the test's original context. The new version is verified again and may itself need review.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Question regenerated; returns the question with its new current version"),
+			@ApiResponse(responseCode = "404", description = "Test or question not found"),
+			@ApiResponse(responseCode = "409", description = "Question changed since expectedCurrentVersionId, or test not reviewable"),
+			@ApiResponse(responseCode = "502", description = "The LLM could not produce a valid question; nothing was changed") })
+	ResponseEntity<TestQuestionDto> regenerate(@PathVariable Long testId, @PathVariable Long questionId,
+			@RequestBody @Valid ReviewActionInput input);
+
+	@PostMapping("/questions/{questionId}/manual-replace")
+	@Operation(summary = "Replace the question manually", description = "Replaces the question with one written by the reviewer (question, options A-D with answer key, optional explanation). Validated with the non-LLM rules; not LLM-verified.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Question replaced; returns the question with its new current version"),
+			@ApiResponse(responseCode = "400", description = "Question failed validation; message lists every reason"),
+			@ApiResponse(responseCode = "404", description = "Test or question not found"),
+			@ApiResponse(responseCode = "409", description = "Question changed since expectedCurrentVersionId, or test not reviewable") })
+	ResponseEntity<TestQuestionDto> manualReplace(@PathVariable Long testId, @PathVariable Long questionId,
+			@RequestBody @Valid ManualQuestionInput input);
+
+	@PutMapping("/details")
+	@Operation(summary = "Edit the test's name and description", description = "Allowed in every status except PUBLISHED. Recorded as a TEST_DETAILS_UPDATED event.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Details updated; returns the test"),
+			@ApiResponse(responseCode = "400", description = "Blank name, or a value that is too long"),
+			@ApiResponse(responseCode = "404", description = "Test not found"),
+			@ApiResponse(responseCode = "409", description = "Test is published") })
+	ResponseEntity<TestDto> updateDetails(@PathVariable Long testId, @RequestBody @Valid TestDetailsInput input);
+
+	@PostMapping("/publish")
+	@Operation(summary = "Publish the test", description = "Freezes the test: no review action can change its questions any more, and attempts can be started. Allowed only for GENERATED or REVIEWED tests with no question needing review.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Test published; returns the test with status PUBLISHED"),
+			@ApiResponse(responseCode = "404", description = "Test not found"),
+			@ApiResponse(responseCode = "409", description = "Test already published, not in GENERATED or REVIEWED, or has questions needing review") })
+	ResponseEntity<TestDto> publish(@PathVariable Long testId,
+			@RequestBody(required = false) @Valid PublishTestInput input);
+
+	@PostMapping("/unpublish")
+	@Operation(summary = "Unpublish the test", description = "Returns a published test to the status it had before publishing (GENERATED or REVIEWED), so its questions can be reviewed again. Allowed only while no attempt exists for the test.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "Test unpublished; returns the test with its restored status"),
+			@ApiResponse(responseCode = "404", description = "Test not found"),
+			@ApiResponse(responseCode = "409", description = "Test is not published, or attempts exist for it") })
+	ResponseEntity<TestDto> unpublish(@PathVariable Long testId,
+			@RequestBody(required = false) @Valid PublishTestInput input);
+
+	@GetMapping("/has-attempts")
+	@Operation(summary = "Whether the test has attempts", description = "true once any attempt exists for the test. A published test can be unpublished only while this is false.")
+	@ApiResponses({ @ApiResponse(responseCode = "200", description = "true if any attempt exists, otherwise false") })
+	ResponseEntity<Boolean> hasAttempts(@PathVariable Long testId);
+
+	// ---------------- history ----------------
+
+	@GetMapping("/questions/{questionId}/versions")
+	@Operation(summary = "List question versions", description = "All versions of the question, oldest first (version 1 = as generated).")
+	ResponseEntity<List<TestQuestionVersionDto>> getVersions(@PathVariable Long testId, @PathVariable Long questionId);
+
+	@GetMapping("/events")
+	@Operation(summary = "Test history trail", description = "Every generation, flag, review action and status change of the test, oldest first.")
+	ResponseEntity<List<TestEventDto>> getEvents(@PathVariable Long testId,
+			@Parameter(description = "Only events of this question") @RequestParam(required = false) Long questionId);
+
+	@GetMapping("/generation-runs")
+	@Operation(summary = "LLM calls of the test", description = "Every generation, regeneration and verification call with model, tokens and raw response, oldest first.")
+	ResponseEntity<List<GenerationRunDto>> getGenerationRuns(@PathVariable Long testId);
+}

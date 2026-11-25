@@ -10,7 +10,9 @@ KnowGauge follows a **hexagonal (ports & adapters)** architecture, split into Ma
 - **`infra/*`** contains one module per external technology. Each implements one or more core ports.
 - **`rest-api`** is the driving adapter and the composition root: controllers, DTO mapping, exception handling,
   Spring Boot `main`, configuration and Flyway scripts.
-- **`rest-contract`** holds the public DTOs, which external clients can share.
+- **`rest-contract`** holds the API itself, which external clients can share: one interface per controller
+  (`com.knowgauge.contract.api.*Api`) with the request mappings, parameter bindings and OpenAPI documentation, and
+  the public DTOs.
 - **`rest-client`** is a placeholder for a Java client SDK (empty).
 
 ```mermaid
@@ -48,7 +50,7 @@ puts everything on one classpath. `@SpringBootApplication(scanBasePackages = "co
 | Module | Base package | Responsibility |
 |---|---|---|
 | `knowgauge-service-core` | `com.knowgauge.core` | Domain model, services, ports, prompt templates (`src/main/resources/prompttemplates`) |
-| `knowgauge-service-rest-contract` | `com.knowgauge.contract` | Request/response records (`TestInput`, `TestDto`, `TopicDto`, …) with OpenAPI `@Schema` |
+| `knowgauge-service-rest-contract` | `com.knowgauge.contract` | API interfaces (`api.*Api`: paths, parameters, OpenAPI `@Tag`/`@Operation`/`@ApiResponses`) and request/response records (`dto`: `TestInput`, `TestDto`, `TopicDto`, …) with OpenAPI `@Schema` |
 | `knowgauge-service-rest-client` | `com.knowgauge.client` | Placeholder only |
 | `knowgauge-service-rest-api` | `com.knowgauge` / `com.knowgauge.restapi` | Boot app, controllers, MapStruct DTO mappers, exception handler, execution context, dev seeder, `application*.properties`, Flyway SQL, static landing page |
 | `infra-repository-springdata-jpa` | `com.knowgauge.infra.repository.jpa` | Main datasource, EMF, `transactionManager`, Flyway, JPA entities, MapStruct entity mappers, Spring Data repos and port adapters |

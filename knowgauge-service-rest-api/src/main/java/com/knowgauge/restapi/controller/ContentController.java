@@ -9,27 +9,17 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.knowgauge.contract.dto.TopicDocumentCountDto;
+import com.knowgauge.contract.api.ContentApi;
 import com.knowgauge.contract.dto.DocumentDto;
 import com.knowgauge.contract.dto.DocumentInput;
 import com.knowgauge.contract.dto.TopicCreateInput;
+import com.knowgauge.contract.dto.TopicDocumentCountDto;
 import com.knowgauge.contract.dto.TopicDto;
 import com.knowgauge.contract.dto.TopicTreeNodeInput;
 import com.knowgauge.contract.dto.TopicUpdateInput;
@@ -42,25 +32,14 @@ import com.knowgauge.core.service.ingestion.IngestionService;
 import com.knowgauge.core.util.HashingHelper;
 import com.knowgauge.restapi.mapper.DocumentMapper;
 import com.knowgauge.restapi.mapper.TopicMapper;
-import com.knowgauge.restapi.util.TempFilesHelper;
 import com.knowgauge.restapi.security.Roles;
+import com.knowgauge.restapi.util.TempFilesHelper;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import jakarta.annotation.security.RolesAllowed;
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
-@RequestMapping("/api/content")
-@Tag(name = "Content", description = "Manage topics and source documents")
-public class ContentController {
+public class ContentController implements ContentApi {
 
 	private final DocumentService documentService;
 	private final TopicService topicService;
@@ -83,56 +62,46 @@ public class ContentController {
 	// Topics
 	// -----------------------------
 
-	@GetMapping("/topics/{id}")
-	@Operation(summary = "Get topic by id")
-	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Topic returned"),
-			@ApiResponse(responseCode = "404", description = "Topic not found") })
-	public ResponseEntity<TopicDto> getTopic(@PathVariable Long id) {
+	@Override
+	public ResponseEntity<TopicDto> getTopic(Long id) {
 		Topic topic = topicService.get(id).orElseThrow(() -> new ResourceNotFoundException("Topic not found: " + id));
 		return ResponseEntity.ok(topicMapper.toDto(topic));
 	}
 
-	@GetMapping("/topics/roots")
-	@Operation(summary = "List root topics")
+	@Override
 	public ResponseEntity<List<TopicDto>> getRoots() {
 		List<TopicDto> topics = topicService.getRoots().stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
 	}
 
-	@GetMapping("/topics/children/{parentId}")
-	@Operation(summary = "List children topics")
-	public ResponseEntity<List<TopicDto>> getChildren(@PathVariable Long parentId) {
+	@Override
+	public ResponseEntity<List<TopicDto>> getChildren(Long parentId) {
 		List<TopicDto> topics = topicService.getChildren(parentId).stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
 	}
 
-	@GetMapping("/topics/ingested-document-counts")
-	@Operation(summary = "Count ingested documents per topic", description = "For each topic that directly holds ingested documents, how many it holds. Topics without any are left out; add up a subtree to know whether a parent topic can be used for test generation.")
+	@Override
 	public ResponseEntity<List<TopicDocumentCountDto>> getIngestedDocumentCounts() {
 		return ResponseEntity.ok(documentService.countIngestedByTopic().entrySet().stream()
 				.map(e -> new TopicDocumentCountDto(e.getKey(), e.getValue())).toList());
 	}
 
-	@GetMapping("/topics/descendants/{parentId}")
-	@Operation(summary = "List all descendant topics")
-	public ResponseEntity<List<TopicDto>> getDescendants(@PathVariable Long parentId) {
+	@Override
+	public ResponseEntity<List<TopicDto>> getDescendants(Long parentId) {
 		List<TopicDto> topics = topicService.getDescendants(parentId).stream().map(topicMapper::toDto).toList();
 		return ResponseEntity.status(200).body(topics);
 	}
 
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
-	@DeleteMapping("/topics/{id}")
-	@Operation(summary = "Delete topic")
-	public ResponseEntity<Void> deleteTopic(@PathVariable Long id) {
+	public ResponseEntity<Void> deleteTopic(Long id) {
 		topicService.delete(id);
 		return ResponseEntity.status(200).body(null);
 	}
 
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
-	@PostMapping("/topics")
-	@Operation(summary = "Create topic")
-	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Topic created") })
-	public ResponseEntity<TopicDto> createTopic(@RequestBody @Valid TopicCreateInput topicInput) {
+	public ResponseEntity<TopicDto> createTopic(TopicCreateInput topicInput) {
 		Topic created = topicService.create(topicMapper.toDomain(topicInput));
 
 		// If Topic has an ID, you can return Location header.
@@ -142,24 +111,18 @@ public class ContentController {
 				: ResponseEntity.status(201).body(topicMapper.toDto(created));
 	}
 
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
-	@PutMapping("/topics/{id}")
-	@Operation(summary = "Update topic name and description", description = "Null fields are left unchanged. The id in the body, if any, is ignored.")
-	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Topic updated"),
-			@ApiResponse(responseCode = "400", description = "Invalid input or duplicate name under the same parent"),
-			@ApiResponse(responseCode = "404", description = "Topic not found") })
-	public ResponseEntity<TopicDto> updateTopic(@PathVariable Long id, @RequestBody @Valid TopicUpdateInput topicInput) {
+	public ResponseEntity<TopicDto> updateTopic(Long id, TopicUpdateInput topicInput) {
 		Topic topic = topicMapper.toDomain(topicInput);
 		topic.setId(id);
 		Topic updated = topicService.update(topic);
 		return ResponseEntity.ok(topicMapper.toDto(updated));
 	}
 
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
-	@PostMapping("/topics/tree")
-	@Operation(summary = "Create topic tree")
-	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Topic tree created") })
-	public ResponseEntity<TopicDto> createTopicTree(@RequestBody @Valid TopicTreeNodeInput topicTreeNodeInput) {
+	public ResponseEntity<TopicDto> createTopicTree(TopicTreeNodeInput topicTreeNodeInput) {
 		Topic createdRoot = topicService.createTopicTree(topicMapper.toDomain(topicTreeNodeInput));
 
 		URI location = tryBuildLocation("/api/content/topics/{id}", createdRoot);
@@ -171,35 +134,22 @@ public class ContentController {
 	// Documents
 	// -----------------------------
 
-	@GetMapping("/documents/{id}")
-	@Operation(summary = "Get document metadata by id")
-	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Document returned"),
-			@ApiResponse(responseCode = "404", description = "Document not found") })
-	public ResponseEntity<DocumentDto> getDocument(@PathVariable Long id) {
+	@Override
+	public ResponseEntity<DocumentDto> getDocument(Long id) {
 		Document document = documentService.get(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Document not found: " + id));
 		return ResponseEntity.ok(documentMaper.toDto(document));
 	}
 
-	@GetMapping("/documents/all/{topicId}")
-	@Operation(summary = "List documents for topic (paged)", description = "In upload order (by id) unless a sort is given.")
-	public ResponseEntity<Page<DocumentDto>> getAllDocuments(@PathVariable Long topicId,
-			@PageableDefault(sort = "id") Pageable pageable) {
+	@Override
+	public ResponseEntity<Page<DocumentDto>> getAllDocuments(Long topicId, Pageable pageable) {
 		Page<DocumentDto> documents = documentService.getAllDocuments(topicId, pageable).map(documentMaper::toDto);
 		return ResponseEntity.status(200).body(documents);
 	}
 
-	/**
-	 * Expects multipart/form-data with: - part "meta": JSON for DocumentInput -
-	 * part "file": the actual PDF (or any file)
-	 */
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
-	@PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@Operation(summary = "Upload document", description = "Multipart upload with meta JSON and file binary parts")
-	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Document uploaded"),
-			@ApiResponse(responseCode = "400", description = "Invalid upload payload") })
-	public ResponseEntity<DocumentDto> uploadDocument(@RequestPart("meta") @Valid String metaJson,
-			@RequestPart("file") MultipartFile file) throws IOException {
+	public ResponseEntity<DocumentDto> uploadDocument(String metaJson, MultipartFile file) throws IOException {
 
 		// Basic defensive checks (optional but recommended)
 		if (file.isEmpty()) {
@@ -228,10 +178,8 @@ public class ContentController {
 				: ResponseEntity.status(201).body(documentMaper.toDto(document));
 	}
 
-	@GetMapping("/documents/{id}/content")
-	@Operation(summary = "Download document content", description = "With inline=true the browser shows the file (for example in a PDF preview) instead of saving it.")
-	public void downloadDocument(@PathVariable Long id,
-			@RequestParam(defaultValue = "false") boolean inline, HttpServletResponse response) throws IOException {
+	@Override
+	public void downloadDocument(Long id, boolean inline, HttpServletResponse response) throws IOException {
 
 		// Get metadata first (NO streaming yet)
 		Document document = documentService.get(id)
@@ -249,18 +197,16 @@ public class ContentController {
 
 	}
 
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
-	@DeleteMapping("/documents/{id}")
-	@Operation(summary = "Delete document")
-	public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
+	public ResponseEntity<Void> deleteDocument(Long id) {
 		documentService.delete(id);
 		return ResponseEntity.status(200).body(null);
 	}
-	
+
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.ADMIN })
-	@PostMapping("/documents/ingestion/{id}")
-	@Operation(summary = "Start ingestion for document")
-	public ResponseEntity<Void> startIngestion(@PathVariable Long id) {
+	public ResponseEntity<Void> startIngestion(Long id) {
 		ingestionService.ingest(id);
 		return ResponseEntity.status(200).body(null);
 	}

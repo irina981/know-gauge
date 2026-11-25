@@ -4,6 +4,13 @@ The API is served by `knowgauge-service-rest-api`. OpenAPI docs are at `/v3/api-
 `/swagger-ui.html`. A static landing page (`static/index.html`, with `logo.svg`, `logo-dark.svg` and `favicon.svg`) is served at `/`. Actuator is at
 `/actuator` (health with liveness/readiness probes, info, metrics, env, beans, loggers).
 
+Every controller implements an interface from `knowgauge-service-rest-contract` (`com.knowgauge.contract.api`, for
+example `ContentController implements ContentApi`). The interface holds the API: the request mappings, the parameter
+bindings (`@PathVariable`, `@RequestParam`, `@RequestBody @Valid`, `@PageableDefault`) and all OpenAPI annotations
+(`@Tag`, `@Operation`, `@ApiResponses`, `@Parameter`). Spring MVC and springdoc read them from the interface. The
+controller holds only `@RestController`, `@RolesAllowed` and the implementation (`@Override` methods with plain
+parameters).
+
 Who calls the API depends on the security mode (`kg.security.mode`, ADR010):
 
 - `fixed` (default): no authentication. Every request runs as `kg.context.tenant-id` / `user-id`.

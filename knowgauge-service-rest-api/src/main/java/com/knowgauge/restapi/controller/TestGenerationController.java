@@ -4,16 +4,10 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.knowgauge.contract.api.TestGenerationApi;
 import com.knowgauge.contract.dto.TestDefaultsDto;
 import com.knowgauge.contract.dto.TestDto;
 import com.knowgauge.contract.dto.TestInput;
@@ -25,23 +19,10 @@ import com.knowgauge.restapi.mapper.TestMapper;
 import com.knowgauge.restapi.mapper.TestQuestionMapper;
 import com.knowgauge.restapi.security.Roles;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/tests")
-@Tag(name = "Test Generation", description = "Generate, retrieve, list and delete generated tests")
-public class TestGenerationController {
+public class TestGenerationController implements TestGenerationApi {
 
 	private final TestGenerationService testGenerationService;
 	private final TestMapper testMapper;
@@ -52,33 +33,12 @@ public class TestGenerationController {
 		this.testGenerationService = testGenerationService;
 		this.testMapper = testMapper;
 		this.testQuestionMapper = testQuestionMapper;
-		
+
 	}
 
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
-	@PostMapping("")
-	@Operation(summary = "Generate a new test", description = "Creates a new test draft, runs generation, validates questions and returns the generated test metadata.")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "201", description = "Test generated successfully", content = @Content(schema = @Schema(implementation = TestDto.class))),
-			@ApiResponse(responseCode = "400", description = "Invalid request payload"),
-			@ApiResponse(responseCode = "500", description = "Generation failed") })
-	@io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, description = "Test generation input", content = @Content(mediaType = "application/json", examples = {
-			@ExampleObject(name = "basic", value = """
-					{
-					  "topicIds": [],
-					  "documentIds": [1],
-					  "difficulty": "MEDIUM",
-					  "questionCount": 10,
-					  "answerCardinality": "SINGLE_CORRECT",
-					  "language": "EN",
-					  "generationParams": {
-					    "temperature": 0.2,
-					    "maxOutputTokens": 1200
-					  }
-					}
-					""")
-	}))
-	public ResponseEntity<TestDto> generateTest(@RequestBody @Valid TestInput testInput) {
+	public ResponseEntity<TestDto> generateTest(TestInput testInput) {
 		Test created = testGenerationService.generate(testMapper.toDomain(testInput));
 
 		// If Test has an ID, you can return Location header.
@@ -88,9 +48,7 @@ public class TestGenerationController {
 				: ResponseEntity.status(201).body(testMapper.toDto(created));
 	}
 
-	@GetMapping("/defaults")
-	@Operation(summary = "Get the defaults of a new test", description = "What POST /api/tests uses for each field the request leaves empty, for the current workspace: its own configuration (ADR014), else the system values. The Generate test form starts from these.")
-	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Defaults returned") })
+	@Override
 	public ResponseEntity<TestDefaultsDto> getTestDefaults() {
 		Test d = testGenerationService.defaults();
 		return ResponseEntity.ok(new TestDefaultsDto(d.getQuestionCount(), name(d.getDifficulty()),
@@ -102,77 +60,34 @@ public class TestGenerationController {
 		return value == null ? null : value.name();
 	}
 
-	@GetMapping("/{id}")
-	@Operation(summary = "Get test by id", description = "Returns a previously generated test for the current tenant.")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Test found", content = @Content(schema = @Schema(implementation = TestDto.class))),
-			@ApiResponse(responseCode = "404", description = "Test not found") })
-	public ResponseEntity<TestDto> getTestById(
-			@Parameter(description = "Test ID", example = "1") @PathVariable Long id) {
+	@Override
+	public ResponseEntity<TestDto> getTestById(Long id) {
 		return testGenerationService.getById(id).map(testMapper::toDto).map(ResponseEntity::ok)
 				.orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
-	@GetMapping("/{id}/questions")
-	@Operation(summary = "List questions by test id", description = "Returns the questions of a test (current version of each) for the current tenant. Questions with status NEEDS_REVIEW have flagged options with suggested fixes.")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Questions returned", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = TestQuestionDto.class)), examples = {
-					@ExampleObject(name = "questions", value = """
-						[
-						  {
-						    "id": 9001,
-						    "testId": 5001,
-						    "questionIndex": 0,
-						    "status": "NEEDS_REVIEW",
-						    "currentVersionId": 12001,
-						    "versionNo": 1,
-						    "origin": "GENERATED",
-						    "questionText": "Which Spring Boot annotation marks the main application class?",
-						    "options": {
-						      "A": { "letter": "A", "text": "@SpringBootApplication", "correct": true, "flagged": false, "suggestedText": null, "flagReason": null },
-						      "B": { "letter": "B", "text": "@EnableAutoConfiguration", "correct": false, "flagged": true, "suggestedText": "@EnableScheduling", "flagReason": "Also implied by @SpringBootApplication on the main class" },
-						      "C": { "letter": "C", "text": "@BootApp", "correct": false, "flagged": false, "suggestedText": null, "flagReason": null },
-						      "D": { "letter": "D", "text": "@SpringApp", "correct": false, "flagged": false, "suggestedText": null, "flagReason": null }
-						    },
-						    "correctOptions": ["A"],
-						    "flaggedOptions": ["B"],
-						    "explanation": "@SpringBootApplication combines @Configuration, @EnableAutoConfiguration, and @ComponentScan.",
-						    "sourceChunkIds": [10101, 10102]
-						  }
-						]
-						""")
-			})),
-			@ApiResponse(responseCode = "404", description = "Test not found") })
-	public ResponseEntity<List<TestQuestionDto>> getTestQuestionsByTestId(
-			@Parameter(description = "Test ID", example = "1") @PathVariable Long id) {
+	@Override
+	public ResponseEntity<List<TestQuestionDto>> getTestQuestionsByTestId(Long id) {
 		return testGenerationService.getQuestionsByTestId(id)
 				.map(questions -> ResponseEntity.ok(questions.stream().map(testQuestionMapper::toDto).toList()))
 				.orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
-	@GetMapping("")
-	@Operation(summary = "List tests", description = "Returns all tests for the current tenant. Optionally filter by status.")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Tests returned") })
-	public ResponseEntity<List<TestDto>> getAllTests(
-			@Parameter(description = "Optional status filter", example = "GENERATED") @RequestParam(required = false) String status) {
+	@Override
+	public ResponseEntity<List<TestDto>> getAllTests(String status) {
 		List<Test> tests = (status == null || status.isBlank()) ? testGenerationService.getAll()
 				: testGenerationService.getAllByStatus(TestStatus.valueOf(status.toUpperCase()));
 
 		return ResponseEntity.ok(tests.stream().map(testMapper::toDto).toList());
 	}
 
+	@Override
 	@RolesAllowed({ Roles.TENANT_ADMIN, Roles.TENANT_USER, Roles.ADMIN })
-	@DeleteMapping("/{id}")
-	@Operation(summary = "Delete test", description = "Deletes a test and associated generated questions for the current tenant.")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Test deleted") })
-	public ResponseEntity<Void> deleteTestById(
-			@Parameter(description = "Test ID", example = "1") @PathVariable Long id) {
+	public ResponseEntity<Void> deleteTestById(Long id) {
 		testGenerationService.deleteById(id);
 		return ResponseEntity.status(200).build();
 	}
-	
+
 	/**
 	 * Best-effort Location header creator. Works if your domain objects expose
 	 * getId(). If your Topic/Document uses a different ID getter, adjust this

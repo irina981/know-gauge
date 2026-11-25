@@ -6,11 +6,9 @@ import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.knowgauge.contract.api.DevFocusSuggestionsApi;
 
 /**
  * Focus suggestions for the dev-seeded demo topics (R__dev_seed_topics.sql), shown under the Focus field of the
@@ -21,8 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @ConditionalOnProperty(name = "kg.dev.seed.enabled", havingValue = "true")
 @Profile("local")
-@Tag(name = "Dev", description = "Development helpers for the seeded demo content")
-public class DevFocusSuggestionsController {
+public class DevFocusSuggestionsController implements DevFocusSuggestionsApi {
 
 	/** Topic id (from the dev seed) to its focus suggestions. */
 	static final Map<Long, List<String>> SUGGESTIONS = Map.of(
@@ -70,8 +67,7 @@ public class DevFocusSuggestionsController {
 					"Modal verbs: must, have to, should, mustn't and don't have to",
 					"First and second conditional with if", "The passive voice"));
 
-	@GetMapping("/api/dev/focus-suggestions")
-	@Operation(summary = "Focus suggestions for the demo topics", description = "Topic id to example focus texts for FOCUSED tests. The client offers the suggestions of the selected topics, their parents and their sub-topics. Only available when the dev seed is enabled.")
+	@Override
 	public ResponseEntity<Map<Long, List<String>>> getFocusSuggestions() {
 		return ResponseEntity.ok(SUGGESTIONS);
 	}

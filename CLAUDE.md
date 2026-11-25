@@ -81,7 +81,7 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 | Module | Role |
 |---|---|
 | `knowgauge-service-core` | Domain model, services, **port interfaces**, prompt templates (`src/main/resources/prompttemplates`) |
-| `knowgauge-service-rest-contract` | Public DTO records (`*Dto`, `*Input`) |
+| `knowgauge-service-rest-contract` | API interfaces (`contract.api.*Api`: mappings + OpenAPI docs) and public DTO records (`*Dto`, `*Input`) |
 | `knowgauge-service-rest-api` | Boot app + composition root: controllers, DTO mappers, exception handler, security (`restapi.security`: `SecurityConfig`, JWT → local user in `AccountResolutionFilter`), execution context (`restapi.context`), `application*.properties`, **all Flyway SQL** (`db/migration`, `db/dev-migration`, `db/pgvector-migration`) |
 | `knowgauge-service-rest-client` | Empty placeholder |
 | `knowgauge-service-infra/*-repository-springdata-jpa` | Main DB: JPA entities, Spring Data repos, `*JpaRepositoryAdapter` implementing core repository ports |
@@ -118,6 +118,12 @@ production setup (prod profile, UI, Dozzle with login) is [`deploy/`](deploy/REA
 - Embedding dimension (1536) is set in three places that must agree: `kg.embedding.dimension`, `vector(1536)` in
   the pgvector migration, and `@Array(length = 1536)` on `ChunkEmbeddingEntity`.
 - Always filter vector queries by `tenant_id` **and** `embedding_model`.
+- **Every controller implements an API interface** from `knowgauge-service-rest-contract`
+  (`com.knowgauge.contract.api.<Name>Api`, e.g. `ContentController implements ContentApi`). The interface holds the
+  request mappings, parameter bindings (`@PathVariable`, `@RequestParam`, `@RequestBody @Valid`, `@PageableDefault`)
+  and **all OpenAPI annotations** (`@Tag`, `@Operation`, `@ApiResponses`, `@Parameter`). The controller keeps only
+  `@RestController` (plus conditions like `@Profile`), `@RolesAllowed` and `@Override` methods with plain parameters.
+  No `io.swagger` or `*Mapping` annotations in controllers. A new endpoint goes into the interface first.
 - **Every endpoint that changes something** gets `@RolesAllowed` with its roles (ADR017), and its service calls
   `RolePermissions` (or `ContentScope.requireWritable` for library content). Reads stay open to every role.
 - Translate provider errors to typed core exceptions (`Storage*`, `Embedding*`, `LlmResponseParsingException`) in
